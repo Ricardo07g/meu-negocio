@@ -14,15 +14,16 @@
     @stack('css')
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
     <style>
+        /* Variáveis de cores (tema claro original - altere aqui para customizar) */
         :root {
-            --cor-fundo: #3d4f65;
-            --cor-fundo-escuro: #344559;
-            --cor-fundo-hover: #506380;
-            --cor-texto: #fff;
-            --cor-texto-claro: #c8d6e5;
+            --cor-fundo: #ffffff;
+            --cor-fundo-escuro: #f8f9fa;
+            --cor-fundo-hover: #e9ecef;
+            --cor-texto: #283c50;
+            --cor-texto-claro: #6c757d;
             --cor-icone: #94a3b8;
-            --cor-texto-muted: #64748b;
-            --cor-texto-sutil: #7f8fa6;
+            --cor-texto-muted: #6c757d;
+            --cor-texto-sutil: #adb5bd;
             --cor-destaque: #3454d1;
         }
 
@@ -30,86 +31,23 @@
         .modal-backdrop ~ .nxl-container,
         body.modal-open .nxl-container { filter: none !important; -webkit-filter: none !important; }
 
-        /* Sidebar */
-        .nxl-navigation { background: var(--cor-fundo) !important; }
-        .nxl-navigation .navbar-wrapper { background: var(--cor-fundo) !important; }
-        .nxl-navigation .m-header { background: var(--cor-fundo-escuro) !important; }
-        .nxl-navigation .m-header .b-brand { color: var(--cor-texto) !important; }
-        .nxl-navigation .nxl-link { color: var(--cor-texto-claro) !important; }
-        .nxl-navigation .nxl-micon i { color: var(--cor-icone) !important; }
-        .nxl-navigation .nxl-item .nxl-link:hover,
-        .nxl-navigation .nxl-item.active > .nxl-link { background: var(--cor-fundo-hover) !important; color: var(--cor-texto) !important; }
-        .nxl-navigation .nxl-item .nxl-link:hover .nxl-micon i,
-        .nxl-navigation .nxl-item.active > .nxl-link .nxl-micon i { color: var(--cor-texto) !important; }
-        .nxl-navigation .nxl-item .nxl-link:hover .nxl-mtext,
-        .nxl-navigation .nxl-item.active > .nxl-link .nxl-mtext { color: var(--cor-texto) !important; }
-        .nxl-navigation .nxl-caption label { color: var(--cor-texto-muted) !important; text-transform: uppercase; font-size: 11px; }
-        .nxl-navigation .navbar-content { border-color: var(--cor-fundo-hover) !important; }
-
         /* Sidebar minimenu: empurra conteúdo ao expandir no hover */
         html.minimenu .nxl-container,
         html.minimenu .nxl-header,
         html.minimenu .page-header { transition: all .3s ease; }
-
-        /* Abordagem 1: CSS :has() (navegadores modernos) */
         html.minimenu:has(.nxl-navigation:hover) .nxl-container { margin-left: 280px !important; }
         html.minimenu:has(.nxl-navigation:hover) .nxl-header { left: 280px !important; }
         html.minimenu:has(.nxl-navigation:hover) .page-header { left: 280px !important; }
-
-        /* Abordagem 2: fallback via JS class (todos os navegadores) */
         html.minimenu-hover .nxl-container { margin-left: 280px !important; }
         html.minimenu-hover .nxl-header { left: 280px !important; }
         html.minimenu-hover .page-header { left: 280px !important; }
-
-        /* Fundo do sidebar: força cor escura + transição só em width (evita flash branco) */
-        html.minimenu .nxl-navigation .navbar-content {
-            background-color: var(--cor-fundo) !important;
-            transition: width .3s ease !important;
-        }
-        html.minimenu .nxl-navigation .navbar-wrapper {
-            background: var(--cor-fundo) !important;
-            transition: width .3s ease !important;
-        }
-        html.minimenu .nxl-navigation .m-header {
-            background: var(--cor-fundo-escuro) !important;
-            transition: width .3s ease !important;
-        }
+        html.minimenu .nxl-navigation .navbar-content,
+        html.minimenu .nxl-navigation .navbar-wrapper,
+        html.minimenu .nxl-navigation .m-header { transition: width .3s ease !important; }
         html.minimenu .nxl-navigation:hover .m-header,
         html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
 
-        /* Header */
-        .nxl-header { background: var(--cor-fundo) !important; border-bottom: 1px solid var(--cor-fundo-hover) !important; }
-        .nxl-header .header-wrapper { background: var(--cor-fundo) !important; }
-        .nxl-header .page-header-title h5 { color: var(--cor-texto) !important; }
-        .nxl-header .breadcrumb-item a { color: var(--cor-texto-claro) !important; }
-        .nxl-header .breadcrumb-item.active,
-        .nxl-header .breadcrumb-item + .breadcrumb-item::before { color: var(--cor-texto-sutil) !important; }
-
-        /* Header - hamburger menu (3 barras) */
-        .nxl-header .hamburger-inner,
-        .nxl-header .hamburger-inner::before,
-        .nxl-header .hamburger-inner::after { background-color: var(--cor-texto) !important; }
-
-        /* Header - ícones esquerda (toggle, mega menu) */
-        .nxl-header .nxl-navigation-toggle a,
-        .nxl-header .nxl-navigation-toggle a i,
-        .nxl-header .nxl-lavel-mega-menu-toggle a,
-        .nxl-header .nxl-lavel-mega-menu-toggle a i,
-        .nxl-header .nxl-head-mobile-toggler { color: var(--cor-texto) !important; }
-
-        /* Header - ícones direita (dark mode, avatar) */
-        .nxl-header .dark-button,
-        .nxl-header .dark-button i,
-        .nxl-header .nxl-head-link,
-        .nxl-header .nxl-head-link i { color: var(--cor-texto) !important; }
-        .nxl-header .nxl-head-link:hover,
-        .nxl-header .dark-button:hover { background: var(--cor-fundo-hover) !important; border-radius: 8px; }
-
-        /* Header - avatar círculo */
-        .nxl-header .avtar-s,
-        .nxl-header .avatar-text { background: var(--cor-destaque) !important; color: var(--cor-texto) !important; }
-
-        /* Botões - sobrescreve cor primária do tema */
+        /* Botões - cor primária customizável via variável */
         .btn-primary,
         .btn-primary:hover,
         .btn-primary:focus,
