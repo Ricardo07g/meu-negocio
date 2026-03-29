@@ -9,7 +9,7 @@ use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Profissional\Models\Profissional;
+use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;

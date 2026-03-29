@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('titulo', 'Cliente - Meu Negócio')
+@section('titulo', 'Cliente - Meu Negocio')
 @section('titulo-pagina', $cliente->nome)
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('clientes.index') }}">Clientes</a></li>
@@ -10,7 +10,7 @@
 @section('content')
     <div class="row">
         {{-- Coluna esquerda: Perfil do cliente --}}
-        <div class="col-xxl-4 col-xl-6">
+        <div class="col-xxl-4 col-xl-5">
             <div class="card stretch stretch-full">
                 <div class="card-body">
                     <div class="mb-4 text-center">
@@ -21,35 +21,95 @@
                         </div>
                         <h5 class="fw-bold mb-1">{{ $cliente->nome }}</h5>
                         @if($cliente->email)
-                        <span class="fs-12 text-muted">{{ $cliente->email }}</span>
+                            <span class="fs-12 text-muted">{{ $cliente->email }}</span>
                         @endif
                     </div>
 
                     <ul class="list-unstyled mb-4">
+                        {{-- Telefone --}}
                         <li class="hstack justify-content-between mb-4">
-                            <span class="text-muted fw-medium hstack gap-3"><i class="feather-phone"></i>Telefone</span>
-                            <span>{{ $cliente->telefone ?? '-' }}</span>
+                            <span class="text-muted fw-medium hstack gap-3">
+                                <i class="feather-phone"></i>Telefone
+                            </span>
+                            <span>
+                                {{ $cliente->telefone ?? '-' }}
+                                @if($cliente->telefone_whatsapp)
+                                    <span class="badge bg-success ms-1">
+                                        <i class="feather-message-circle me-1"></i>WhatsApp
+                                    </span>
+                                @endif
+                            </span>
                         </li>
+                        {{-- Email --}}
                         <li class="hstack justify-content-between mb-4">
-                            <span class="text-muted fw-medium hstack gap-3"><i class="feather-mail"></i>Email</span>
+                            <span class="text-muted fw-medium hstack gap-3">
+                                <i class="feather-mail"></i>Email
+                            </span>
                             <span>{{ $cliente->email ?? '-' }}</span>
                         </li>
-                        <li class="hstack justify-content-between mb-0">
-                            <span class="text-muted fw-medium hstack gap-3"><i class="feather-file-text"></i>Obs.</span>
-                            <span>{{ $cliente->observacoes ?? '-' }}</span>
+                        {{-- CPF --}}
+                        <li class="hstack justify-content-between mb-4">
+                            <span class="text-muted fw-medium hstack gap-3">
+                                <i class="feather-credit-card"></i>CPF
+                            </span>
+                            <span>{{ $cliente->cpf ?? '-' }}</span>
+                        </li>
+                        {{-- Data de Nascimento --}}
+                        <li class="hstack justify-content-between mb-4">
+                            <span class="text-muted fw-medium hstack gap-3">
+                                <i class="feather-calendar"></i>Nascimento
+                            </span>
+                            <span>
+                                @if($cliente->data_nascimento)
+                                    {{ $cliente->data_nascimento->format('d/m/Y') }}
+                                    <small class="text-muted">({{ $cliente->data_nascimento->age }} anos)</small>
+                                @else
+                                    -
+                                @endif
+                            </span>
+                        </li>
+                        {{-- Sexo --}}
+                        <li class="hstack justify-content-between mb-4">
+                            <span class="text-muted fw-medium hstack gap-3">
+                                <i class="feather-user"></i>Sexo
+                            </span>
+                            <span>
+                                @if($cliente->sexo == 'M') Masculino
+                                @elseif($cliente->sexo == 'F') Feminino
+                                @elseif($cliente->sexo == 'outro') Outro
+                                @else -
+                                @endif
+                            </span>
+                        </li>
+                        {{-- Endereco --}}
+                        <li class="mb-0">
+                            <span class="text-muted fw-medium hstack gap-3 mb-2">
+                                <i class="feather-map-pin"></i>Endereço
+                            </span>
+                            <span class="fs-13">
+                                @if($cliente->logradouro || $cliente->cidade || $cliente->cep)
+                                    @if($cliente->logradouro)
+                                        {{ $cliente->logradouro }}{{ $cliente->numero ? ', ' . $cliente->numero : '' }}
+                                        @if($cliente->complemento) - {{ $cliente->complemento }} @endif
+                                        <br>
+                                    @endif
+                                    @if($cliente->bairro) {{ $cliente->bairro }}<br> @endif
+                                    @if($cliente->cidade || $cliente->estado)
+                                        {{ $cliente->cidade }}{{ $cliente->estado ? ' - ' . $cliente->estado : '' }}<br>
+                                    @endif
+                                    @if($cliente->cep) CEP: {{ $cliente->cep }} @endif
+                                @else
+                                    -
+                                @endif
+                            </span>
                         </li>
                     </ul>
 
                     <div class="d-flex gap-2 text-center pt-4">
-                        @can('cliente.excluir')
-                        <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="w-50" data-confirm="Excluir este cliente?">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-light-brand w-100">
-                                <i class="feather-trash-2 me-2"></i>
-                                <span>Excluir</span>
-                            </button>
-                        </form>
-                        @endcan
+                        <a href="{{ route('clientes.index') }}" class="w-50 btn btn-light">
+                            <i class="feather-arrow-left me-2"></i>
+                            <span>Voltar</span>
+                        </a>
                         @can('cliente.editar')
                         <a href="{{ route('clientes.edit', $cliente) }}" class="w-50 btn btn-primary">
                             <i class="feather-edit me-2"></i>
@@ -59,10 +119,11 @@
                     </div>
                 </div>
             </div>
+
         </div>
 
         {{-- Coluna direita: Abas --}}
-        <div class="col-xxl-8 col-xl-6">
+        <div class="col-xxl-8 col-xl-7">
             <div class="card border-top-0">
                 <div class="card-header p-0">
                     <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs" id="clienteTabs" role="tablist">
@@ -90,10 +151,10 @@
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Serviço</th>
+                                        <th>Servico</th>
                                         <th>Profissional</th>
                                         <th>Valor Total</th>
-                                        <th>Sessões</th>
+                                        <th>Sessoes</th>
                                         <th>Status</th>
                                         <th>Data</th>
                                     </tr>
@@ -108,7 +169,7 @@
                                         <td>
                                             @switch($venda->status->value)
                                                 @case('ativo') <span class="badge bg-success">Ativo</span> @break
-                                                @case('concluido') <span class="badge bg-primary">Concluído</span> @break
+                                                @case('concluido') <span class="badge bg-primary">Concluido</span> @break
                                                 @case('cancelado') <span class="badge bg-danger">Cancelado</span> @break
                                             @endswitch
                                         </td>
@@ -128,10 +189,10 @@
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Serviço</th>
+                                        <th>Servico</th>
                                         <th>Profissional</th>
                                         <th>Data</th>
-                                        <th>Horário</th>
+                                        <th>Horario</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
@@ -165,7 +226,7 @@
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Serviço</th>
+                                        <th>Servico</th>
                                         <th>Valor</th>
                                         <th>Forma</th>
                                         <th>Status</th>

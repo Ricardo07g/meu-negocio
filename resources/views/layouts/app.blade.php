@@ -422,7 +422,7 @@
                         confirmButtonText: 'Sim, confirmar',
                         cancelButtonText: 'Cancelar'
                     }).then(function(result) {
-                        if (result.isConfirmed) {
+                        if (result.value) {
                             form.dataset.confirmed = 'true';
                             form.requestSubmit();
                         }
@@ -448,6 +448,51 @@
         Swal.fire({ icon: 'error', title: 'Erro', text: '{{ session('erro') }}' });
     </script>
     @endif
+    {{-- Máscaras e CEP auto-fill --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function aplicarMascara(input, mascara) {
+            input.addEventListener('input', function() {
+                var v = this.value.replace(/\D/g, '');
+                var r = '';
+                var i = 0;
+                for (var m = 0; m < mascara.length && i < v.length; m++) {
+                    if (mascara[m] === '0') {
+                        r += v[i]; i++;
+                    } else {
+                        r += mascara[m];
+                    }
+                }
+                this.value = r;
+            });
+        }
+
+        document.querySelectorAll('.mask-telefone').forEach(function(el) { aplicarMascara(el, '(00) 00000-0000'); });
+        document.querySelectorAll('.mask-cpf').forEach(function(el) { aplicarMascara(el, '000.000.000-00'); });
+        document.querySelectorAll('.mask-cep').forEach(function(el) { aplicarMascara(el, '00000-000'); });
+        document.querySelectorAll('.mask-data').forEach(function(el) { aplicarMascara(el, '00/00/0000'); });
+
+        // CEP auto-fill via ViaCEP
+        document.querySelectorAll('.mask-cep').forEach(function(el) {
+            el.addEventListener('blur', function() {
+                var cep = this.value.replace(/\D/g, '');
+                if (cep.length !== 8) return;
+                fetch('https://viacep.com.br/ws/' + cep + '/json/')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (d.erro) return;
+                        var f = function(id, val) { var el = document.getElementById(id); if (el && val) el.value = val; };
+                        f('logradouro', d.logradouro);
+                        f('bairro', d.bairro);
+                        f('cidade', d.localidade);
+                        var estado = document.getElementById('estado');
+                        if (estado && d.uf) { estado.value = d.uf; }
+                    })
+                    .catch(function() {});
+            });
+        });
+    });
+    </script>
     @stack('js')
 </body>
 

@@ -41,11 +41,9 @@
                 </div>
                 @endforeach
 
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Atualizar</button>
-                    <a href="{{ route('papeis.index') }}" class="btn btn-light">Cancelar</a>
-                </div>
             </div>
         </div>
+
+        <x-form-botoes :voltar="route('papeis.index')" />
     </form>
 @endsection

@@ -88,10 +88,7 @@
                                 @error('fim') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                         </div>
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary"><i class="feather-check me-1"></i> Agendar</button>
-                            <a href="{{ route('vendas.index') }}" class="btn btn-light">Cancelar</a>
-                        </div>
+                        {{-- botões no final do form --}}
                     </div>
 
                     {{-- Campos Pacote --}}
@@ -173,10 +170,7 @@
                             @error('valor_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary"><i class="feather-check me-1"></i> Registrar Venda</button>
-                        <a href="{{ route('vendas.index') }}" class="btn btn-light">Cancelar</a>
-                    </div>
+                    {{-- botões no final do form --}}
                 </div>
             </div>
         </div>
@@ -232,12 +226,11 @@
                         <tbody id="sessoesTbody"></tbody>
                     </table>
                 </div>
-                <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary"><i class="feather-check me-1"></i> Confirmar e Criar Agendamentos</button>
-                    <a href="{{ route('vendas.index') }}" class="btn btn-light">Cancelar</a>
-                </div>
+                {{-- botões no final do form --}}
             </div>
         </div>
+
+        <x-form-botoes :voltar="route('vendas.index')" />
     </form>
 @endsection
 

@@ -8,13 +8,13 @@
 @endsection
 
 @section('content')
-    <div class="card stretch stretch-full">
-        <div class="card-header">
-            <h5 class="card-title">Editar Despesa</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('despesas.update', $despesa) }}" method="POST">
-                @csrf @method('PUT')
+    <form action="{{ route('despesas.update', $despesa) }}" method="POST">
+        @csrf @method('PUT')
+        <div class="card stretch stretch-full">
+            <div class="card-header">
+                <h5 class="card-title">Editar Despesa</h5>
+            </div>
+            <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <label class="form-label">Nome <span class="text-danger">*</span></label>
@@ -32,11 +32,9 @@
                         @error('data') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Atualizar</button>
-                    <a href="{{ route('despesas.index') }}" class="btn btn-light">Cancelar</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <x-form-botoes :voltar="route('despesas.index')" />
+    </form>
 @endsection

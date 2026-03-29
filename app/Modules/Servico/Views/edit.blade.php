@@ -8,13 +8,13 @@
 @endsection
 
 @section('content')
-    <div class="card stretch stretch-full">
-        <div class="card-header">
-            <h5 class="card-title">Editar Serviço</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ route('servicos.update', $servico) }}" method="POST">
-                @csrf @method('PUT')
+    <form action="{{ route('servicos.update', $servico) }}" method="POST">
+        @csrf @method('PUT')
+        <div class="card stretch stretch-full">
+            <div class="card-header">
+                <h5 class="card-title">Editar Serviço</h5>
+            </div>
+            <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-3">
                         <label class="form-label">Tipo <span class="text-danger">*</span></label>
@@ -56,14 +56,11 @@
                         </div>
                     </div>
                 </div>
-
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">Atualizar</button>
-                    <a href="{{ route('servicos.index') }}" class="btn btn-light">Cancelar</a>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        <x-form-botoes :voltar="route('servicos.index')" />
+    </form>
 @endsection
 
 @push('js')

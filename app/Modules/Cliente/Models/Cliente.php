@@ -23,8 +23,24 @@ class Cliente extends Model
         'empresa_id',
         'nome',
         'telefone',
+        'telefone_whatsapp',
         'email',
+        'data_nascimento',
+        'cpf',
+        'sexo',
+        'cep',
+        'estado',
+        'cidade',
+        'bairro',
+        'logradouro',
+        'numero',
+        'complemento',
         'observacoes',
+    ];
+
+    protected $casts = [
+        'data_nascimento' => 'date',
+        'telefone_whatsapp' => 'boolean',
     ];
 
     public function agendamentos(): HasMany

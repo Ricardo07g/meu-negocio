@@ -5,7 +5,7 @@ namespace App\Modules\Venda\Models;
 use App\Enums\StatusVendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Profissional\Models\Profissional;
+use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
 use App\Traits\PertenceARede;
 use App\Traits\PertenceAEmpresa;

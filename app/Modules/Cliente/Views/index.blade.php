@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('titulo', 'Clientes - Meu Negócio')
+@section('titulo', 'Clientes - Meu Negocio')
 @section('titulo-pagina', 'Clientes')
 @section('breadcrumb')
     <li class="breadcrumb-item active">Clientes</li>
 @endsection
 
 @section('content')
-    {{-- Button row OUTSIDE the card --}}
+    {{-- Botao Novo Cliente --}}
     @can('cliente.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
@@ -18,7 +18,7 @@
     </div>
     @endcan
 
-    {{-- Card with table --}}
+    {{-- Tabela --}}
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -28,15 +28,22 @@
                             <th>Nome</th>
                             <th>Telefone</th>
                             <th>Email</th>
-                            <th class="text-end">Ações</th>
+                            <th>Cidade</th>
+                            <th class="text-end">Acoes</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($clientes as $cliente)
                         <tr>
                             <td>{{ $cliente->nome }}</td>
-                            <td>{{ $cliente->telefone ?? '-' }}</td>
+                            <td>
+                                {{ $cliente->telefone ?? '-' }}
+                                @if($cliente->telefone_whatsapp)
+                                    <i class="feather-message-circle text-success ms-1" title="WhatsApp"></i>
+                                @endif
+                            </td>
                             <td>{{ $cliente->email ?? '-' }}</td>
+                            <td>{{ $cliente->cidade ? $cliente->cidade . ($cliente->estado ? '/' . $cliente->estado : '') : '-' }}</td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
                                     <div class="dropdown">
@@ -76,7 +83,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum cliente cadastrado.</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum cliente cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
