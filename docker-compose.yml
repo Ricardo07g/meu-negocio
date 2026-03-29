@@ -1,0 +1,73 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: meu-negocio-app
+    restart: unless-stopped
+    volumes:
+      - .:/var/www/html
+    networks:
+      - meu-negocio
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    container_name: meu-negocio-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - meu-negocio
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8.0
+    container_name: meu-negocio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: meu_negocio
+      MYSQL_USER: meu_negocio
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - meu-negocio
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootsecret"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: meu-negocio-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - meu-negocio
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  meu-negocio:
+    driver: bridge

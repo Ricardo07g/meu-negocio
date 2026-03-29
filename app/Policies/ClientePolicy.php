@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Cliente;
+use App\Models\Usuario;
+
+class ClientePolicy
+{
+    public function viewAny(Usuario $usuario): bool
+    {
+        return $usuario->can('cliente.ver');
+    }
+
+    public function view(Usuario $usuario, Cliente $cliente): bool
+    {
+        return $usuario->rede_id === $cliente->rede_id
+            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
+            && $usuario->can('cliente.ver');
+    }
+
+    public function create(Usuario $usuario): bool
+    {
+        return $usuario->can('cliente.criar');
+    }
+
+    public function update(Usuario $usuario, Cliente $cliente): bool
+    {
+        return $usuario->rede_id === $cliente->rede_id
+            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
+            && $usuario->can('cliente.editar');
+    }
+
+    public function delete(Usuario $usuario, Cliente $cliente): bool
+    {
+        return $usuario->rede_id === $cliente->rede_id
+            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
+            && $usuario->can('cliente.excluir');
+    }
+}

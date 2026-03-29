@@ -1,0 +1,94 @@
+@extends('layouts.app')
+
+@section('titulo', 'Usuários - Meu Negócio')
+@section('titulo-pagina', 'Usuários')
+@section('breadcrumb')
+    <li class="breadcrumb-item active">Usuários</li>
+@endsection
+
+@section('content')
+    {{-- Button row OUTSIDE the card --}}
+    @can('usuario.criar')
+    <div class="row mb-4">
+        <div class="col-xxl-3 col-md-6">
+            <a href="{{ route('usuarios.create') }}" class="btn btn-primary w-100">
+                <i class="feather-plus me-2"></i>Novo Usuário
+            </a>
+        </div>
+    </div>
+    @endcan
+
+    {{-- Card with table --}}
+    <div class="card stretch stretch-full">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Papel</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($usuarios as $usuario)
+                        <tr>
+                            <td>{{ $usuario->nome }}</td>
+                            <td>{{ $usuario->email }}</td>
+                            <td>
+                                @if($usuario->ativo)
+                                    <span class="badge bg-soft-success text-success">Ativo</span>
+                                @else
+                                    <span class="badge bg-soft-secondary text-secondary">Inativo</span>
+                                @endif
+                            </td>
+                            <td>{{ $usuario->getRoleNames()->first() ?? '-' }}</td>
+                            <td>
+                                <div class="hstack gap-2 justify-content-end">
+                                    <div class="dropdown">
+                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
+                                            <i class="feather-more-horizontal"></i>
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('usuarios.show', $usuario) }}">
+                                                    <i class="feather-eye me-3"></i>
+                                                    <span>Ver</span>
+                                                </a>
+                                            </li>
+                                            @can('usuario.editar')
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('usuarios.edit', $usuario) }}">
+                                                    <i class="feather-edit-3 me-3"></i>
+                                                    <span>Editar</span>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                            @can('usuario.excluir')
+                                            <li class="dropdown-divider"></li>
+                                            <li>
+                                                <form action="{{ route('usuarios.destroy', $usuario) }}" method="POST" data-confirm="Excluir este usuário?">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="dropdown-item text-danger">
+                                                        <i class="feather-trash-2 me-3"></i>
+                                                        <span>Excluir</span>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            @endcan
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+@endsection
