@@ -27,11 +27,6 @@ class Plano extends Model
         ];
     }
 
-    public function permiteGerenciarPapeis(): bool
-    {
-        return $this->nome !== 'free';
-    }
-
     public function redes(): HasMany
     {
         return $this->hasMany(Rede::class, 'plano_id');

@@ -7,7 +7,6 @@ use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Despesa\Models\Despesa;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\PertenceARede;
@@ -42,11 +41,6 @@ class Empresa extends Model
     public function servicos(): HasMany
     {
         return $this->hasMany(Servico::class, 'empresa_id');
-    }
-
-    public function profissionais(): HasMany
-    {
-        return $this->hasMany(Profissional::class, 'empresa_id');
     }
 
     public function agendamentos(): HasMany

@@ -14,19 +14,9 @@ class PapelController extends Controller
 {
     use TratamentoErros;
 
-    private function verificarPlanoPermitePapeis(): ?RedirectResponse
-    {
-        if (!auth()->user()->rede->plano->permiteGerenciarPapeis()) {
-            return redirect()->route('dashboard')->with('erro', 'Gerenciamento de papéis não disponível no seu plano.');
-        }
-
-        return null;
-    }
-
     public function index(): View|RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('viewAny', Role::class);
             $papeis = Role::with('permissions')->get();
 
@@ -39,7 +29,6 @@ class PapelController extends Controller
     public function create(): View|RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('create', Role::class);
             $permissoes = Permission::orderBy('name')->get()->groupBy(function ($p) {
                 return explode('.', $p->name)[0];
@@ -54,7 +43,6 @@ class PapelController extends Controller
     public function store(Request $request): RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('create', Role::class);
 
             $request->validate([
@@ -75,7 +63,6 @@ class PapelController extends Controller
     public function edit(Role $papel): View|RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('update', $papel);
             $permissoes = Permission::orderBy('name')->get()->groupBy(function ($p) {
                 return explode('.', $p->name)[0];
@@ -91,7 +78,6 @@ class PapelController extends Controller
     public function update(Request $request, Role $papel): RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('update', $papel);
 
             if ($papel->name === 'Admin') {
@@ -116,7 +102,6 @@ class PapelController extends Controller
     public function destroy(Role $papel): RedirectResponse
     {
         try {
-            if ($redirect = $this->verificarPlanoPermitePapeis()) return $redirect;
             $this->authorize('delete', $papel);
 
             if ($papel->name === 'Admin') {

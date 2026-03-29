@@ -25,8 +25,6 @@ class PermissaoSeeder extends Seeder
             'cliente.ver', 'cliente.criar', 'cliente.editar', 'cliente.excluir',
             // Servico
             'servico.ver', 'servico.criar', 'servico.editar', 'servico.excluir',
-            // Profissional
-            'profissional.ver', 'profissional.criar', 'profissional.editar', 'profissional.excluir',
             // Agendamento
             'agendamento.ver', 'agendamento.criar', 'agendamento.editar', 'agendamento.cancelar', 'agendamento.excluir',
             // Financeiro

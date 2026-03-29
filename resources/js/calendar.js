@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 html: '<div class="text-start">' +
                     '<p><strong>Cliente:</strong> ' + (props.cliente || '-') + '</p>' +
                     '<p><strong>Serviço:</strong> ' + (props.servico || '-') + '</p>' +
-                    '<p><strong>Profissional:</strong> ' + (props.profissional || '-') + '</p>' +
+                    '<p><strong>Atendente:</strong> ' + (props.atendente || '-') + '</p>' +
                     '<p><strong>Data:</strong> ' + dataFormatada + '</p>' +
                     '<p><strong>Horário:</strong> ' + horaInicio + ' - ' + horaFim + '</p>' +
                     '<p><strong>Status:</strong> ' + statusBadge + '</p>' +
@@ -106,13 +106,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     calendar.render();
 
-    // Filtros por profissional
-    document.querySelectorAll('.filtro-profissional').forEach(function (checkbox) {
+    // Filtros por atendente
+    document.querySelectorAll('.filtro-atendente').forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
-            const profId = this.value;
+            const atendenteId = this.value;
             const events = calendar.getEvents();
             events.forEach(function (event) {
-                if (String(event.extendedProps.profissional_id) === profId) {
+                if (String(event.extendedProps.atendente_id) === atendenteId) {
                     event.setProp('display', checkbox.checked ? 'auto' : 'none');
                 }
             });
@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (toggleAll) {
         toggleAll.addEventListener('change', function () {
             const checked = this.checked;
-            document.querySelectorAll('.filtro-profissional').forEach(function (cb) {
+            document.querySelectorAll('.filtro-atendente').forEach(function (cb) {
                 cb.checked = checked;
                 cb.dispatchEvent(new Event('change'));
             });

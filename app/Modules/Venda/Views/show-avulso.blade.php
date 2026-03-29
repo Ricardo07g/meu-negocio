@@ -24,7 +24,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3"><strong>Cliente:</strong> {{ $agendamento->cliente->nome ?? '-' }}</div>
                 <div class="col-md-6 mb-3"><strong>Serviço:</strong> {{ $agendamento->servico->nome ?? '-' }}</div>
-                <div class="col-md-6 mb-3"><strong>Profissional:</strong> {{ $agendamento->profissional->usuario->nome ?? '-' }}</div>
+                <div class="col-md-6 mb-3"><strong>Atendente:</strong> {{ $agendamento->atendente->nome ?? '-' }}</div>
                 <div class="col-md-6 mb-3"><strong>Data/Hora:</strong> {{ $agendamento->inicio->format('d/m/Y H:i') }}</div>
                 <div class="col-md-6 mb-3">
                     <strong>Status:</strong>

@@ -65,9 +65,9 @@ class ClienteController extends Controller
 
             $cliente->load([
                 'vendasPacote.servico',
-                'vendasPacote.profissional.usuario',
+                'vendasPacote.atendente',
                 'agendamentos.servico',
-                'agendamentos.profissional.usuario',
+                'agendamentos.atendente',
                 'pagamentos.agendamento.servico',
             ]);
 

@@ -20,21 +20,21 @@ class CriarAgendamentoAction
         }
 
         // Verificar conflito de horario
-        $this->verificarConflito($data->profissional_id, $data->inicio, $fim);
+        $this->verificarConflito($data->atendente_id, $data->inicio, $fim);
 
         return Agendamento::create([
             'cliente_id' => $data->cliente_id,
             'servico_id' => $data->servico_id,
-            'profissional_id' => $data->profissional_id,
+            'atendente_id' => $data->atendente_id,
             'inicio' => $data->inicio,
             'fim' => $fim,
             'status' => StatusAgendamento::Agendado,
         ]);
     }
 
-    private function verificarConflito(int $profissionalId, $inicio, $fim, ?int $ignorarId = null): void
+    private function verificarConflito(int $atendenteId, $inicio, $fim, ?int $ignorarId = null): void
     {
-        $query = Agendamento::where('profissional_id', $profissionalId)
+        $query = Agendamento::where('atendente_id', $atendenteId)
             ->whereNotIn('status', [StatusAgendamento::Cancelado->value])
             ->where(function ($q) use ($inicio, $fim) {
                 $q->where(function ($q2) use ($inicio, $fim) {

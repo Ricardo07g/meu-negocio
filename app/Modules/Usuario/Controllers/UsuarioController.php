@@ -38,10 +38,7 @@ class UsuarioController extends Controller
     {
         try {
             $this->authorize('create', Usuario::class);
-            $plano = auth()->user()->rede->plano;
-            $papeis = $plano->permiteGerenciarPapeis()
-                ? Role::where('name', '!=', 'Admin')->orderBy('name')->pluck('name')
-                : collect(['Profissional']);
+            $papeis = Role::orderBy('name')->pluck('name');
 
             return view('usuario::create', compact('papeis'));
         } catch (\Throwable $e) {
@@ -76,10 +73,7 @@ class UsuarioController extends Controller
     {
         try {
             $this->authorize('update', $usuario);
-            $plano = auth()->user()->rede->plano;
-            $papeis = $plano->permiteGerenciarPapeis()
-                ? Role::where('name', '!=', 'Admin')->orderBy('name')->pluck('name')
-                : collect(['Profissional']);
+            $papeis = Role::orderBy('name')->pluck('name');
 
             return view('usuario::edit', compact('usuario', 'papeis'));
         } catch (\Throwable $e) {

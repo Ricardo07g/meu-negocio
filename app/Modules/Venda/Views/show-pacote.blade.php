@@ -24,7 +24,7 @@
             <div class="row mb-4">
                 <div class="col-md-4 mb-3"><strong>Cliente:</strong> {{ $pacote->cliente->nome }}</div>
                 <div class="col-md-4 mb-3"><strong>Serviço:</strong> {{ $pacote->servico->nome }}</div>
-                <div class="col-md-4 mb-3"><strong>Profissional:</strong> {{ $pacote->profissional->usuario->nome }}</div>
+                <div class="col-md-4 mb-3"><strong>Atendente:</strong> {{ $pacote->atendente->nome }}</div>
                 <div class="col-md-4 mb-3"><strong>Valor Total:</strong> R$ {{ number_format($pacote->valor_total, 2, ',', '.') }}</div>
                 <div class="col-md-4 mb-3"><strong>Valor/Sessão:</strong> R$ {{ number_format($pacote->valor_total / $pacote->qtd_sessoes, 2, ',', '.') }}</div>
                 <div class="col-md-4 mb-3">

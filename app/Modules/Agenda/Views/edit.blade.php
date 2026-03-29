@@ -39,14 +39,14 @@
                 </div>
                 <div class="row mb-4">
                     <div class="col-md-4">
-                        <label class="form-label">Profissional <span class="text-danger">*</span></label>
-                        <select name="profissional_id" class="form-select @error('profissional_id') is-invalid @enderror" required>
+                        <label class="form-label">Atendente <span class="text-danger">*</span></label>
+                        <select name="atendente_id" class="form-select @error('atendente_id') is-invalid @enderror" required>
                             <option value="">Selecione...</option>
-                            @foreach($profissionais as $profissional)
-                                <option value="{{ $profissional->id }}" {{ old('profissional_id', $agendamento->profissional_id) == $profissional->id ? 'selected' : '' }}>{{ $profissional->usuario->nome }}</option>
+                            @foreach($atendentes as $atendente)
+                                <option value="{{ $atendente->id }}" {{ old('atendente_id', $agendamento->atendente_id) == $atendente->id ? 'selected' : '' }}>{{ $atendente->nome }}</option>
                             @endforeach
                         </select>
-                        @error('profissional_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        @error('atendente_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Início <span class="text-danger">*</span></label>

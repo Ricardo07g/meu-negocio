@@ -44,6 +44,15 @@
                         @error('papel') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="hidden" name="atende" value="0">
+                            <input type="checkbox" name="atende" value="1" class="form-check-input" id="atende" {{ old('atende') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="atende">Este usuário realiza atendimentos</label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

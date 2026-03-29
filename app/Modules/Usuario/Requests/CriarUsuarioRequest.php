@@ -21,6 +21,7 @@ class CriarUsuarioRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'empresa_id' => ['nullable', 'exists:empresas,id'],
             'papel' => ['required', Rule::enum(PapelEnum::class)],
+            'atende' => ['nullable', 'boolean'],
         ];
     }
 }

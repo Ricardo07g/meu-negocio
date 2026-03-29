@@ -22,12 +22,12 @@ class AgendamentoService
 
     public function listar(): Collection
     {
-        return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])->get();
+        return Agendamento::with(['cliente', 'servico', 'atendente'])->get();
     }
 
     public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
     {
-        return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])
+        return Agendamento::with(['cliente', 'servico', 'atendente'])
             ->where('inicio', '>=', $inicio)
             ->where('inicio', '<=', $fim)
             ->orderBy('inicio')
@@ -36,7 +36,7 @@ class AgendamentoService
 
     public function buscar(int $id): Agendamento
     {
-        return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])->findOrFail($id);
+        return Agendamento::with(['cliente', 'servico', 'atendente'])->findOrFail($id);
     }
 
     public function criar(CriarAgendamentoData $data): Agendamento
@@ -71,16 +71,16 @@ class AgendamentoService
 
     public function listarPorData(Carbon $data): Collection
     {
-        return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])
+        return Agendamento::with(['cliente', 'servico', 'atendente'])
             ->whereDate('inicio', $data)
             ->orderBy('inicio')
             ->get();
     }
 
-    public function listarPorProfissional(int $profissionalId, Carbon $data): Collection
+    public function listarPorAtendente(int $atendenteId, Carbon $data): Collection
     {
         return Agendamento::with(['cliente', 'servico'])
-            ->where('profissional_id', $profissionalId)
+            ->where('atendente_id', $atendenteId)
             ->whereDate('inicio', $data)
             ->orderBy('inicio')
             ->get();

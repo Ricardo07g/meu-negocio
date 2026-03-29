@@ -63,14 +63,14 @@
                             @error('servico_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Profissional <span class="text-danger">*</span></label>
-                            <select name="profissional_id" id="profissionalSelect" class="form-select @error('profissional_id') is-invalid @enderror">
+                            <label class="form-label">Atendente <span class="text-danger">*</span></label>
+                            <select name="atendente_id" id="atendenteSelect" class="form-select @error('atendente_id') is-invalid @enderror">
                                 <option value="">Selecione...</option>
-                                @foreach($profissionais as $prof)
-                                <option value="{{ $prof->id }}" {{ old('profissional_id') == $prof->id ? 'selected' : '' }}>{{ $prof->usuario->nome }}</option>
+                                @foreach($atendentes as $atendente)
+                                <option value="{{ $atendente->id }}" {{ old('atendente_id') == $atendente->id ? 'selected' : '' }}>{{ $atendente->nome }}</option>
                                 @endforeach
                             </select>
-                            @error('profissional_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            @error('atendente_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                     </div>
 
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const fh = horario.value.split(':').map(Number);
             const totalMin = fh[0] * 60 + fh[1] + duracao;
             const fim = String(Math.floor(totalMin / 60) % 24).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
-            tr.innerHTML = `<td>${i + 1}</td><td>${diasNomes[data.getDay()]}</td><td><input type="date" name="datas[]" value="${dataStr}" class="form-control form-control-sm" required></td><td>${horario.value} - ${fim}</td>`;
+            tr.innerHTML = `<td>${i + 1}</td><td>${diasNomes[data.getDay()]}</td><td><input type="date" name="datas[]" value="${dataStr}" class="form-control form-control-sm" required></td><td><input type="time" name="horarios[]" value="${horario.value}" class="form-control form-control-sm" required></td>`;
             tbody.appendChild(tr);
         });
 

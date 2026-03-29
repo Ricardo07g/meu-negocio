@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('password');
             $table->boolean('ativo')->default(true);
+            $table->boolean('atende')->default(false);
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();

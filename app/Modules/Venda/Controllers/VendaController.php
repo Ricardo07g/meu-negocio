@@ -9,8 +9,8 @@ use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Venda\Services\VendaService;
@@ -44,10 +44,10 @@ class VendaController extends Controller
             $this->authorize('create', Agendamento::class);
             $clientes = Cliente::all();
             $servicos = Servico::all();
-            $profissionais = Profissional::with('usuario')->get();
+            $atendentes = Usuario::where('atende', true)->get();
             $produtos = Produto::all();
 
-            return view('venda::create', compact('clientes', 'servicos', 'profissionais', 'produtos'));
+            return view('venda::create', compact('clientes', 'servicos', 'atendentes', 'produtos'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -102,7 +102,7 @@ class VendaController extends Controller
     {
         try {
             $this->authorize('view', $agendamento);
-            $agendamento->load(['cliente', 'servico', 'profissional.usuario', 'pagamento']);
+            $agendamento->load(['cliente', 'servico', 'atendente', 'pagamento']);
 
             return view('venda::show-avulso', compact('agendamento'));
         } catch (\Throwable $e) {
@@ -114,7 +114,7 @@ class VendaController extends Controller
     {
         try {
             $this->authorize('view', $pacote);
-            $pacote->load(['cliente', 'servico', 'profissional.usuario', 'agendamentos']);
+            $pacote->load(['cliente', 'servico', 'atendente', 'agendamentos']);
 
             return view('venda::show-pacote', compact('pacote'));
         } catch (\Throwable $e) {

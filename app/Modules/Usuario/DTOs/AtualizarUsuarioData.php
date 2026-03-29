@@ -13,5 +13,6 @@ class AtualizarUsuarioData extends Data
         public ?int $empresa_id = null,
         public ?string $papel = null,
         public ?bool $ativo = null,
+        public ?bool $atende = null,
     ) {}
 }

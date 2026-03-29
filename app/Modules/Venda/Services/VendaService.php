@@ -27,7 +27,7 @@ class VendaService
 
     public function listar(): Collection
     {
-        $pacotes = VendaPacote::with(['cliente', 'servico', 'profissional.usuario'])
+        $pacotes = VendaPacote::with(['cliente', 'servico', 'atendente'])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn ($p) => (object) [
@@ -42,7 +42,7 @@ class VendaService
                 'model' => $p,
             ]);
 
-        $avulsos = Agendamento::with(['cliente', 'servico', 'profissional.usuario'])
+        $avulsos = Agendamento::with(['cliente', 'servico', 'atendente'])
             ->whereNull('venda_pacote_id')
             ->orderByDesc('created_at')
             ->get()

@@ -152,7 +152,7 @@
                                 <thead>
                                     <tr>
                                         <th>Servico</th>
-                                        <th>Profissional</th>
+                                        <th>Atendente</th>
                                         <th>Valor Total</th>
                                         <th>Sessoes</th>
                                         <th>Status</th>
@@ -163,7 +163,7 @@
                                     @forelse($cliente->vendasPacote->sortByDesc('created_at') as $venda)
                                     <tr>
                                         <td>{{ $venda->servico->nome }}</td>
-                                        <td>{{ $venda->profissional->usuario->nome }}</td>
+                                        <td>{{ $venda->atendente->nome }}</td>
                                         <td>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</td>
                                         <td>{{ $venda->sessoesRealizadas() }}/{{ $venda->qtd_sessoes }}</td>
                                         <td>
@@ -190,7 +190,7 @@
                                 <thead>
                                     <tr>
                                         <th>Servico</th>
-                                        <th>Profissional</th>
+                                        <th>Atendente</th>
                                         <th>Data</th>
                                         <th>Horario</th>
                                         <th>Status</th>
@@ -200,7 +200,7 @@
                                     @forelse($cliente->agendamentos->sortByDesc('inicio') as $ag)
                                     <tr>
                                         <td>{{ $ag->servico->nome }}</td>
-                                        <td>{{ $ag->profissional->usuario->nome }}</td>
+                                        <td>{{ $ag->atendente->nome }}</td>
                                         <td>{{ $ag->inicio->format('d/m/Y') }}</td>
                                         <td>{{ $ag->inicio->format('H:i') }} - {{ $ag->fim->format('H:i') }}</td>
                                         <td>

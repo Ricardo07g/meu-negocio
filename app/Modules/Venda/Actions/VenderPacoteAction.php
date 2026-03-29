@@ -22,7 +22,7 @@ class VenderPacoteAction
             $venda = VendaPacote::create([
                 'cliente_id' => $data->cliente_id,
                 'servico_id' => $data->servico_id,
-                'profissional_id' => $data->profissional_id,
+                'atendente_id' => $data->atendente_id,
                 'valor_total' => $data->valor_total,
                 'qtd_sessoes' => count($data->datas),
                 'status' => StatusVendaPacote::Ativo,
@@ -31,11 +31,12 @@ class VenderPacoteAction
             $conflitos = [];
 
             foreach ($data->datas as $index => $dataStr) {
-                $inicio = Carbon::parse($dataStr . ' ' . $data->horario);
+                $horarioSessao = $data->horarios[$index] ?? $data->horario;
+                $inicio = Carbon::parse($dataStr . ' ' . $horarioSessao);
                 $fim = $inicio->copy()->addMinutes($servico->duracao);
 
                 // Verificar conflito
-                $temConflito = Agendamento::where('profissional_id', $data->profissional_id)
+                $temConflito = Agendamento::where('atendente_id', $data->atendente_id)
                     ->whereNotIn('status', [StatusAgendamento::Cancelado->value])
                     ->where('inicio', '<', $fim)
                     ->where('fim', '>', $inicio)
@@ -49,7 +50,7 @@ class VenderPacoteAction
                 Agendamento::create([
                     'cliente_id' => $data->cliente_id,
                     'servico_id' => $data->servico_id,
-                    'profissional_id' => $data->profissional_id,
+                    'atendente_id' => $data->atendente_id,
                     'venda_pacote_id' => $venda->id,
                     'inicio' => $inicio,
                     'fim' => $fim,

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $tables = ['servicos', 'profissionais', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
+        $tables = ['servicos', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
 
         foreach ($tables as $table) {
             if (!Schema::hasColumn($table, 'deleted_at')) {
@@ -21,7 +21,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tables = ['servicos', 'profissionais', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
+        $tables = ['servicos', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
 
         foreach ($tables as $table) {
             Schema::table($table, function (Blueprint $t) {

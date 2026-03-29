@@ -6,8 +6,8 @@ use App\Enums\StatusAgendamento;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Usuario\Models\Usuario;
 use App\Traits\PertenceARede;
 use App\Traits\PertenceAEmpresa;
 use App\Traits\RegistraAtividade;
@@ -27,7 +27,7 @@ class Agendamento extends Model
         'empresa_id',
         'cliente_id',
         'servico_id',
-        'profissional_id',
+        'atendente_id',
         'venda_pacote_id',
         'inicio',
         'fim',
@@ -54,9 +54,9 @@ class Agendamento extends Model
         return $this->belongsTo(Servico::class, 'servico_id');
     }
 
-    public function profissional(): BelongsTo
+    public function atendente(): BelongsTo
     {
-        return $this->belongsTo(Profissional::class, 'profissional_id');
+        return $this->belongsTo(Usuario::class, 'atendente_id');
     }
 
     public function vendaPacote(): BelongsTo

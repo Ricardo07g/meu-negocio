@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Modules\Agenda\Requests\AtualizarAgendamentoRequest;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Agenda\Services\AgendamentoService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
@@ -24,7 +24,7 @@ class AgendaController extends Controller
     public function __construct(private AgendamentoService $service)
     {}
 
-    private array $coresProfissional = [
+    private array $coresAtendente = [
         '#3454d1', '#25b865', '#e49e3d', '#d13b4c', '#17a2b8',
         '#5856d6', '#3dc7be', '#475e77', '#f59e0b', '#8b5cf6',
     ];
@@ -39,24 +39,24 @@ class AgendaController extends Controller
 
             $agendamentos = $this->service->listarPorPeriodo($start, $end);
 
-            $profissionais = $agendamentos->pluck('profissional_id')->unique()->values();
+            $atendentes = $agendamentos->pluck('atendente_id')->unique()->values();
 
-            $eventos = $agendamentos->map(function ($ag) use ($profissionais) {
-                $corIndex = $profissionais->search($ag->profissional_id);
-                $cor = $this->coresProfissional[$corIndex % count($this->coresProfissional)];
+            $eventos = $agendamentos->map(function ($ag) use ($atendentes) {
+                $corIndex = $atendentes->search($ag->atendente_id);
+                $cor = $this->coresAtendente[$corIndex % count($this->coresAtendente)];
 
                 return [
                     'id' => $ag->id,
                     'title' => ($ag->cliente->nome ?? '-') . ' - ' . ($ag->servico->nome ?? '-'),
-                    'start' => $ag->inicio->toIso8601String(),
-                    'end' => $ag->fim->toIso8601String(),
+                    'start' => $ag->inicio->format('Y-m-d\TH:i:s'),
+                    'end' => $ag->fim->format('Y-m-d\TH:i:s'),
                     'color' => $cor,
                     'extendedProps' => [
                         'status' => $ag->status->value,
                         'cliente' => $ag->cliente->nome ?? '-',
                         'servico' => $ag->servico->nome ?? '-',
-                        'profissional' => $ag->profissional->usuario->nome ?? '-',
-                        'profissional_id' => $ag->profissional_id,
+                        'atendente' => $ag->atendente->nome ?? '-',
+                        'atendente_id' => $ag->atendente_id,
                         'observacoes' => $ag->observacoes,
                         'confirmar_url' => route('agenda.confirmar', $ag),
                         'finalizar_url' => route('agenda.finalizar', $ag),
@@ -77,10 +77,10 @@ class AgendaController extends Controller
         try {
             $this->authorize('viewAny', Agendamento::class);
 
-            $profissionais = Profissional::with('usuario')->get();
-            $cores = $this->coresProfissional;
+            $atendentes = Usuario::where('atende', true)->get();
+            $cores = $this->coresAtendente;
 
-            return view('agenda::index', compact('profissionais', 'cores'));
+            return view('agenda::index', compact('atendentes', 'cores'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar agenda');
         }
@@ -90,13 +90,13 @@ class AgendaController extends Controller
     {
         try {
             $this->authorize('view', $agendamento);
-            $agendamento->load(['cliente', 'servico', 'profissional.usuario', 'pagamento', 'vendaPacote']);
+            $agendamento->load(['cliente', 'servico', 'atendente', 'pagamento', 'vendaPacote']);
 
             if ($request->ajax()) {
                 return response()->json([
                     'cliente' => $agendamento->cliente->nome ?? '-',
                     'servico' => $agendamento->servico->nome ?? '-',
-                    'profissional' => $agendamento->profissional->usuario->nome ?? '-',
+                    'atendente' => $agendamento->atendente->nome ?? '-',
                     'data' => $agendamento->inicio->format('d/m/Y'),
                     'horario' => $agendamento->inicio->format('H:i') . ' - ' . $agendamento->fim->format('H:i'),
                     'status' => $agendamento->status->value,
@@ -118,9 +118,9 @@ class AgendaController extends Controller
             $this->authorize('update', $agendamento);
             $clientes = Cliente::all();
             $servicos = Servico::all();
-            $profissionais = Profissional::with('usuario')->get();
+            $atendentes = Usuario::where('atende', true)->get();
 
-            return view('agenda::edit', compact('agendamento', 'clientes', 'servicos', 'profissionais'));
+            return view('agenda::edit', compact('agendamento', 'clientes', 'servicos', 'atendentes'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar edição de agendamento');
         }

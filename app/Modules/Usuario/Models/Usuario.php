@@ -2,10 +2,8 @@
 
 namespace App\Modules\Usuario\Models;
 
-use App\Modules\Servico\Models\Profissional;
 use App\Traits\PertenceARede;
 use App\Traits\PertenceAEmpresa;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -24,6 +22,7 @@ class Usuario extends Authenticatable
         'email',
         'password',
         'ativo',
+        'atende',
     ];
 
     protected $hidden = [
@@ -36,11 +35,8 @@ class Usuario extends Authenticatable
         return [
             'password' => 'hashed',
             'ativo' => 'boolean',
+            'atende' => 'boolean',
         ];
     }
 
-    public function profissional(): HasOne
-    {
-        return $this->hasOne(Profissional::class, 'usuario_id');
-    }
 }

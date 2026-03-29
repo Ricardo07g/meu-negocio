@@ -38,7 +38,7 @@ class CriarVendaRequest extends FormRequest
             'tipo_venda' => ['required', 'in:servico,produto'],
             'cliente_id' => ['required', 'integer', 'exists:clientes,id'],
             'servico_id' => ['required', 'integer', 'exists:servicos,id'],
-            'profissional_id' => ['required', 'integer', 'exists:profissionais,id'],
+            'atendente_id' => ['required', 'integer', 'exists:usuarios,id'],
         ];
 
         if ($isPacote) {
@@ -47,6 +47,8 @@ class CriarVendaRequest extends FormRequest
                 'horario' => ['required', 'date_format:H:i'],
                 'datas' => ['required', 'array', 'min:1'],
                 'datas.*' => ['required', 'date_format:Y-m-d'],
+                'horarios' => ['nullable', 'array'],
+                'horarios.*' => ['nullable', 'date_format:H:i'],
             ];
         } else {
             $rules += [

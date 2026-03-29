@@ -22,6 +22,7 @@ class AtualizarUsuarioRequest extends FormRequest
             'empresa_id' => ['nullable', 'exists:empresas,id'],
             'papel' => ['nullable', Rule::enum(PapelEnum::class)],
             'ativo' => ['nullable', 'boolean'],
+            'atende' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -197,8 +197,7 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Papeis (somente planos que permitem) --}}
-                    @if(auth()->user()->rede->plano->permiteGerenciarPapeis())
+                    {{-- Papeis --}}
                     @can('papel.ver')
                     <li class="nxl-item">
                         <a href="{{ route('papeis.index') }}" class="nxl-link">
@@ -207,7 +206,6 @@
                         </a>
                     </li>
                     @endcan
-                    @endif
                 </ul>
             </div>
         </div>

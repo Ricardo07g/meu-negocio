@@ -4,7 +4,6 @@ namespace App\Modules\Usuario\Actions;
 
 use App\Modules\Tenant\Actions\ValidarPlanoAction;
 use App\Modules\Usuario\DTOs\CriarUsuarioData;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Tenant\Models\Rede;
 use App\Modules\Usuario\Models\Usuario;
 
@@ -25,17 +24,10 @@ class CriarUsuarioAction
             'email' => $data->email,
             'password' => $data->password,
             'ativo' => true,
+            'atende' => $data->atende ?? ($data->papel === 'Admin'),
         ]);
 
         $usuario->assignRole($data->papel);
-
-        if ($data->papel === 'Profissional') {
-            Profissional::create([
-                'rede_id' => $rede->id,
-                'empresa_id' => $data->empresa_id,
-                'usuario_id' => $usuario->id,
-            ]);
-        }
 
         return $usuario;
     }

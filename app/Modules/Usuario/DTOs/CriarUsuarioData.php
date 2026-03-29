@@ -12,5 +12,6 @@ class CriarUsuarioData extends Data
         public string $password,
         public ?int $empresa_id = null,
         public string $papel = 'Visualizador',
+        public ?bool $atende = null,
     ) {}
 }

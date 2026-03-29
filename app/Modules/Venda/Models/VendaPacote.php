@@ -5,8 +5,8 @@ namespace App\Modules\Venda\Models;
 use App\Enums\StatusVendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Servico\Models\Profissional;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Usuario\Models\Usuario;
 use App\Traits\PertenceARede;
 use App\Traits\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
@@ -25,7 +25,7 @@ class VendaPacote extends Model
         'empresa_id',
         'cliente_id',
         'servico_id',
-        'profissional_id',
+        'atendente_id',
         'valor_total',
         'qtd_sessoes',
         'status',
@@ -49,9 +49,9 @@ class VendaPacote extends Model
         return $this->belongsTo(Servico::class, 'servico_id');
     }
 
-    public function profissional(): BelongsTo
+    public function atendente(): BelongsTo
     {
-        return $this->belongsTo(Profissional::class, 'profissional_id');
+        return $this->belongsTo(Usuario::class, 'atendente_id');
     }
 
     public function agendamentos(): HasMany

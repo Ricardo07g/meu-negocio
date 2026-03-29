@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('empresa_id')->constrained('empresas');
             $table->foreignId('cliente_id')->constrained('clientes');
             $table->foreignId('servico_id')->constrained('servicos');
-            $table->foreignId('profissional_id')->constrained('profissionais');
+            $table->foreignId('atendente_id')->constrained('usuarios');
             $table->decimal('valor_total', 10, 2);
             $table->integer('qtd_sessoes');
             $table->string('status', 20)->default('ativo');
