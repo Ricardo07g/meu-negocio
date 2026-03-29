@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Policies\PapelPolicy;
+use App\Modules\Papel\Policies\PapelPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;

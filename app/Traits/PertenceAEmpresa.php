@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\Empresa;
+use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

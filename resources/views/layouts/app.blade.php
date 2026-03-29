@@ -14,57 +14,106 @@
     @stack('css')
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
     <style>
+        :root {
+            --cor-fundo: #3d4f65;
+            --cor-fundo-escuro: #344559;
+            --cor-fundo-hover: #506380;
+            --cor-texto: #fff;
+            --cor-texto-claro: #c8d6e5;
+            --cor-icone: #94a3b8;
+            --cor-texto-muted: #64748b;
+            --cor-texto-sutil: #7f8fa6;
+            --cor-destaque: #3454d1;
+        }
+
         .nxl-container .nxl-content .main-content { overflow-x: visible; }
         .modal-backdrop ~ .nxl-container,
         body.modal-open .nxl-container { filter: none !important; -webkit-filter: none !important; }
 
         /* Sidebar */
-        .nxl-navigation { background: #1b2e4b !important; }
-        .nxl-navigation .navbar-wrapper { background: #1b2e4b !important; }
-        .nxl-navigation .m-header { background: #162640 !important; }
-        .nxl-navigation .m-header .b-brand { color: #fff !important; }
-        .nxl-navigation .nxl-link { color: #c8d6e5 !important; }
-        .nxl-navigation .nxl-micon i { color: #94a3b8 !important; }
+        .nxl-navigation { background: var(--cor-fundo) !important; }
+        .nxl-navigation .navbar-wrapper { background: var(--cor-fundo) !important; }
+        .nxl-navigation .m-header { background: var(--cor-fundo-escuro) !important; }
+        .nxl-navigation .m-header .b-brand { color: var(--cor-texto) !important; }
+        .nxl-navigation .nxl-link { color: var(--cor-texto-claro) !important; }
+        .nxl-navigation .nxl-micon i { color: var(--cor-icone) !important; }
         .nxl-navigation .nxl-item .nxl-link:hover,
-        .nxl-navigation .nxl-item.active > .nxl-link { background: #243b55 !important; color: #fff !important; }
+        .nxl-navigation .nxl-item.active > .nxl-link { background: var(--cor-fundo-hover) !important; color: var(--cor-texto) !important; }
         .nxl-navigation .nxl-item .nxl-link:hover .nxl-micon i,
-        .nxl-navigation .nxl-item.active > .nxl-link .nxl-micon i { color: #fff !important; }
+        .nxl-navigation .nxl-item.active > .nxl-link .nxl-micon i { color: var(--cor-texto) !important; }
         .nxl-navigation .nxl-item .nxl-link:hover .nxl-mtext,
-        .nxl-navigation .nxl-item.active > .nxl-link .nxl-mtext { color: #fff !important; }
-        .nxl-navigation .nxl-caption label { color: #64748b !important; text-transform: uppercase; font-size: 11px; }
-        .nxl-navigation .navbar-content { border-color: #243b55 !important; }
+        .nxl-navigation .nxl-item.active > .nxl-link .nxl-mtext { color: var(--cor-texto) !important; }
+        .nxl-navigation .nxl-caption label { color: var(--cor-texto-muted) !important; text-transform: uppercase; font-size: 11px; }
+        .nxl-navigation .navbar-content { border-color: var(--cor-fundo-hover) !important; }
+
+        /* Sidebar minimenu: empurra conteúdo ao expandir no hover */
+        html.minimenu .nxl-container,
+        html.minimenu .nxl-header,
+        html.minimenu .page-header { transition: all .3s ease; }
+
+        /* Abordagem 1: CSS :has() (navegadores modernos) */
+        html.minimenu:has(.nxl-navigation:hover) .nxl-container { margin-left: 280px !important; }
+        html.minimenu:has(.nxl-navigation:hover) .nxl-header { left: 280px !important; }
+        html.minimenu:has(.nxl-navigation:hover) .page-header { left: 280px !important; }
+
+        /* Abordagem 2: fallback via JS class (todos os navegadores) */
+        html.minimenu-hover .nxl-container { margin-left: 280px !important; }
+        html.minimenu-hover .nxl-header { left: 280px !important; }
+        html.minimenu-hover .page-header { left: 280px !important; }
+
+        /* Fundo do sidebar: força cor escura + transição só em width (evita flash branco) */
+        html.minimenu .nxl-navigation .navbar-content {
+            background-color: var(--cor-fundo) !important;
+            transition: width .3s ease !important;
+        }
+        html.minimenu .nxl-navigation .navbar-wrapper {
+            background: var(--cor-fundo) !important;
+            transition: width .3s ease !important;
+        }
+        html.minimenu .nxl-navigation .m-header {
+            background: var(--cor-fundo-escuro) !important;
+            transition: width .3s ease !important;
+        }
+        html.minimenu .nxl-navigation:hover .m-header,
+        html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
 
         /* Header */
-        .nxl-header { background: #1b2e4b !important; border-bottom: 1px solid #243b55 !important; }
-        .nxl-header .header-wrapper { background: #1b2e4b !important; }
-        .nxl-header .page-header-title h5 { color: #fff !important; }
-        .nxl-header .breadcrumb-item a { color: #c8d6e5 !important; }
+        .nxl-header { background: var(--cor-fundo) !important; border-bottom: 1px solid var(--cor-fundo-hover) !important; }
+        .nxl-header .header-wrapper { background: var(--cor-fundo) !important; }
+        .nxl-header .page-header-title h5 { color: var(--cor-texto) !important; }
+        .nxl-header .breadcrumb-item a { color: var(--cor-texto-claro) !important; }
         .nxl-header .breadcrumb-item.active,
-        .nxl-header .breadcrumb-item + .breadcrumb-item::before { color: #7f8fa6 !important; }
+        .nxl-header .breadcrumb-item + .breadcrumb-item::before { color: var(--cor-texto-sutil) !important; }
 
         /* Header - hamburger menu (3 barras) */
         .nxl-header .hamburger-inner,
         .nxl-header .hamburger-inner::before,
-        .nxl-header .hamburger-inner::after { background-color: #fff !important; }
+        .nxl-header .hamburger-inner::after { background-color: var(--cor-texto) !important; }
 
         /* Header - ícones esquerda (toggle, mega menu) */
         .nxl-header .nxl-navigation-toggle a,
         .nxl-header .nxl-navigation-toggle a i,
         .nxl-header .nxl-lavel-mega-menu-toggle a,
         .nxl-header .nxl-lavel-mega-menu-toggle a i,
-        .nxl-header .nxl-head-mobile-toggler { color: #fff !important; }
+        .nxl-header .nxl-head-mobile-toggler { color: var(--cor-texto) !important; }
 
         /* Header - ícones direita (dark mode, avatar) */
         .nxl-header .dark-button,
         .nxl-header .dark-button i,
         .nxl-header .nxl-head-link,
-        .nxl-header .nxl-head-link i { color: #fff !important; }
+        .nxl-header .nxl-head-link i { color: var(--cor-texto) !important; }
         .nxl-header .nxl-head-link:hover,
-        .nxl-header .dark-button:hover { background: #243b55 !important; border-radius: 8px; }
+        .nxl-header .dark-button:hover { background: var(--cor-fundo-hover) !important; border-radius: 8px; }
 
         /* Header - avatar círculo */
         .nxl-header .avtar-s,
-        .nxl-header .avatar-text { background: #3b82f6 !important; color: #fff !important; }
+        .nxl-header .avatar-text { background: var(--cor-destaque) !important; color: var(--cor-texto) !important; }
+
+        /* Botões - sobrescreve cor primária do tema */
+        .btn-primary,
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active { background-color: var(--cor-destaque) !important; border-color: var(--cor-destaque) !important; }
     </style>
 </head>
 
@@ -80,22 +129,41 @@
             </div>
             <div class="navbar-content">
                 <ul class="nxl-navbar">
-                    <li class="nxl-item nxl-caption">
-                        <label>Menu Principal</label>
-                    </li>
                     {{-- Dashboard --}}
                     <li class="nxl-item">
                         <a href="{{ route('dashboard') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                            <span class="nxl-mtext">Dashboard</span>
+                            <span class="nxl-mtext">Início</span>
                         </a>
                     </li>
-                    {{-- Agenda --}}
-                    @can('agendamento.ver')
+
+                    <li class="nxl-item nxl-caption">
+                        <label>Cadastros</label>
+                    </li>
+                    {{-- Clientes --}}
+                    @can('cliente.ver')
                     <li class="nxl-item">
-                        <a href="{{ route('agenda.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-calendar"></i></span>
-                            <span class="nxl-mtext">Agenda</span>
+                        <a href="{{ route('clientes.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-users"></i></span>
+                            <span class="nxl-mtext">Clientes</span>
+                        </a>
+                    </li>
+                    @endcan
+                    {{-- Produtos --}}
+                    @can('produto.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('produtos.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-package"></i></span>
+                            <span class="nxl-mtext">Produtos</span>
+                        </a>
+                    </li>
+                    @endcan
+                    {{-- Servicos --}}
+                    @can('servico.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('servicos.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Serviços</span>
                         </a>
                     </li>
                     @endcan
@@ -108,21 +176,16 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Clientes --}}
-                    @can('cliente.ver')
-                    <li class="nxl-item">
-                        <a href="{{ route('clientes.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-users"></i></span>
-                            <span class="nxl-mtext">Clientes</span>
-                        </a>
+
+                    {{-- Agendamentos --}}
+                    <li class="nxl-item nxl-caption">
+                        <label>Agendamentos</label>
                     </li>
-                    @endcan
-                    {{-- Servicos --}}
-                    @can('servico.ver')
+                    @can('agendamento.ver')
                     <li class="nxl-item">
-                        <a href="{{ route('servicos.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
-                            <span class="nxl-mtext">Serviços</span>
+                        <a href="{{ route('agenda.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-calendar"></i></span>
+                            <span class="nxl-mtext">Agenda</span>
                         </a>
                     </li>
                     @endcan
@@ -155,12 +218,12 @@
                     <li class="nxl-item nxl-caption">
                         <label>Estoque</label>
                     </li>
-                    {{-- Produtos --}}
-                    @can('produto.ver')
+                    {{-- Movimentações de Estoque --}}
+                    @can('movimento_estoque.ver')
                     <li class="nxl-item">
-                        <a href="{{ route('produtos.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-package"></i></span>
-                            <span class="nxl-mtext">Produtos</span>
+                        <a href="{{ route('movimentos-estoque.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-repeat"></i></span>
+                            <span class="nxl-mtext">Movimentações</span>
                         </a>
                     </li>
                     @endcan
@@ -187,7 +250,8 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Papeis --}}
+                    {{-- Papeis (somente planos que permitem) --}}
+                    @if(auth()->user()->rede->plano->permiteGerenciarPapeis())
                     @can('papel.ver')
                     <li class="nxl-item">
                         <a href="{{ route('papeis.index') }}" class="nxl-link">
@@ -196,6 +260,7 @@
                         </a>
                     </li>
                     @endcan
+                    @endif
                 </ul>
             </div>
         </div>
@@ -273,10 +338,9 @@
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">@yield('titulo-pagina', 'Dashboard')</h5>
+                        <h5 class="m-b-10">@yield('titulo-pagina', 'Início')</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                         @yield('breadcrumb')
                     </ul>
                 </div>
@@ -319,6 +383,17 @@
     <script src="{{ asset('assets/vendors/js/sweetalert2.min.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar minimenu: empurra conteúdo ao hover
+            document.addEventListener('mouseover', function(e) {
+                if (!document.documentElement.classList.contains('minimenu')) return;
+                var nav = e.target.closest('.nxl-navigation');
+                if (nav) {
+                    document.documentElement.classList.add('minimenu-hover');
+                } else {
+                    document.documentElement.classList.remove('minimenu-hover');
+                }
+            });
+
             // Dropdown fix: ao abrir, libera overflow do table-responsive
             document.querySelectorAll('.table-responsive').forEach(function(container) {
                 container.addEventListener('show.bs.dropdown', function() {

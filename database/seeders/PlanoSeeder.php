@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Plano;
+use App\Modules\Tenant\Models\Plano;
 use Illuminate\Database\Seeder;
 
 class PlanoSeeder extends Seeder
@@ -14,9 +14,9 @@ class PlanoSeeder extends Seeder
                 'nome' => 'free',
                 'max_empresas' => 1,
                 'max_usuarios' => 2,
-                'tem_estoque' => false,
-                'tem_financeiro' => false,
-                'tem_relatorios' => false,
+                'tem_estoque' => true,
+                'tem_financeiro' => true,
+                'tem_relatorios' => true,
             ],
             [
                 'nome' => 'basic',

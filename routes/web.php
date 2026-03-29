@@ -1,19 +1,19 @@
 <?php
 
-use App\Http\Controllers\AgendaController;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegistrarController;
-use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DespesaController;
-use App\Http\Controllers\EmpresaController;
-use App\Http\Controllers\MovimentoEstoqueController;
-use App\Http\Controllers\PagamentoController;
-use App\Http\Controllers\PapelController;
-use App\Http\Controllers\ProdutoController;
-use App\Http\Controllers\ServicoController;
-use App\Http\Controllers\UsuarioController;
-use App\Http\Controllers\VendaController;
+use App\Modules\Agenda\Controllers\AgendaController;
+use App\Modules\Auth\Controllers\LoginController;
+use App\Modules\Auth\Controllers\RegistrarController;
+use App\Modules\Cliente\Controllers\ClienteController;
+use App\Modules\Dashboard\Controllers\DashboardController;
+use App\Modules\Despesa\Controllers\DespesaController;
+use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
+use App\Modules\Pagamento\Controllers\PagamentoController;
+use App\Modules\Papel\Controllers\PapelController;
+use App\Modules\Produto\Controllers\ProdutoController;
+use App\Modules\Servico\Controllers\ServicoController;
+use App\Modules\Tenant\Controllers\EmpresaController;
+use App\Modules\Usuario\Controllers\UsuarioController;
+use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
 // Pagina inicial
@@ -69,9 +69,11 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
             Route::resource('despesas', DespesaController::class);
         });
 
-        // Estoque (verificar plano)
+        // Produtos (cadastro independente)
+        Route::resource('produtos', ProdutoController::class);
+
+        // Estoque - movimentação (verificar plano)
         Route::middleware(['verificar.plano:estoque'])->group(function () {
-            Route::resource('produtos', ProdutoController::class);
             Route::resource('movimentos-estoque', MovimentoEstoqueController::class)->only(['index', 'create', 'store']);
         });
 

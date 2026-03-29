@@ -2,7 +2,7 @@
 
 namespace App\Traits;
 
-use App\Models\Rede;
+use App\Modules\Tenant\Models\Rede;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Modules\Tenant\DTOs;
+
+use Spatie\LaravelData\Data;
+
+class AtualizarEmpresaData extends Data
+{
+    public function __construct(
+        public string $nome,
+        public ?string $documento = null,
+        public ?string $telefone = null,
+        public ?string $email = null,
+    ) {}
+}
