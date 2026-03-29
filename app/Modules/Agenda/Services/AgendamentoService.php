@@ -25,6 +25,15 @@ class AgendamentoService
         return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])->get();
     }
 
+    public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
+    {
+        return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])
+            ->where('inicio', '>=', $inicio)
+            ->where('inicio', '<=', $fim)
+            ->orderBy('inicio')
+            ->get();
+    }
+
     public function buscar(int $id): Agendamento
     {
         return Agendamento::with(['cliente', 'servico', 'profissional.usuario'])->findOrFail($id);

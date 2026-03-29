@@ -41,6 +41,7 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Agenda
         Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
+        Route::get('agenda/json', [AgendaController::class, 'json'])->name('agenda.json');
         Route::get('agenda/{agendamento}', [AgendaController::class, 'show'])->name('agenda.show');
         Route::get('agenda/{agendamento}/editar', [AgendaController::class, 'edit'])->name('agenda.edit');
         Route::put('agenda/{agendamento}', [AgendaController::class, 'update'])->name('agenda.update');

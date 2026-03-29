@@ -24,18 +24,63 @@ class AgendaController extends Controller
     public function __construct(private AgendamentoService $service)
     {}
 
+    private array $coresProfissional = [
+        '#3454d1', '#25b865', '#e49e3d', '#d13b4c', '#17a2b8',
+        '#5856d6', '#3dc7be', '#475e77', '#f59e0b', '#8b5cf6',
+    ];
+
+    public function json(Request $request): JsonResponse
+    {
+        try {
+            $this->authorize('viewAny', Agendamento::class);
+
+            $start = Carbon::parse($request->start);
+            $end = Carbon::parse($request->end);
+
+            $agendamentos = $this->service->listarPorPeriodo($start, $end);
+
+            $profissionais = $agendamentos->pluck('profissional_id')->unique()->values();
+
+            $eventos = $agendamentos->map(function ($ag) use ($profissionais) {
+                $corIndex = $profissionais->search($ag->profissional_id);
+                $cor = $this->coresProfissional[$corIndex % count($this->coresProfissional)];
+
+                return [
+                    'id' => $ag->id,
+                    'title' => ($ag->cliente->nome ?? '-') . ' - ' . ($ag->servico->nome ?? '-'),
+                    'start' => $ag->inicio->toIso8601String(),
+                    'end' => $ag->fim->toIso8601String(),
+                    'color' => $cor,
+                    'extendedProps' => [
+                        'status' => $ag->status->value,
+                        'cliente' => $ag->cliente->nome ?? '-',
+                        'servico' => $ag->servico->nome ?? '-',
+                        'profissional' => $ag->profissional->usuario->nome ?? '-',
+                        'profissional_id' => $ag->profissional_id,
+                        'observacoes' => $ag->observacoes,
+                        'confirmar_url' => route('agenda.confirmar', $ag),
+                        'finalizar_url' => route('agenda.finalizar', $ag),
+                        'cancelar_url' => route('agenda.cancelar', $ag),
+                        'edit_url' => route('agenda.edit', $ag),
+                    ],
+                ];
+            });
+
+            return response()->json($eventos->values());
+        } catch (\Throwable $e) {
+            return response()->json([], 500);
+        }
+    }
+
     public function index(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('viewAny', Agendamento::class);
 
-            $data = $request->has('data')
-                ? Carbon::parse($request->data)
-                : Carbon::today();
+            $profissionais = Profissional::with('usuario')->get();
+            $cores = $this->coresProfissional;
 
-            $agendamentos = $this->service->listarPorData($data);
-
-            return view('agenda::index', compact('agendamentos', 'data'));
+            return view('agenda::index', compact('profissionais', 'cores'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar agenda');
         }
