@@ -15,7 +15,6 @@ class ClientePolicy
     public function view(Usuario $usuario, Cliente $cliente): bool
     {
         return $usuario->rede_id === $cliente->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
             && $usuario->can('cliente.ver');
     }
 
@@ -27,14 +26,12 @@ class ClientePolicy
     public function update(Usuario $usuario, Cliente $cliente): bool
     {
         return $usuario->rede_id === $cliente->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
             && $usuario->can('cliente.editar');
     }
 
     public function delete(Usuario $usuario, Cliente $cliente): bool
     {
         return $usuario->rede_id === $cliente->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $cliente->empresa_id)
             && $usuario->can('cliente.excluir');
     }
 }

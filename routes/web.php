@@ -9,6 +9,7 @@ use App\Modules\Despesa\Controllers\DespesaController;
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
 use App\Modules\Papel\Controllers\PapelController;
+use App\Modules\Produto\Controllers\CategoriaProdutoController;
 use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\EmpresaController;
@@ -71,6 +72,7 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Produtos (cadastro independente)
         Route::resource('produtos', ProdutoController::class);
+        Route::resource('categorias-produto', CategoriaProdutoController::class)->except(['show']);
 
         // Estoque - movimentação (verificar plano)
         Route::middleware(['verificar.plano:estoque'])->group(function () {

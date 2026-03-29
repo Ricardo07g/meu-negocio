@@ -15,7 +15,6 @@ class ServicoPolicy
     public function view(Usuario $usuario, Servico $servico): bool
     {
         return $usuario->rede_id === $servico->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $servico->empresa_id)
             && $usuario->can('servico.ver');
     }
 
@@ -27,14 +26,12 @@ class ServicoPolicy
     public function update(Usuario $usuario, Servico $servico): bool
     {
         return $usuario->rede_id === $servico->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $servico->empresa_id)
             && $usuario->can('servico.editar');
     }
 
     public function delete(Usuario $usuario, Servico $servico): bool
     {
         return $usuario->rede_id === $servico->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $servico->empresa_id)
             && $usuario->can('servico.excluir');
     }
 }

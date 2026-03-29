@@ -150,7 +150,7 @@
                                 <option value="">Selecione...</option>
                                 @foreach($produtos as $produto)
                                 <option value="{{ $produto->id }}"
-                                    data-valor="{{ $produto->valor }}"
+                                    data-valor="{{ $produto->valor_venda }}"
                                     data-estoque="{{ $produto->quantidade }}"
                                     {{ old('produto_id') == $produto->id ? 'selected' : '' }}>
                                     {{ $produto->nome }} ({{ $produto->quantidade }} em estoque)

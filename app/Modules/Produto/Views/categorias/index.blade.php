@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
-@section('titulo', 'Produtos - Meu Negócio')
-@section('titulo-pagina', 'Produtos')
+@section('titulo', 'Categorias de Produto - Meu Negócio')
+@section('titulo-pagina', 'Categorias de Produto')
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Produtos</li>
+    <li class="breadcrumb-item"><a href="{{ route('produtos.index') }}">Produtos</a></li>
+    <li class="breadcrumb-item active">Categorias</li>
 @endsection
 
 @section('content')
@@ -11,8 +12,8 @@
     @can('produto.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('produtos.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Produto
+            <a href="{{ route('categorias-produto.create') }}" class="btn btn-primary w-100">
+                <i class="feather-plus me-2"></i>Nova Categoria
             </a>
         </div>
     </div>
@@ -25,37 +26,16 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>Código</th>
                             <th>Nome</th>
-                            <th>Categoria</th>
-                            <th>Qtd</th>
-                            <th>Valor Venda</th>
-                            <th>Status</th>
+                            <th>Descrição</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($produtos as $produto)
+                        @forelse($categorias as $categoria)
                         <tr>
-                            <td>{{ $produto->codigo ?? '-' }}</td>
-                            <td>{{ $produto->nome }}</td>
-                            <td>{{ $produto->categoriaProduto->nome ?? '-' }}</td>
-                            <td>
-                                @if($produto->estoque_minimo !== null && $produto->quantidade <= $produto->estoque_minimo)
-                                    <span class="text-danger fw-bold">{{ $produto->quantidade }}</span>
-                                    <i class="feather-alert-triangle text-danger ms-1" title="Estoque baixo"></i>
-                                @else
-                                    {{ $produto->quantidade }}
-                                @endif
-                            </td>
-                            <td>R$ {{ number_format($produto->valor_venda, 2, ',', '.') }}</td>
-                            <td>
-                                @if($produto->ativo)
-                                    <span class="badge bg-success">Ativo</span>
-                                @else
-                                    <span class="badge bg-danger">Inativo</span>
-                                @endif
-                            </td>
+                            <td>{{ $categoria->nome }}</td>
+                            <td>{{ $categoria->descricao ?? '—' }}</td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
                                     <div class="dropdown">
@@ -63,15 +43,9 @@
                                             <i class="feather-more-horizontal"></i>
                                         </a>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('produtos.show', $produto) }}">
-                                                    <i class="feather-eye me-3"></i>
-                                                    <span>Ver</span>
-                                                </a>
-                                            </li>
                                             @can('produto.editar')
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('produtos.edit', $produto) }}">
+                                                <a class="dropdown-item" href="{{ route('categorias-produto.edit', $categoria) }}">
                                                     <i class="feather-edit-3 me-3"></i>
                                                     <span>Editar</span>
                                                 </a>
@@ -80,7 +54,7 @@
                                             @can('produto.excluir')
                                             <li class="dropdown-divider"></li>
                                             <li>
-                                                <form action="{{ route('produtos.destroy', $produto) }}" method="POST" data-confirm="Excluir este produto?">
+                                                <form action="{{ route('categorias-produto.destroy', $categoria) }}" method="POST" data-confirm="Excluir esta categoria?">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="dropdown-item text-danger">
                                                         <i class="feather-trash-2 me-3"></i>
@@ -95,7 +69,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted py-4">Nenhuma categoria cadastrada.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -11,13 +11,12 @@ return new class extends Migration
         Schema::create('servicos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conta_id')->constrained('contas');
-            $table->foreignId('empresa_id')->constrained('empresas');
             $table->string('nome', 200);
             $table->integer('duracao'); // em minutos
             $table->decimal('valor', 10, 2);
             $table->timestamps();
 
-            $table->index(['conta_id', 'empresa_id']);
+            $table->index('conta_id');
         });
     }
 

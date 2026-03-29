@@ -7,6 +7,7 @@ use App\Modules\Produto\DTOs\AtualizarProdutoData;
 use App\Modules\Produto\DTOs\CriarProdutoData;
 use App\Modules\Produto\Requests\AtualizarProdutoRequest;
 use App\Modules\Produto\Requests\CriarProdutoRequest;
+use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\Services\ProdutoService;
@@ -39,8 +40,9 @@ class ProdutoController extends Controller
     {
         try {
             $this->authorize('create', Produto::class);
+            $categorias = CategoriaProduto::orderBy('nome')->get();
 
-            return view('produto::create');
+            return view('produto::create', compact('categorias'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de produto');
         }
@@ -73,8 +75,9 @@ class ProdutoController extends Controller
     {
         try {
             $this->authorize('update', $produto);
+            $categorias = CategoriaProduto::orderBy('nome')->get();
 
-            return view('produto::edit', compact('produto'));
+            return view('produto::edit', compact('produto', 'categorias'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar edição de produto');
         }

@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('categorias_produto', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('rede_id')->constrained('redes')->cascadeOnDelete();
+            $table->string('nome', 100);
+            $table->string('descricao', 255)->nullable();
+            $table->timestamps();
+
+            $table->index('rede_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('categorias_produto');
+    }
+};

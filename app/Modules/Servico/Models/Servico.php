@@ -6,20 +6,18 @@ use App\Enums\TipoServico;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Traits\PertenceARede;
-use App\Traits\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Servico extends Model
 {
-    use PertenceARede, PertenceAEmpresa, SoftDeletes;
+    use PertenceARede, SoftDeletes;
 
     protected $table = 'servicos';
 
     protected $fillable = [
         'rede_id',
-        'empresa_id',
         'nome',
         'duracao',
         'valor',

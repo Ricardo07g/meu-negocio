@@ -11,7 +11,6 @@ return new class extends Migration
         Schema::create('clientes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conta_id')->constrained('contas');
-            $table->foreignId('empresa_id')->constrained('empresas');
             $table->string('nome', 200);
             $table->string('telefone', 20)->nullable();
             $table->string('email')->nullable();
@@ -19,7 +18,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['conta_id', 'empresa_id']);
+            $table->index('conta_id');
         });
     }
 

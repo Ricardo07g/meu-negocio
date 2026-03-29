@@ -9,6 +9,7 @@ use App\Modules\Tenant\DTOs\CriarRedeData;
 use App\Modules\Tenant\DTOs\CriarEmpresaData;
 use App\Modules\Usuario\DTOs\CriarUsuarioData;
 use App\Enums\StatusRede;
+use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Tenant\Models\Plano;
 use App\Modules\Tenant\Models\Rede;
 use Illuminate\Support\Facades\DB;
@@ -46,6 +47,12 @@ class RedeService
                     papel: 'Admin',
                 )
             );
+
+            // Categorias de produto padrão
+            $categoriasPadrao = ['Cabelo', 'Corpo', 'Rosto', 'Unhas', 'Consumíveis', 'Outros'];
+            foreach ($categoriasPadrao as $nome) {
+                CategoriaProduto::create(['rede_id' => $rede->id, 'nome' => $nome]);
+            }
 
             $rede->setRelation('usuarioCriado', $usuario);
 

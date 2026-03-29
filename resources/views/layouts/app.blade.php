@@ -158,6 +158,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Categorias de Produto --}}
+                    @can('produto.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('categorias-produto.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-grid"></i></span>
+                            <span class="nxl-mtext">Categorias</span>
+                        </a>
+                    </li>
+                    @endcan
                     {{-- Servicos --}}
                     @can('servico.ver')
                     <li class="nxl-item">

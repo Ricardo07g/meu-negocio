@@ -6,7 +6,6 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Traits\PertenceARede;
-use App\Traits\PertenceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -14,13 +13,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cliente extends Model
 {
-    use PertenceARede, PertenceAEmpresa, SoftDeletes;
+    use PertenceARede, SoftDeletes;
 
     protected $table = 'clientes';
 
     protected $fillable = [
         'rede_id',
-        'empresa_id',
         'nome',
         'telefone',
         'telefone_whatsapp',

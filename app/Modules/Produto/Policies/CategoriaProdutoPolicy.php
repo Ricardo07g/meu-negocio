@@ -2,19 +2,19 @@
 
 namespace App\Modules\Produto\Policies;
 
-use App\Modules\Produto\Models\Produto;
+use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Usuario\Models\Usuario;
 
-class ProdutoPolicy
+class CategoriaProdutoPolicy
 {
     public function viewAny(Usuario $usuario): bool
     {
         return $usuario->can('produto.ver');
     }
 
-    public function view(Usuario $usuario, Produto $produto): bool
+    public function view(Usuario $usuario, CategoriaProduto $categoria): bool
     {
-        return $usuario->rede_id === $produto->rede_id
+        return $usuario->rede_id === $categoria->rede_id
             && $usuario->can('produto.ver');
     }
 
@@ -23,15 +23,15 @@ class ProdutoPolicy
         return $usuario->can('produto.criar');
     }
 
-    public function update(Usuario $usuario, Produto $produto): bool
+    public function update(Usuario $usuario, CategoriaProduto $categoria): bool
     {
-        return $usuario->rede_id === $produto->rede_id
+        return $usuario->rede_id === $categoria->rede_id
             && $usuario->can('produto.editar');
     }
 
-    public function delete(Usuario $usuario, Produto $produto): bool
+    public function delete(Usuario $usuario, CategoriaProduto $categoria): bool
     {
-        return $usuario->rede_id === $produto->rede_id
+        return $usuario->rede_id === $categoria->rede_id
             && $usuario->can('produto.excluir');
     }
 }

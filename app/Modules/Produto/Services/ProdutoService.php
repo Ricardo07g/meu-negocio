@@ -23,8 +23,17 @@ class ProdutoService
     {
         return Produto::create([
             'nome' => $data->nome,
+            'codigo' => $data->codigo,
+            'codigo_barras' => $data->codigo_barras,
+            'descricao' => $data->descricao,
+            'categoria_produto_id' => $data->categoria_produto_id,
             'quantidade' => $data->quantidade,
-            'valor' => $data->valor,
+            'valor_custo' => $data->valor_custo,
+            'valor_venda' => $data->valor_venda,
+            'estoque_minimo' => $data->estoque_minimo,
+            'unidade' => $data->unidade,
+            'ativo' => $data->ativo,
+            'observacoes' => $data->observacoes,
         ]);
     }
 
@@ -32,8 +41,17 @@ class ProdutoService
     {
         $produto->update([
             'nome' => $data->nome,
+            'codigo' => $data->codigo,
+            'codigo_barras' => $data->codigo_barras,
+            'descricao' => $data->descricao,
+            'categoria_produto_id' => $data->categoria_produto_id,
             'quantidade' => $data->quantidade,
-            'valor' => $data->valor,
+            'valor_custo' => $data->valor_custo,
+            'valor_venda' => $data->valor_venda,
+            'estoque_minimo' => $data->estoque_minimo,
+            'unidade' => $data->unidade,
+            'ativo' => $data->ativo,
+            'observacoes' => $data->observacoes,
         ]);
 
         return $produto->fresh();
