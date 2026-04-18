@@ -3,20 +3,19 @@
 namespace App\Modules\Venda\Models;
 
 use App\Enums\StatusVendaPacote;
+use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Traits\PertenceARede;
-use App\Traits\PertenceAEmpresa;
-use Illuminate\Database\Eloquent\Model;
+use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class VendaPacote extends Model
+class VendaPacote extends BaseModel
 {
-    use PertenceARede, PertenceAEmpresa, SoftDeletes;
+    use EmpresaTrait, SoftDeletes;
 
     protected $table = 'vendas_pacote';
 
@@ -39,6 +38,13 @@ class VendaPacote extends Model
         ];
     }
 
+    // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
+    // ██╔══██╗██╔════╝██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
+    // ██████╔╝█████╗  ██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║███████╗
+    // ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║╚════██║
+    // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
+    // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
@@ -58,6 +64,34 @@ class VendaPacote extends Model
     {
         return $this->hasMany(Agendamento::class, 'venda_pacote_id');
     }
+
+    // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗
+    // ██╔══██╗██╔════╝██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
+    // ███████║██║     █████╗  ███████╗███████╗██║   ██║██████╔╝███████╗
+    // ██╔══██║██║     ██╔══╝  ╚════██║╚════██║██║   ██║██╔══██╗╚════██║
+    // ██║  ██║╚██████╗███████╗███████║███████║╚██████╔╝██║  ██║███████║
+    // ╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███╗   ███╗██╗   ██╗████████╗ █████╗ ████████╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██║   ██║╚══██╔══╝██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║██║   ██║   ██║   ███████║   ██║   ██║   ██║██████╔╝███████╗
+    // ██║╚██╔╝██║██║   ██║   ██║   ██╔══██║   ██║   ██║   ██║██╔══██╗╚════██║
+    // ██║ ╚═╝ ██║╚██████╔╝   ██║   ██║  ██║   ██║   ╚██████╔╝██║  ██║███████║
+    // ╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
+    // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
+    // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
+    // ╚════██║██║     ██║   ██║██╔═══╝ ██╔══╝  ╚════██║
+    // ███████║╚██████╗╚██████╔╝██║     ███████╗███████║
+    // ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝
+
+    // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
     public function sessoesRealizadas(): int
     {

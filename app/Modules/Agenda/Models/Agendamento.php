@@ -3,22 +3,21 @@
 namespace App\Modules\Agenda\Models;
 
 use App\Enums\StatusAgendamento;
+use App\Models\BaseModel;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Traits\PertenceARede;
-use App\Traits\PertenceAEmpresa;
+use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Agendamento extends Model
+class Agendamento extends BaseModel
 {
-    use PertenceARede, PertenceAEmpresa, RegistraAtividade, SoftDeletes;
+    use EmpresaTrait, RegistraAtividade, SoftDeletes;
 
     protected $table = 'agendamentos';
 
@@ -44,6 +43,13 @@ class Agendamento extends Model
         ];
     }
 
+    // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
+    // ██╔══██╗██╔════╝██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
+    // ██████╔╝█████╗  ██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║███████╗
+    // ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║╚════██║
+    // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
+    // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
@@ -68,4 +74,32 @@ class Agendamento extends Model
     {
         return $this->hasOne(Pagamento::class, 'agendamento_id');
     }
+
+    // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗
+    // ██╔══██╗██╔════╝██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
+    // ███████║██║     █████╗  ███████╗███████╗██║   ██║██████╔╝███████╗
+    // ██╔══██║██║     ██╔══╝  ╚════██║╚════██║██║   ██║██╔══██╗╚════██║
+    // ██║  ██║╚██████╗███████╗███████║███████║╚██████╔╝██║  ██║███████║
+    // ╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███╗   ███╗██╗   ██╗████████╗ █████╗ ████████╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██║   ██║╚══██╔══╝██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║██║   ██║   ██║   ███████║   ██║   ██║   ██║██████╔╝███████╗
+    // ██║╚██╔╝██║██║   ██║   ██║   ██╔══██║   ██║   ██║   ██║██╔══██╗╚════██║
+    // ██║ ╚═╝ ██║╚██████╔╝   ██║   ██║  ██║   ██║   ╚██████╔╝██║  ██║███████║
+    // ╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
+    // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
+    // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
+    // ╚════██║██║     ██║   ██║██╔═══╝ ██╔══╝  ╚════██║
+    // ███████║╚██████╗╚██████╔╝██║     ███████╗███████║
+    // ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝
+
+    // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 }

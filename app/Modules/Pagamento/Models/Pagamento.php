@@ -4,22 +4,21 @@ namespace App\Modules\Pagamento\Models;
 
 use App\Enums\FormaPagamento;
 use App\Enums\StatusPagamento;
+use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
-use App\Traits\PertenceARede;
-use App\Traits\PertenceAEmpresa;
+use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Pagamento extends Model
+class Pagamento extends BaseModel
 {
-    use PertenceARede, PertenceAEmpresa, RegistraAtividade, SoftDeletes;
+    use EmpresaTrait, RegistraAtividade, SoftDeletes;
 
     protected $table = 'pagamentos';
 
@@ -47,6 +46,13 @@ class Pagamento extends Model
         ];
     }
 
+    // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
+    // ██╔══██╗██╔════╝██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
+    // ██████╔╝█████╗  ██║     ███████║   ██║   ██║██║   ██║██╔██╗ ██║███████╗
+    // ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║╚════██║
+    // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
+    // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
@@ -71,6 +77,34 @@ class Pagamento extends Model
     {
         return $this->hasMany(BaixaPagamento::class, 'pagamento_id');
     }
+
+    // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗
+    // ██╔══██╗██╔════╝██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝
+    // ███████║██║     █████╗  ███████╗███████╗██║   ██║██████╔╝███████╗
+    // ██╔══██║██║     ██╔══╝  ╚════██║╚════██║██║   ██║██╔══██╗╚════██║
+    // ██║  ██║╚██████╗███████╗███████║███████║╚██████╔╝██║  ██║███████║
+    // ╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███╗   ███╗██╗   ██╗████████╗ █████╗ ████████╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██║   ██║╚══██╔══╝██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║██║   ██║   ██║   ███████║   ██║   ██║   ██║██████╔╝███████╗
+    // ██║╚██╔╝██║██║   ██║   ██║   ██╔══██║   ██║   ██║   ██║██╔══██╗╚════██║
+    // ██║ ╚═╝ ██║╚██████╔╝   ██║   ██║  ██║   ██║   ╚██████╔╝██║  ██║███████║
+    // ╚═╝     ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝
+
+    // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
+    // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
+    // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
+    // ╚════██║██║     ██║   ██║██╔═══╝ ██╔══╝  ╚════██║
+    // ███████║╚██████╗╚██████╔╝██║     ███████╗███████║
+    // ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝
+
+    // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
     public function saldoRestante(): float
     {

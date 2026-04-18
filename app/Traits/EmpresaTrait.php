@@ -6,9 +6,9 @@ use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-trait PertenceAEmpresa
+trait EmpresaTrait
 {
-    public static function bootPertenceAEmpresa(): void
+    public static function bootEmpresaTrait(): void
     {
         static::addGlobalScope('empresa', function (Builder $query) {
             if ($usuario = static::resolverUsuarioSeguro())
@@ -48,7 +48,7 @@ trait PertenceAEmpresa
 
         $resolvendo = true;
 
-        try 
+        try
         {
             $usuario = auth()->user();
         }

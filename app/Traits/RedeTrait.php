@@ -6,9 +6,9 @@ use App\Modules\Tenant\Models\Rede;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-trait PertenceARede
+trait RedeTrait
 {
-    public static function bootPertenceARede(): void
+    public static function bootRedeTrait(): void
     {
         static::addGlobalScope('rede', function (Builder $query) {
             if ($usuario = static::resolverUsuarioAutenticado())
