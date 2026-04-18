@@ -55,7 +55,7 @@
                                         <span class="badge bg-secondary">{{ ucfirst($pagamento->status->value) }}</span>
                                 @endswitch
                             </td>
-                            <td>{{ $pagamento->agendamento->cliente->nome ?? '-' }}</td>
+                            <td>{{ $pagamento->cliente->nome ?? '-' }}</td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
                                     <div class="dropdown">

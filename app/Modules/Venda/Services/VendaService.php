@@ -10,6 +10,7 @@ use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Enums\StatusVendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Estoque\Models\MovimentoEstoque;
+use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
@@ -23,6 +24,7 @@ class VendaService
         private CriarAgendamentoAction $criarAgendamento,
         private VenderPacoteAction $venderPacote,
         private CancelarAgendamentoAction $cancelarAgendamento,
+        private CaixaService $caixaService,
     ) {}
 
     public function listar(): Collection
@@ -73,7 +75,7 @@ class VendaService
                 'model' => $vp,
             ]);
 
-        return $pacotes->merge($avulsos)->merge($produtos)->sortByDesc('data')->values();
+        return collect($pacotes)->merge($avulsos)->merge($produtos)->sortByDesc('data')->values();
     }
 
     public function criarAvulso(CriarAgendamentoData $data, string $formaPagamento, string $statusPagamento): Agendamento
@@ -81,12 +83,16 @@ class VendaService
         $agendamento = $this->criarAgendamento->executar($data);
         $servico = Servico::find($data->servico_id);
 
-        Pagamento::create([
+        $pagamento = Pagamento::create([
+            'cliente_id' => $data->cliente_id,
             'agendamento_id' => $agendamento->id,
             'valor' => $servico->valor,
+            'valor_pago' => $statusPagamento === 'pago' ? $servico->valor : 0,
             'forma_pagamento' => $formaPagamento,
             'status' => $statusPagamento,
         ]);
+
+        $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
 
         return $agendamento;
     }
@@ -95,12 +101,16 @@ class VendaService
     {
         $pacote = $this->venderPacote->executar($data);
 
-        Pagamento::create([
+        $pagamento = Pagamento::create([
+            'cliente_id' => $data->cliente_id,
             'venda_pacote_id' => $pacote->id,
             'valor' => $data->valor_total,
+            'valor_pago' => $statusPagamento === 'pago' ? $data->valor_total : 0,
             'forma_pagamento' => $formaPagamento,
             'status' => $statusPagamento,
         ]);
+
+        $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
 
         return $pacote;
     }
@@ -141,13 +151,36 @@ class VendaService
 
         $produto->decrement('quantidade', $quantidade);
 
-        Pagamento::create([
+        $pagamento = Pagamento::create([
+            'cliente_id' => $cliente_id ?: null,
             'venda_produto_id' => $venda->id,
             'valor' => $valor_total,
+            'valor_pago' => $statusPagamento === 'pago' ? $valor_total : 0,
             'forma_pagamento' => $formaPagamento,
             'status' => $statusPagamento,
         ]);
 
+        $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
+
         return $venda;
+    }
+
+    private function registrarNoCaixaSeAberto(Pagamento $pagamento, string $statusPagamento): void
+    {
+        if ($statusPagamento !== 'pago') {
+            return;
+        }
+
+        $caixa = $this->caixaService->caixaAberto();
+        if (!$caixa) {
+            return;
+        }
+
+        $this->caixaService->registrarEntrada(
+            $caixa,
+            $pagamento->valor,
+            "Venda - Pagamento #{$pagamento->id}",
+            $pagamento->forma_pagamento->value,
+        );
     }
 }

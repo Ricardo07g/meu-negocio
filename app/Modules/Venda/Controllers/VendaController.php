@@ -13,6 +13,7 @@ use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
+use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Venda\Services\VendaService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +25,7 @@ class VendaController extends Controller
 
     public function __construct(
         private VendaService $service,
+        private CaixaService $caixaService,
     ) {}
 
     public function index(): View|RedirectResponse
@@ -42,6 +44,12 @@ class VendaController extends Controller
     {
         try {
             $this->authorize('create', Agendamento::class);
+
+            if (!$this->caixaService->caixaAberto()) {
+                return redirect()->route('vendas.index')
+                    ->with('erro', 'É necessário abrir o caixa antes de registrar vendas.');
+            }
+
             $clientes = Cliente::all();
             $servicos = Servico::all();
             $atendentes = Usuario::where('atende', true)->get();
@@ -55,7 +63,13 @@ class VendaController extends Controller
 
     public function store(CriarVendaRequest $request): RedirectResponse
     {
-        try {
+        try
+        {
+            if (!$this->caixaService->caixaAberto()) {
+                return redirect()->route('vendas.index')
+                    ->with('erro', 'É necessário abrir o caixa antes de registrar vendas.');
+            }
+
             $formaPagamento = $request->forma_pagamento;
             $statusPagamento = $request->status_pagamento;
 

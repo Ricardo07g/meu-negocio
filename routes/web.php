@@ -14,6 +14,7 @@ use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\EmpresaController;
 use App\Modules\Usuario\Controllers\UsuarioController;
+use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,6 +70,15 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         Route::middleware(['verificar.plano:financeiro'])->group(function () {
             Route::resource('pagamentos', PagamentoController::class)->only(['index', 'create', 'store', 'show']);
             Route::resource('despesas', DespesaController::class);
+
+            // Caixa
+            Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');
+            Route::get('caixas/abrir', [CaixaController::class, 'create'])->name('caixas.create');
+            Route::post('caixas', [CaixaController::class, 'store'])->name('caixas.store');
+            Route::get('caixas/{caixa}', [CaixaController::class, 'show'])->name('caixas.show');
+            Route::patch('caixas/{caixa}/fechar', [CaixaController::class, 'fechar'])->name('caixas.fechar');
+            Route::post('caixas/{caixa}/sangria', [CaixaController::class, 'sangria'])->name('caixas.sangria');
+            Route::post('caixas/{caixa}/reforco', [CaixaController::class, 'reforco'])->name('caixas.reforco');
         });
 
         // Produtos (cadastro independente)

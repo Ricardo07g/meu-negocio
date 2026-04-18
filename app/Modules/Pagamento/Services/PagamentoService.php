@@ -16,12 +16,12 @@ class PagamentoService
 
     public function listar(): Collection
     {
-        return Pagamento::with('agendamento.cliente')->get();
+        return Pagamento::with('cliente')->get();
     }
 
     public function buscar(int $id): Pagamento
     {
-        return Pagamento::with('agendamento.cliente')->findOrFail($id);
+        return Pagamento::with('cliente')->findOrFail($id);
     }
 
     public function registrar(RegistrarPagamentoData $data): Pagamento
@@ -31,7 +31,7 @@ class PagamentoService
 
     public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
     {
-        return Pagamento::with('agendamento.cliente')
+        return Pagamento::with('cliente')
             ->whereBetween('created_at', [$inicio, $fim])
             ->orderBy('created_at', 'desc')
             ->get();

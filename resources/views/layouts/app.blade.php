@@ -159,6 +159,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Caixa --}}
+                    @can('financeiro.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('caixas.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-inbox"></i></span>
+                            <span class="nxl-mtext">Caixa</span>
+                        </a>
+                    </li>
+                    @endcan
                     @endif
 
                     @if(auth()->user()->rede->plano->tem_estoque)
