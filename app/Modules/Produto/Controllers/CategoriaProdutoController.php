@@ -18,7 +18,7 @@ class CategoriaProdutoController extends Controller
     {
         try {
             $this->authorize('viewAny', CategoriaProduto::class);
-            $categorias = CategoriaProduto::orderBy('nome')->get();
+            $categorias = CategoriaProduto::orderBy('descricao')->get();
 
             return view('produto::categorias.index', compact('categorias'));
         } catch (\Throwable $e) {

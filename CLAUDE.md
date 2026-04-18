@@ -1,7 +1,7 @@
 # Meu Negocio - Contexto do Projeto
 
 SaaS multi-tenant para pequenos negocios (clinicas, saloes, massoterapia, autonomos).
-Preparado para open source.
+Projeto de portfolio, preparado para open source.
 
 ## Stack
 
@@ -20,222 +20,120 @@ Preparado para open source.
 ## Idioma
 
 Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
-Exemplo: `clientes`, `Cliente`, `ClienteController`, `cliente.ver`.
+
+---
+
+## Interface / UI
+
+### Template de referencia
+Sempre buscar padroes de interface no Duralux Admin:
+`/home/ricardo/Documentos/Projetos/TEMAS/Duralux-admin-1.0.0/`
+
+Componentes: cards, tables, badges, buttons, forms Bootstrap 5. Icones: Feather (`feather-*`). Modais: SweetAlert2.
+
+### Padroes de UI consolidados
+- **Formularios CRUD**: `_form.blade.php` partial compartilhado (create/edit), recebe `$entidade` (null no create)
+- **Botoes de formulario**: `<x-form-botoes>` component (Voltar/Salvar, min-width 300px)
+- **Botao Voltar em show**: `btn btn-light px-5 py-2` com `min-width: 300px`
+- **Busca de entidades**: AJAX com `initAjaxSearch()` (funcao global no layout), nunca carregar tudo em select
+- **Tabelas**: `table table-hover` ou `table table-striped table-hover`
+- **Badges**: bg-success (ativo/pago), bg-warning (pendente), bg-danger (cancelado), bg-secondary (estornado)
+- **Modais SweetAlert**: inputs com `width:100%;max-width:100%;box-sizing:border-box;`, textareas `rows="3"`, cor `#3454d1`
+- **Models**: secoes ASCII art (RELATIONS, ACESSORS, MUTATORS, SCOPES, METHODS)
+
+### AJAX Search (global no layout)
+Endpoints: `GET clientes/buscar?q=`, `GET produtos/buscar?q=`, `GET servicos/buscar?q=`
 
 ---
 
 ## Arquitetura
 
 ### Multi-tenant
+Single DB + tenant_id. Traits: `RedeTrait` (rede_id), `EmpresaTrait` (empresa_id, Admin ve tudo).
 
-Single database + tenant_id. Campos obrigatorios em todos os registros:
-- `rede_id` — sempre
-- `empresa_id` — quando dado pertence a empresa
-
-Traits de escopo automatico:
-- `PertenceARede` — global scope por `rede_id` do usuario logado, auto-assign no boot
-- `PertenceAEmpresa` — global scope por `empresa_id` (Admin ve tudo da rede), auto-assign no boot
-
-Hierarquia: `Rede > Empresa > (Usuarios, Clientes, Servicos, Agendamentos, ...)`
+### BaseModel
+`App\Models\BaseModel` extends Model + usa `RedeTrait`. Todos models tenant-aware estendem BaseModel.
+Excecoes: Plano, Rede, MovimentoCaixa (Model direto). Usuario (Authenticatable + traits direto).
 
 ### Estrutura Modular
+`app/Modules/{NomeModulo}/` com Controllers, Services, Actions, DTOs, Requests, Policies, Models, Views, Migrations.
 
-Cada modulo fica em `app/Modules/{NomeModulo}/` com subpastas por camada.
-O `ModuleServiceProvider` carrega views e migrations automaticamente de cada modulo.
-
-### Camadas por Modulo
-
-| Camada       | Pasta            | Responsabilidade                              |
-|-------------|-----------------|----------------------------------------------|
-| Controller  | Controllers/     | Request/Response. Nunca regra de negocio.    |
-| Service     | Services/        | Regra de negocio e fluxo.                     |
-| Action      | Actions/         | Acao especifica e unitaria.                   |
-| DTO         | DTOs/            | Transporte de dados (spatie/laravel-data).    |
-| Request     | Requests/        | Validacao de entrada.                         |
-| Policy      | Policies/        | Autorizacao de acesso.                        |
-| Model       | Models/          | Eloquent. Sem regra complexa.                 |
-| View        | Views/           | Blade templates.                              |
-| Migration   | Migrations/      | Estrutura do banco.                           |
-
-### Regras de Codigo
-
-- Controller so valida request, chama service, retorna response
-- Service contem regra de negocio, pode usar Actions/DTOs
-- Nunca acessar DB direto no controller
-- Nunca passar array solto — usar DTO
-- Todos models devem ter Policy
-- Repository apenas quando query complexa/reuso justificar
+### Padroes de Codigo
+- Controller: request/response apenas, chama service
+- Service: regra de negocio
+- **Requests unificados**: `SalvarXxxRequest` (isMethod('post') para criar/editar)
+- **DTOs unificados**: `XxxData` (um para criar e atualizar)
+- **Views com partial**: `_form.blade.php` + `@php $entidade = $entidade ?? null; @endphp`
 
 ---
 
 ## Modulos — Estado Atual
 
-### Completos (todas camadas implementadas)
-- **Tenant** — Rede, Empresa, Plano (Models, Controllers, Services, Actions, DTOs, Requests, Policies, Views, Migrations)
-- **Usuario** — CRUD completo com CriarUsuarioAction
-- **Cliente** — CRUD completo com Actions de criar/atualizar
-- **Servico** — CRUD completo, tipos: avulso/pacote
-- **Agenda** — CRUD + acoes confirmar/finalizar/cancelar, FullCalendar integrado
-- **Pagamento** — CRUD + RegistrarPagamentoAction
+### Completos
+- **Tenant** — Rede, Empresa, Plano
+- **Usuario** — CRUD completo
+- **Cliente** — CRUD + Actions + busca AJAX
+- **Servico** — CRUD, tipos avulso/pacote + busca AJAX
+- **Agenda** — CRUD + confirmar/finalizar/cancelar, FullCalendar
+- **Pagamento** — CRUD + baixa parcial + contas a receber + filtros status
 - **Despesa** — CRUD completo
-- **Estoque** — Movimentos de entrada/saida/ajuste
-- **Produto** — CRUD + CategoriaProduto
-- **Venda** — VendaPacote + VendaProduto + VenderPacoteAction
-- **Caixa** — Abrir/fechar, sangria/reforco, BaixaPagamento, MovimentoCaixa
+- **Estoque** — Movimentos entrada/saida/ajuste
+- **Produto** — CRUD + CategoriaProduto (descricao + ativo) + busca AJAX
+- **Venda** — VendaPacote + VendaProduto (carrinho multi-item) + estorno automatico
+- **Caixa** — Navegacao por dia, abrir/fechar, sangria/reforco, retroativo
+- **Dashboard** — Cards reais (agendamentos, clientes, receita, contas a receber, caixa)
 
-### Parciais (sem todas camadas)
-- **Auth** — Login/Registrar (Controllers, Requests, Views). Sem Service/DTO.
-- **Dashboard** — Controller + View apenas
-- **Papel** — Controller + Policy + Views (usa Spatie Role direto)
+### Parciais
+- **Auth** — Login/Registrar
+- **Papel** — Controller + Policy + Views
 
 ---
 
 ## Banco de Dados
 
-### Tabelas principais
-| Tabela               | Modulo    | Tenant        |
-|---------------------|-----------|---------------|
-| planos              | Tenant    | —             |
-| redes               | Tenant    | rede_id       |
-| empresas            | Tenant    | rede_id       |
-| usuarios            | Usuario   | rede_id + empresa_id |
-| clientes            | Cliente   | rede_id + empresa_id |
-| servicos            | Servico   | rede_id + empresa_id |
-| agendamentos        | Agenda    | rede_id + empresa_id |
-| vendas_pacote       | Venda     | rede_id + empresa_id |
-| vendas_produto      | Venda     | rede_id + empresa_id |
-| pagamentos          | Pagamento | rede_id + empresa_id |
-| despesas            | Despesa   | rede_id + empresa_id |
-| produtos            | Produto   | rede_id + empresa_id |
-| categorias_produto  | Produto   | rede_id + empresa_id |
-| movimentos_estoque  | Estoque   | rede_id + empresa_id |
-| caixas              | Caixa     | rede_id + empresa_id |
-| movimentos_caixa    | Caixa     | rede_id + empresa_id |
-| baixas_pagamento    | Caixa     | rede_id + empresa_id |
-
-### Migrations
-- Migrations de modulo ficam em `app/Modules/{Modulo}/Migrations/`
-- Migrations globais (Spatie, jobs, cache) ficam em `database/migrations/`
-- `ModuleServiceProvider` carrega todas automaticamente
+### Tabelas
+planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_pacote, vendas_produto, venda_produto_itens, pagamentos, baixas_pagamento, despesas, produtos, categorias_produto, movimentos_estoque, caixas, movimentos_caixa
 
 ---
 
-## Enums
+## Fluxos de Negocio
 
-| Enum                   | Valores                                      |
-|-----------------------|----------------------------------------------|
-| StatusAgendamento     | Agendado, Confirmado, Cancelado, Finalizado  |
-| FormaPagamento        | Pix, Dinheiro, Cartao, Fiado                 |
-| StatusPagamento       | Pendente, Pago, Cancelado, Estornado         |
-| TipoServico           | Avulso, Pacote                                |
-| StatusVendaPacote     | Ativo, Concluido, Cancelado                   |
-| TipoMovimentoEstoque  | Entrada, Saida, Ajuste                        |
-| StatusRede            | Ativa, Inativa, Suspensa, Cancelada           |
-| StatusCaixa           | Aberto, Fechado                               |
-| TipoMovimentoCaixa   | Entrada, Saida, Sangria, Reforco              |
-| PapelEnum             | Admin, Gerente, Profissional, Recepcao, Financeiro, Estoque, Visualizador |
+### Venda → Pagamento → Caixa
+- Venda paga + caixa aberto → MovimentoCaixa entrada
+- Venda pendente (fiado) → Contas a Receber → Baixa parcial/total (exige caixa aberto)
 
----
+### Estorno ao Cancelar
+- Pagamento estornado + estoque devolvido + saida no caixa + agendamentos cancelados
 
-## Permissoes e Papeis (Spatie)
-
-### Papeis
-Dono, Admin, Gerente, Profissional, Recepcao, Financeiro, Estoque, Visualizador.
-
-### Permissoes (formato: `recurso.acao`)
-- rede: ver, editar, configurar, cobranca
-- empresa: ver, criar, editar, excluir
-- usuario: ver, criar, editar, excluir
-- cliente: ver, criar, editar, excluir
-- servico: ver, criar, editar, excluir
-- profissional: ver, criar, editar, excluir
-- agendamento: ver, criar, editar, cancelar, excluir
-- financeiro: ver, criar, editar, excluir, relatorio
-- pagamento: ver, criar, editar, excluir
-- despesa: ver, criar, editar, excluir
-- estoque: ver, criar, editar, excluir
-- produto: ver, criar, editar, excluir
-- movimento_estoque: ver, criar
-- plano: ver, alterar
-
-### Planos e limites
-| Plano    | Empresas | Usuarios  | Estoque | Financeiro |
-|----------|----------|-----------|---------|------------|
-| free     | 1        | 2         | nao     | nao        |
-| basic    | 2        | 5         | sim     | basico     |
-| pro      | 5        | 10        | sim     | completo   |
-| business | ilimitado| ilimitado | sim     | completo   |
-
----
-
-## Middleware
-
-- `verificar.rede` — valida rede do usuario logado
-- `verificar.empresa` — valida empresa do usuario
-- `verificar.plano:{modulo}` — valida se plano permite acesso ao modulo (ex: `verificar.plano:financeiro`)
-
-Ordem nas rotas: `auth > verificar.rede > verificar.empresa > verificar.plano`
-
----
-
-## Rotas (web.php)
-
-- Guest: login, registrar
-- Auth + rede: dashboard
-- Auth + rede + empresa: agenda, vendas, clientes, servicos, pagamentos, despesas, caixas, produtos, categorias-produto, movimentos-estoque, empresas, usuarios, papeis
-- Verificacao de plano: financeiro (pagamentos, despesas, caixas), estoque (movimentos-estoque)
+### Caixa Diario
+- Navegacao prev/next por dia, 1 caixa por empresa/dia, permite retroativo
 
 ---
 
 ## Traits
-
-| Trait              | Uso                                                  |
-|-------------------|------------------------------------------------------|
-| PertenceARede     | Global scope rede_id + auto-assign                   |
-| PertenceAEmpresa  | Global scope empresa_id (Admin ve tudo) + auto-assign |
-| RegistraAtividade | Spatie ActivityLog em models                          |
-| TratamentoErros   | Error handling em controllers (NegocioException, etc) |
-
----
-
-## Auth
-
-- Model: `App\Modules\Usuario\Models\Usuario`
-- Guard: `web` (session)
-- Usuario tem: rede_id, empresa_id, papel (via Spatie)
+| Trait | Uso |
+|---|---|
+| RedeTrait | Global scope rede_id (via BaseModel) |
+| EmpresaTrait | Global scope empresa_id (Admin ve tudo) |
+| RegistraAtividade | Spatie ActivityLog |
+| TratamentoErros | Error handling controllers |
 
 ---
 
-## Docker (dev)
-
-```bash
-docker compose up -d        # subir ambiente
-docker compose exec app bash # acessar container PHP
-```
-
-Servicos: app (PHP), nginx (:8080), mysql (:3306), redis (:6379)
-
----
-
-## Comandos uteis
-
-```bash
-composer dev                 # servidor dev completo (concurrent)
-php artisan migrate          # rodar migrations
-php artisan db:seed          # seeders
-npm run dev                  # vite dev server
-npm run build                # build producao
-```
+## Seeds (ao registrar)
+Categorias, produtos, servicos, clientes padrao criados automaticamente ao registrar nova rede.
 
 ---
 
 ## Regras para IA
 
-1. **Sempre perguntar antes** de criar algo grande (tabela, modulo, layout)
-2. **Sempre explicar antes** de gerar codigo
-3. **Nunca pular etapas** — seguir fluxo do `instrucoes.md`
-4. **Nunca criar tabela/layout** sem confirmacao
-5. **Seguir INSTRUCTIONS/** — DATABASE.md, TENANT.md, PERMISSIONS.md, ARCHITECTURE.md
-6. **Validar sempre**: auth, tenant (rede_id), empresa (empresa_id), permissao, plano
-7. **Nunca permitir** acesso cruzado entre redes ou empresas
-8. **Novo modulo deve ter**: Model, Controller, Service, DTO, Request, Policy, View, Migration
+1. **Sempre buscar padroes visuais** no Duralux Admin antes de criar UI
+2. **Sempre perguntar antes** de criar algo grande
+3. **Nunca pular etapas**
+4. **Validar sempre**: auth, tenant, permissao, plano
+5. **Nunca permitir** acesso cruzado entre redes/empresas
+6. **Requests unificados**: SalvarXxxRequest
+7. **DTOs unificados**: XxxData
+8. **Views com partial**: _form.blade.php + $entidade
+9. **Busca AJAX**: nunca carregar todos em select HTML
+10. **Models**: BaseModel + secoes ASCII art

@@ -15,6 +15,7 @@ class AbrirCaixaRequest extends FormRequest
     {
         return [
             'saldo_abertura' => ['required', 'numeric', 'min:0'],
+            'data' => ['required', 'date', 'before_or_equal:today'],
             'observacao' => ['nullable', 'string'],
         ];
     }

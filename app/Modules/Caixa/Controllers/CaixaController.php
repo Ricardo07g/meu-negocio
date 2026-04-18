@@ -12,7 +12,9 @@ use App\Modules\Caixa\Requests\FecharCaixaRequest;
 use App\Modules\Caixa\Requests\MovimentoCaixaRequest;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Traits\TratamentoErros;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CaixaController extends Controller
@@ -23,23 +25,32 @@ class CaixaController extends Controller
         private CaixaService $service,
     ) {}
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try {
-            $caixas = \App\Modules\Caixa\Models\Caixa::orderBy('data', 'desc')->get();
+            $data = $request->query('data', today()->toDateString());
+            $dataSelecionada = Carbon::parse($data);
 
-            return view('caixa::index', compact('caixas'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao listar caixas');
-        }
-    }
+            $caixa = $this->service->caixaDoDia($data);
 
-    public function create(): View|RedirectResponse
-    {
-        try {
-            return view('caixa::abrir');
+            $totalEntradas = 0;
+            $totalSaidas = 0;
+            $totalReforcos = 0;
+            $saldoAtual = 0;
+
+            if ($caixa) {
+                $caixa->load('movimentos', 'usuario', 'fechadoPor');
+                $totalEntradas = $caixa->movimentos->where('tipo', 'entrada')->sum('valor');
+                $totalSaidas = $caixa->movimentos->whereIn('tipo', ['saida', 'sangria'])->sum('valor');
+                $totalReforcos = $caixa->movimentos->where('tipo', 'reforco')->sum('valor');
+                $saldoAtual = $caixa->saldo_abertura + $totalEntradas + $totalReforcos - $totalSaidas;
+            }
+
+            return view('caixa::index', compact(
+                'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual'
+            ));
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao carregar formulário de abertura de caixa');
+            return $this->tratarErro($e, 'Erro ao carregar caixa');
         }
     }
 
@@ -47,36 +58,27 @@ class CaixaController extends Controller
     {
         try {
             $dados = AbrirCaixaData::from($request->validated());
-            $caixa = $this->service->abrir($dados->saldo_abertura, $dados->observacao);
+            $this->service->abrir($dados->saldo_abertura, $dados->data, $dados->observacao);
 
-            return redirect()->route('caixas.show', $caixa)->with('sucesso', 'Caixa aberto com sucesso.');
+            return redirect()->route('caixas.index', ['data' => $dados->data])->with('sucesso', 'Caixa aberto com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao abrir caixa');
         }
     }
 
-    public function show(Caixa $caixa): View|RedirectResponse
+    public function show(Caixa $caixa): RedirectResponse
     {
-        try {
-            $caixa->load('movimentos', 'usuario', 'fechadoPor');
-
-            $totalEntradas = $caixa->movimentos->whereIn('tipo', ['entrada'])->sum('valor');
-            $totalSaidas = $caixa->movimentos->whereIn('tipo', ['saida', 'sangria'])->sum('valor');
-            $totalReforcos = $caixa->movimentos->where('tipo', 'reforco')->sum('valor');
-            $saldoAtual = $caixa->saldo_abertura + $totalEntradas + $totalReforcos - $totalSaidas;
-
-            return view('caixa::show', compact('caixa', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir caixa');
-        }
+        return redirect()->route('caixas.index', ['data' => $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data]);
     }
 
     public function fechar(FecharCaixaRequest $request, Caixa $caixa): RedirectResponse
     {
         try {
-            $this->service->fechar($caixa, FecharCaixaData::from($request->validated()));
+            $dados = FecharCaixaData::from($request->validated());
+            $this->service->fechar($caixa, $dados->saldo_fechamento, $dados->observacao);
+            $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;
 
-            return redirect()->route('caixas.show', $caixa)->with('sucesso', 'Caixa fechado com sucesso.');
+            return redirect()->route('caixas.index', ['data' => $data])->with('sucesso', 'Caixa fechado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao fechar caixa');
         }
@@ -85,9 +87,11 @@ class CaixaController extends Controller
     public function sangria(MovimentoCaixaRequest $request, Caixa $caixa): RedirectResponse
     {
         try {
-            $this->service->registrarSangria($caixa, MovimentoCaixaData::from($request->validated()));
+            $dados = MovimentoCaixaData::from($request->validated());
+            $this->service->registrarSangria($caixa, $dados->valor, $dados->descricao);
+            $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;
 
-            return redirect()->route('caixas.show', $caixa)->with('sucesso', 'Sangria registrada com sucesso.');
+            return redirect()->route('caixas.index', ['data' => $data])->with('sucesso', 'Sangria registrada com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar sangria');
         }
@@ -96,9 +100,11 @@ class CaixaController extends Controller
     public function reforco(MovimentoCaixaRequest $request, Caixa $caixa): RedirectResponse
     {
         try {
-            $this->service->registrarReforco($caixa, MovimentoCaixaData::from($request->validated()));
+            $dados = MovimentoCaixaData::from($request->validated());
+            $this->service->registrarReforco($caixa, $dados->valor, $dados->descricao);
+            $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;
 
-            return redirect()->route('caixas.show', $caixa)->with('sucesso', 'Reforço registrado com sucesso.');
+            return redirect()->route('caixas.index', ['data' => $data])->with('sucesso', 'Reforço registrado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar reforço');
         }

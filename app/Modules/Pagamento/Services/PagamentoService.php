@@ -2,6 +2,7 @@
 
 namespace App\Modules\Pagamento\Services;
 
+use App\Enums\StatusPagamento;
 use App\Modules\Pagamento\Actions\RegistrarPagamentoAction;
 use App\Modules\Pagamento\DTOs\RegistrarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
@@ -14,9 +15,15 @@ class PagamentoService
         private RegistrarPagamentoAction $registrarPagamento,
     ) {}
 
-    public function listar(): Collection
+    public function listar(string $filtro = 'todos'): Collection
     {
-        return Pagamento::with('cliente')->get();
+        $query = Pagamento::with('cliente')->orderByDesc('created_at');
+
+        if ($filtro !== 'todos') {
+            $query->where('status', $filtro);
+        }
+
+        return $query->get();
     }
 
     public function buscar(int $id): Pagamento
@@ -27,6 +34,15 @@ class PagamentoService
     public function registrar(RegistrarPagamentoData $data): Pagamento
     {
         return $this->registrarPagamento->executar($data);
+    }
+
+    public function listarContasAReceber(): Collection
+    {
+        return Pagamento::with('cliente')
+            ->where('status', StatusPagamento::Pendente)
+            ->whereRaw('valor_pago < valor')
+            ->orderByDesc('created_at')
+            ->get();
     }
 
     public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection

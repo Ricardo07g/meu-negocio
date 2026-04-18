@@ -45,17 +45,9 @@ class VendaController extends Controller
         try {
             $this->authorize('create', Agendamento::class);
 
-            if (!$this->caixaService->caixaAberto()) {
-                return redirect()->route('vendas.index')
-                    ->with('erro', 'É necessário abrir o caixa antes de registrar vendas.');
-            }
-
-            $clientes = Cliente::all();
-            $servicos = Servico::all();
             $atendentes = Usuario::where('atende', true)->get();
-            $produtos = Produto::all();
 
-            return view('venda::create', compact('clientes', 'servicos', 'atendentes', 'produtos'));
+            return view('venda::create', compact('atendentes'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -65,24 +57,37 @@ class VendaController extends Controller
     {
         try
         {
-            if (!$this->caixaService->caixaAberto()) {
-                return redirect()->route('vendas.index')
-                    ->with('erro', 'É necessário abrir o caixa antes de registrar vendas.');
-            }
-
             $formaPagamento = $request->forma_pagamento;
             $statusPagamento = $request->status_pagamento;
 
+            if ($statusPagamento === 'pago' && !$this->caixaService->caixaAberto()) {
+                return redirect()->back()->withInput()
+                    ->with('erro', 'É necessário abrir o caixa para registrar vendas com pagamento à vista.');
+            }
+
             if ($request->tipo_venda === 'produto') {
+                $itens = $request->input('itens', []);
+
+                // Compatibilidade: form antigo manda produto_id/quantidade avulso
+                if (empty($itens) && $request->produto_id) {
+                    $itens = [[
+                        'produto_id' => $request->produto_id,
+                        'quantidade' => $request->quantidade,
+                        'valor_unitario' => $request->valor_unitario ?? null,
+                        'desconto' => 0,
+                        'acrescimo' => 0,
+                    ]];
+                }
+
                 $this->service->criarVendaProduto(
-                    $request->cliente_id ?? 0,
-                    $request->produto_id,
-                    $request->quantidade,
-                    $request->valor_total,
+                    $request->cliente_id,
+                    $itens,
                     $formaPagamento,
                     $statusPagamento,
+                    $request->data,
+                    $request->observacao,
                 );
-                return redirect()->route('vendas.index')->with('sucesso', 'Produto vendido com sucesso.');
+                return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
             }
 
             $servico = Servico::findOrFail($request->servico_id);
@@ -104,7 +109,7 @@ class VendaController extends Controller
     public function showProduto(VendaProduto $vendaProduto): View|RedirectResponse
     {
         try {
-            $vendaProduto->load(['cliente', 'produto']);
+            $vendaProduto->load(['cliente', 'itens.produto', 'usuario']);
 
             return view('venda::show-produto', compact('vendaProduto'));
         } catch (\Throwable $e) {
@@ -157,6 +162,17 @@ class VendaController extends Controller
             return redirect()->route('vendas.index')->with('sucesso', 'Pacote cancelado. Agendamentos pendentes foram cancelados.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar pacote');
+        }
+    }
+
+    public function cancelarProduto(VendaProduto $vendaProduto): RedirectResponse
+    {
+        try {
+            $this->service->cancelarVendaProduto($vendaProduto);
+
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda cancelada. Estoque devolvido e pagamento estornado.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao cancelar venda de produto');
         }
     }
 }

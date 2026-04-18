@@ -8,7 +8,9 @@ use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Services\ServicoService;
 use App\Traits\TratamentoErros;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ServicoController extends Controller
@@ -97,5 +99,20 @@ class ServicoController extends Controller
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao excluir serviço');
         }
+    }
+
+    public function buscar(Request $request): JsonResponse
+    {
+        $q = $request->query('q', '');
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $servicos = Servico::where('nome', 'like', "%{$q}%")
+            ->limit(10)
+            ->get(['id', 'nome', 'tipo', 'duracao', 'valor', 'qtd_sessoes']);
+
+        return response()->json($servicos);
     }
 }

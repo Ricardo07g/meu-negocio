@@ -31,6 +31,8 @@ class Pagamento extends BaseModel
         'venda_produto_id',
         'valor',
         'valor_pago',
+        'desconto',
+        'acrescimo',
         'forma_pagamento',
         'status',
         'descricao',
@@ -41,6 +43,8 @@ class Pagamento extends BaseModel
         return [
             'valor' => 'decimal:2',
             'valor_pago' => 'decimal:2',
+            'desconto' => 'decimal:2',
+            'acrescimo' => 'decimal:2',
             'forma_pagamento' => FormaPagamento::class,
             'status' => StatusPagamento::class,
         ];

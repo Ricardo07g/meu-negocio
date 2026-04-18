@@ -26,16 +26,22 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>Nome</th>
                             <th>Descrição</th>
+                            <th>Status</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($categorias as $categoria)
                         <tr>
-                            <td>{{ $categoria->nome }}</td>
-                            <td>{{ $categoria->descricao ?? '—' }}</td>
+                            <td>{{ $categoria->descricao }}</td>
+                            <td>
+                                @if($categoria->ativo)
+                                    <span class="badge bg-soft-success text-success">Ativa</span>
+                                @else
+                                    <span class="badge bg-soft-danger text-danger">Inativa</span>
+                                @endif
+                            </td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
                                     <div class="dropdown">

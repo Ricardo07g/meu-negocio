@@ -447,6 +447,66 @@
         });
     });
     </script>
+    <script>
+    function initAjaxSearch(config) {
+        var input = document.getElementById(config.inputId);
+        var hidden = document.getElementById(config.hiddenId);
+        if (!input) return;
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'ajax-search-dropdown';
+        dropdown.style.cssText = 'display:none;position:absolute;z-index:1050;background:#fff;border:1px solid #dee2e6;border-top:0;border-radius:0 0 6px 6px;max-height:250px;overflow-y:auto;width:100%;box-shadow:0 4px 12px rgba(0,0,0,.15);';
+        input.parentElement.style.position = 'relative';
+        input.parentElement.appendChild(dropdown);
+
+        var timer = null;
+
+        input.addEventListener('input', function() {
+            var q = this.value.trim();
+            if (hidden) hidden.value = '';
+            if (config.onClear) config.onClear();
+            clearTimeout(timer);
+            if (q.length < 2) { dropdown.style.display = 'none'; return; }
+            timer = setTimeout(function() {
+                fetch(config.url + '?q=' + encodeURIComponent(q), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(items) {
+                    if (!items.length) {
+                        dropdown.innerHTML = '<div style="padding:10px 14px;color:#6c757d;">Nenhum resultado</div>';
+                        dropdown.style.display = 'block';
+                        return;
+                    }
+                    dropdown.innerHTML = '';
+                    items.forEach(function(item) {
+                        var div = document.createElement('div');
+                        div.style.cssText = 'padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;';
+                        div.innerHTML = config.renderItem(item);
+                        div.addEventListener('mouseenter', function() { this.style.background = '#f8f9fa'; });
+                        div.addEventListener('mouseleave', function() { this.style.background = '#fff'; });
+                        div.addEventListener('click', function() {
+                            input.value = config.displayText(item);
+                            if (hidden) hidden.value = item.id;
+                            dropdown.style.display = 'none';
+                            if (config.onSelect) config.onSelect(item);
+                        });
+                        dropdown.appendChild(div);
+                    });
+                    dropdown.style.display = 'block';
+                });
+            }, 300);
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') dropdown.style.display = 'none';
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!input.parentElement.contains(e.target)) dropdown.style.display = 'none';
+        });
+    }
+    </script>
     @stack('js')
 </body>
 

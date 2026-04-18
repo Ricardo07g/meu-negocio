@@ -59,21 +59,25 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         Route::patch('vendas/avulso/{agendamento}/cancelar', [VendaController::class, 'cancelarAvulso'])->name('vendas.cancelar-avulso');
         Route::patch('vendas/pacote/{pacote}/cancelar', [VendaController::class, 'cancelarPacote'])->name('vendas.cancelar-pacote');
         Route::get('vendas/produto/{vendaProduto}', [VendaController::class, 'showProduto'])->name('vendas.show-produto');
+        Route::patch('vendas/produto/{vendaProduto}/cancelar', [VendaController::class, 'cancelarProduto'])->name('vendas.cancelar-produto');
 
         // Clientes
+        Route::get('clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
         Route::resource('clientes', ClienteController::class);
 
         // Servicos
+        Route::get('servicos/buscar', [ServicoController::class, 'buscar'])->name('servicos.buscar');
         Route::resource('servicos', ServicoController::class);
 
         // Financeiro (verificar plano)
         Route::middleware(['verificar.plano:financeiro'])->group(function () {
             Route::resource('pagamentos', PagamentoController::class)->only(['index', 'create', 'store', 'show']);
+            Route::post('pagamentos/{pagamento}/baixa', [PagamentoController::class, 'baixa'])->name('pagamentos.baixa');
+            Route::get('contas-a-receber', [PagamentoController::class, 'contasAReceber'])->name('pagamentos.contas-a-receber');
             Route::resource('despesas', DespesaController::class);
 
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');
-            Route::get('caixas/abrir', [CaixaController::class, 'create'])->name('caixas.create');
             Route::post('caixas', [CaixaController::class, 'store'])->name('caixas.store');
             Route::get('caixas/{caixa}', [CaixaController::class, 'show'])->name('caixas.show');
             Route::patch('caixas/{caixa}/fechar', [CaixaController::class, 'fechar'])->name('caixas.fechar');
@@ -82,6 +86,7 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         });
 
         // Produtos (cadastro independente)
+        Route::get('produtos/buscar', [ProdutoController::class, 'buscar'])->name('produtos.buscar');
         Route::resource('produtos', ProdutoController::class);
         Route::resource('categorias-produto', CategoriaProdutoController::class)->except(['show']);
 

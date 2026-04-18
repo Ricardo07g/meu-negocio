@@ -1,3 +1,5 @@
+@php $entidade = $entidade ?? null; @endphp
+
 {{-- Identificação --}}
 <div class="card stretch stretch-full">
     <div class="card-header">
@@ -27,7 +29,7 @@
                 <select name="categoria_produto_id" class="form-select @error('categoria_produto_id') is-invalid @enderror">
                     <option value="">Selecione...</option>
                     @foreach($categorias as $categoria)
-                        <option value="{{ $categoria->id }}" {{ old('categoria_produto_id', $entidade?->categoria_produto_id) == $categoria->id ? 'selected' : '' }}>{{ $categoria->nome }}</option>
+                        <option value="{{ $categoria->id }}" {{ old('categoria_produto_id', $entidade?->categoria_produto_id) == $categoria->id ? 'selected' : '' }}>{{ $categoria->descricao }}</option>
                     @endforeach
                 </select>
                 @error('categoria_produto_id') <div class="invalid-feedback">{{ $message }}</div> @enderror

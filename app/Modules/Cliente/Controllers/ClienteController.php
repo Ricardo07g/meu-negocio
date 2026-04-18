@@ -8,7 +8,9 @@ use App\Modules\Cliente\Requests\SalvarClienteRequest;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Services\ClienteService;
 use App\Traits\TratamentoErros;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ClienteController extends Controller
@@ -109,5 +111,21 @@ class ClienteController extends Controller
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao excluir cliente');
         }
+    }
+
+    public function buscar(Request $request): JsonResponse
+    {
+        $q = $request->query('q', '');
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $clientes = Cliente::where('nome', 'like', "%{$q}%")
+            ->orWhere('telefone', 'like', "%{$q}%")
+            ->limit(10)
+            ->get(['id', 'nome', 'telefone']);
+
+        return response()->json($clientes);
     }
 }

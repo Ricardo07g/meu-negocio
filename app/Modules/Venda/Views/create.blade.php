@@ -32,13 +32,11 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Cliente</label>
-                        <select name="cliente_id" id="clienteSelect" class="form-select @error('cliente_id') is-invalid @enderror">
-                            <option value="">Selecione...</option>
-                            @foreach($clientes as $cliente)
-                            <option value="{{ $cliente->id }}" {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>{{ $cliente->nome }}</option>
-                            @endforeach
-                        </select>
-                        @error('cliente_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <div>
+                            <input type="text" id="clienteSearch" class="form-control @error('cliente_id') is-invalid @enderror" placeholder="Digite o nome ou telefone do cliente..." autocomplete="off">
+                            <input type="hidden" name="cliente_id" id="clienteHidden" value="{{ old('cliente_id') }}">
+                        </div>
+                        @error('cliente_id') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
                     </div>
                 </div>
 
@@ -47,20 +45,11 @@
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <label class="form-label">Serviço <span class="text-danger">*</span></label>
-                            <select name="servico_id" id="servicoSelect" class="form-select @error('servico_id') is-invalid @enderror">
-                                <option value="">Selecione...</option>
-                                @foreach($servicos as $servico)
-                                <option value="{{ $servico->id }}"
-                                    data-tipo="{{ $servico->tipo->value }}"
-                                    data-duracao="{{ $servico->duracao }}"
-                                    data-valor="{{ $servico->valor }}"
-                                    data-qtd-sessoes="{{ $servico->qtd_sessoes }}"
-                                    {{ old('servico_id') == $servico->id ? 'selected' : '' }}>
-                                    {{ $servico->nome }}
-                                </option>
-                                @endforeach
-                            </select>
-                            @error('servico_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div>
+                                <input type="text" id="servicoSearch" class="form-control @error('servico_id') is-invalid @enderror" placeholder="Digite o nome do serviço..." autocomplete="off">
+                                <input type="hidden" name="servico_id" id="servicoHidden" value="{{ old('servico_id') }}">
+                            </div>
+                            @error('servico_id') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Atendente <span class="text-danger">*</span></label>
@@ -141,39 +130,100 @@
                     </div>
                 </div>
 
-                {{-- ===== CAMPOS DE PRODUTO ===== --}}
+                {{-- ===== CAMPOS DE PRODUTO (CARRINHO) ===== --}}
                 <div id="campos-produto" style="{{ old('tipo_venda', 'servico') === 'servico' ? 'display:none;' : '' }}">
                     <div class="row mb-4">
                         <div class="col-md-4">
-                            <label class="form-label">Produto <span class="text-danger">*</span></label>
-                            <select name="produto_id" id="produtoSelect" class="form-select @error('produto_id') is-invalid @enderror" disabled>
-                                <option value="">Selecione...</option>
-                                @foreach($produtos as $produto)
-                                <option value="{{ $produto->id }}"
-                                    data-valor="{{ $produto->valor_venda }}"
-                                    data-estoque="{{ $produto->quantidade }}"
-                                    {{ old('produto_id') == $produto->id ? 'selected' : '' }}>
-                                    {{ $produto->nome }} ({{ $produto->quantidade }} em estoque)
-                                </option>
-                                @endforeach
-                            </select>
-                            @error('produto_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <label class="form-label">Data da Venda</label>
+                            <input type="date" name="data" id="dataVendaProduto" class="form-control" value="{{ old('data', now()->format('Y-m-d')) }}" max="{{ now()->format('Y-m-d') }}" disabled>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Quantidade <span class="text-danger">*</span></label>
-                            <input type="number" name="quantidade" id="quantidadeProduto" class="form-control @error('quantidade') is-invalid @enderror" value="{{ old('quantidade', 1) }}" min="1" disabled>
-                            @error('quantidade') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Valor Total (R$) <span class="text-danger">*</span></label>
-                            <input type="number" name="valor_total" id="valorTotalProduto" class="form-control @error('valor_total') is-invalid @enderror" step="0.01" min="0.01" value="{{ old('valor_total') }}" disabled>
-                            @error('valor_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        <div class="col-md-8">
+                            <label class="form-label">Observação</label>
+                            <input type="text" name="observacao" class="form-control" placeholder="Observação da venda (opcional)" value="{{ old('observacao') }}" disabled>
                         </div>
                     </div>
-                    {{-- botões no final do form --}}
                 </div>
             </div>
         </div>
+
+        {{-- Card Produtos e Serviços (visível quando tipo=produto) --}}
+        <div class="card stretch stretch-full mt-4" id="card-carrinho" style="{{ old('tipo_venda', 'servico') === 'servico' ? 'display:none;' : '' }}">
+            <div class="card-header">
+                <h5 class="card-title">Produtos e Serviços</h5>
+            </div>
+            <div class="card-body">
+                {{-- Linha de inclusão: Produto + Qtd + Preço + Botão --}}
+                <div class="row mb-4 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Produto</label>
+                        <div>
+                            <input type="text" id="produtoSearch" class="form-control" placeholder="Digite o nome do produto..." autocomplete="off" disabled>
+                            <input type="hidden" id="produtoHidden" value="">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Quantidade</label>
+                        <input type="number" id="produtoQtd" class="form-control" value="1" min="1" disabled>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Preço Venda</label>
+                        <input type="number" id="produtoPreco" class="form-control" step="0.01" min="0" placeholder="0,00" disabled>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" id="btnAdicionarProduto" class="btn btn-outline-primary w-100" disabled>
+                            <i class="feather-shopping-cart me-1"></i> Incluir Item
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Tabela de itens --}}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0" id="tabelaCarrinho">
+                        <thead>
+                            <tr>
+                                <th style="width:40%;">Produto</th>
+                                <th class="text-center" style="width:7%;">Qtd</th>
+                                <th class="text-end" style="width:11%;">Vl. Unit.</th>
+                                <th class="text-end" style="width:11%;">Desconto</th>
+                                <th class="text-end" style="width:11%;">Acréscimo</th>
+                                <th class="text-end" style="width:13%;">Vl. Total</th>
+                                <th class="text-center" style="width:7%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="carrinhoTbody">
+                            <tr id="carrinhoVazio"><td colspan="6" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Resumo financeiro --}}
+                <div class="row mt-4 pt-3" id="carrinhoResumo" style="display:none; border-top: 1px solid #eee;">
+                    <div class="col-md-5 offset-md-7 col-lg-4 offset-lg-8">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <td class="text-end text-muted">Subtotal:</td>
+                                <td class="text-end" id="carrinhoSubtotal">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td class="text-end text-danger">Descontos:</td>
+                                <td class="text-end text-danger" id="carrinhoDescontos">R$ 0,00</td>
+                            </tr>
+                            <tr>
+                                <td class="text-end text-success">Acréscimos:</td>
+                                <td class="text-end text-success" id="carrinhoAcrescimos">R$ 0,00</td>
+                            </tr>
+                            <tr class="fw-bold fs-5">
+                                <td class="text-end">Total:</td>
+                                <td class="text-end text-success" id="carrinhoTotal">R$ 0,00</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Hidden inputs montados pelo JS antes do submit --}}
+        <div id="carrinhoHiddenInputs"></div>
 
         {{-- Pagamento --}}
         <div class="card stretch stretch-full mt-4">
@@ -244,9 +294,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const camposAvulso = document.getElementById('campos-avulso');
     const camposPacote = document.getElementById('campos-pacote');
     const previewCard = document.getElementById('previewCard');
-    const servicoSelect = document.getElementById('servicoSelect');
-    const produtoSelect = document.getElementById('produtoSelect');
-    const clienteSelect = document.getElementById('clienteSelect');
+    const cardCarrinho = document.getElementById('card-carrinho');
+
+    // Itens selecionados via AJAX (armazenados temporariamente)
+    var produtoSelecionado = null;
+    var servicoSelecionado = null;
 
     // Toggle Serviço / Produto
     document.querySelectorAll('.btn-toggle').forEach(function(btn) {
@@ -264,23 +316,36 @@ document.addEventListener('DOMContentLoaded', function() {
             if (tipo === 'servico') {
                 camposServico.style.display = 'block';
                 camposProduto.style.display = 'none';
+                cardCarrinho.style.display = 'none';
                 habilitarContainer(camposProduto, false);
-                servicoSelect.dispatchEvent(new Event('change'));
+                habilitarContainer(cardCarrinho, false);
+                aplicarTipoServico(servicoSelecionado);
             } else {
                 camposServico.style.display = 'none';
                 camposProduto.style.display = 'block';
+                cardCarrinho.style.display = 'block';
                 habilitarContainer(camposAvulso, false);
                 habilitarContainer(camposPacote, false);
                 habilitarContainer(camposProduto, true);
+                habilitarContainer(cardCarrinho, true);
                 previewCard.style.display = 'none';
             }
         });
     });
 
-    // Toggle Avulso / Pacote conforme tipo do servico
-    servicoSelect.addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        const tipo = opt.dataset ? (opt.dataset.tipo || '') : '';
+    // Toggle Avulso / Pacote conforme tipo do servico selecionado
+    function aplicarTipoServico(servico) {
+        if (!servico) {
+            camposAvulso.style.display = 'none';
+            camposPacote.style.display = 'none';
+            previewCard.style.display = 'none';
+            habilitarContainer(camposAvulso, false);
+            habilitarContainer(camposPacote, false);
+            return;
+        }
+
+        var tipo = servico.tipo;
+        if (typeof tipo === 'object' && tipo !== null) tipo = tipo.value || tipo;
 
         if (tipo === 'avulso') {
             camposAvulso.style.display = 'block';
@@ -293,44 +358,141 @@ document.addEventListener('DOMContentLoaded', function() {
             camposPacote.style.display = 'block';
             habilitarContainer(camposAvulso, false);
             habilitarContainer(camposPacote, true);
-            // Pre-preencher qtd_sessoes e valor do servico
-            const qtdSessoesInput = document.getElementById('qtdSessoesInput');
-            const valorTotal = document.getElementById('valorTotal');
-            if (opt.dataset.qtdSessoes && !qtdSessoesInput.value) {
-                qtdSessoesInput.value = opt.dataset.qtdSessoes;
+            var qtdSessoesInput = document.getElementById('qtdSessoesInput');
+            var valorTotal = document.getElementById('valorTotal');
+            if (servico.qtd_sessoes && !qtdSessoesInput.value) {
+                qtdSessoesInput.value = servico.qtd_sessoes;
             }
-            if (opt.dataset.valor) {
-                valorTotal.value = parseFloat(opt.dataset.valor).toFixed(2);
+            if (servico.valor) {
+                valorTotal.value = parseFloat(servico.valor).toFixed(2);
             }
             atualizarValorPorSessao();
-        } else {
-            camposAvulso.style.display = 'none';
-            camposPacote.style.display = 'none';
-            previewCard.style.display = 'none';
-            habilitarContainer(camposAvulso, false);
-            habilitarContainer(camposPacote, false);
         }
-    });
+    }
 
     function habilitarContainer(container, habilitar) {
-        container.querySelectorAll('input, select').forEach(function(el) {
+        container.querySelectorAll('input, select, textarea, button').forEach(function(el) {
             el.disabled = !habilitar;
         });
     }
 
-    // Produto: auto-calcular valor
-    produtoSelect.addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        if (opt.dataset.valor) {
-            const qtd = parseInt(document.getElementById('quantidadeProduto').value) || 1;
-            document.getElementById('valorTotalProduto').value = (parseFloat(opt.dataset.valor) * qtd).toFixed(2);
+    // ===== CARRINHO DE PRODUTOS =====
+    const carrinhoItens = [];
+    const carrinhoTbody = document.getElementById('carrinhoTbody');
+    const carrinhoTotal = document.getElementById('carrinhoTotal');
+    const carrinhoSubtotal = document.getElementById('carrinhoSubtotal');
+    const carrinhoDescontos = document.getElementById('carrinhoDescontos');
+    const carrinhoAcrescimos = document.getElementById('carrinhoAcrescimos');
+    const carrinhoResumo = document.getElementById('carrinhoResumo');
+    const carrinhoHidden = document.getElementById('carrinhoHiddenInputs');
+    const btnAdicionar = document.getElementById('btnAdicionarProduto');
+    const produtoQtd = document.getElementById('produtoQtd');
+    const produtoPreco = document.getElementById('produtoPreco');
+    const produtoSearch = document.getElementById('produtoSearch');
+    const produtoHidden = document.getElementById('produtoHidden');
+
+    btnAdicionar.addEventListener('click', function() {
+        if (!produtoSelecionado) return;
+
+        const produtoId = produtoSelecionado.id;
+        const qtd = parseInt(produtoQtd.value) || 1;
+        const preco = parseFloat(produtoPreco.value) || parseFloat(produtoSelecionado.valor_venda);
+        const existente = carrinhoItens.find(i => i.produto_id === produtoId);
+
+        if (existente) {
+            existente.quantidade += qtd;
+            existente.valor_unitario = preco;
+        } else {
+            carrinhoItens.push({
+                produto_id: produtoId,
+                nome: produtoSelecionado.nome,
+                quantidade: qtd,
+                valor_unitario: preco,
+                desconto: 0,
+                acrescimo: 0,
+            });
         }
+
+        renderCarrinho();
+        produtoSearch.value = '';
+        produtoHidden.value = '';
+        produtoPreco.value = '';
+        produtoQtd.value = 1;
+        produtoSelecionado = null;
+        produtoSearch.focus();
     });
-    document.getElementById('quantidadeProduto').addEventListener('input', function() {
-        const opt = produtoSelect.options[produtoSelect.selectedIndex];
-        if (opt && opt.dataset.valor) {
-            document.getElementById('valorTotalProduto').value = (parseFloat(opt.dataset.valor) * (parseInt(this.value) || 1)).toFixed(2);
+
+    function renderCarrinho() {
+        carrinhoTbody.innerHTML = '';
+
+        if (carrinhoItens.length === 0) {
+            carrinhoTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>';
+            carrinhoResumo.style.display = 'none';
+            return;
         }
+
+        let subtotalGeral = 0;
+        let descontoGeral = 0;
+        let acrescimoGeral = 0;
+
+        carrinhoItens.forEach(function(item, idx) {
+            const itemTotal = (item.quantidade * item.valor_unitario) - item.desconto + item.acrescimo;
+            subtotalGeral += item.quantidade * item.valor_unitario;
+            descontoGeral += item.desconto;
+            acrescimoGeral += item.acrescimo;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + item.nome + '</td>' +
+                '<td class="text-center"><input type="number" class="form-control form-control-sm text-center" value="' + item.quantidade + '" min="1" data-idx="' + idx + '" data-campo="quantidade"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.valor_unitario.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="valor_unitario"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.desconto.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="desconto"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.acrescimo.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="acrescimo"></td>' +
+                '<td class="text-end fw-bold">R$ ' + itemTotal.toFixed(2).replace('.', ',') + '</td>' +
+                '<td class="text-center py-2"><button type="button" class="btn btn-sm btn-danger text-white" data-remover="' + idx + '"><i class="feather-trash-2"></i></button></td>';
+            carrinhoTbody.appendChild(tr);
+        });
+
+        const totalGeral = subtotalGeral - descontoGeral + acrescimoGeral;
+        carrinhoSubtotal.textContent = 'R$ ' + subtotalGeral.toFixed(2).replace('.', ',');
+        carrinhoDescontos.textContent = descontoGeral > 0 ? '- R$ ' + descontoGeral.toFixed(2).replace('.', ',') : 'R$ 0,00';
+        carrinhoAcrescimos.textContent = acrescimoGeral > 0 ? '+ R$ ' + acrescimoGeral.toFixed(2).replace('.', ',') : 'R$ 0,00';
+        carrinhoTotal.textContent = 'R$ ' + totalGeral.toFixed(2).replace('.', ',');
+        carrinhoResumo.style.display = 'flex';
+
+        // Eventos de edicao inline
+        carrinhoTbody.querySelectorAll('input[data-campo]').forEach(function(input) {
+            input.addEventListener('input', function() {
+                const idx = parseInt(this.dataset.idx);
+                const campo = this.dataset.campo;
+                let val = parseFloat(this.value) || 0;
+                if (campo === 'quantidade') val = Math.max(1, Math.round(val));
+                carrinhoItens[idx][campo] = val;
+                renderCarrinho();
+            });
+        });
+
+        // Eventos de remover
+        carrinhoTbody.querySelectorAll('button[data-remover]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                carrinhoItens.splice(parseInt(this.dataset.remover), 1);
+                renderCarrinho();
+            });
+        });
+    }
+
+    // Montar hidden inputs antes do submit
+    document.getElementById('formNovaVenda').addEventListener('submit', function() {
+        carrinhoHidden.innerHTML = '';
+        carrinhoItens.forEach(function(item, idx) {
+            ['produto_id', 'quantidade', 'valor_unitario', 'desconto', 'acrescimo'].forEach(function(campo) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'itens[' + idx + '][' + campo + ']';
+                input.value = item[campo];
+                carrinhoHidden.appendChild(input);
+            });
+        });
     });
 
     // Valor por sessão (pacote)
@@ -353,11 +515,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Gerar preview das sessoes (pacote)
     document.getElementById('btnGerarPreview').addEventListener('click', function() {
-        const opt = servicoSelect.options[servicoSelect.selectedIndex];
         const dataInicio = document.getElementById('dataInicio');
         const horario = document.getElementById('horario');
 
-        if (!opt || !opt.value) { swalAlerta('Selecione um serviço.'); return; }
+        if (!servicoSelecionado) { swalAlerta('Selecione um serviço.'); return; }
         if (!dataInicio.value) { swalAlerta('Informe a data de início.'); return; }
 
         const qtdSessoes = parseInt(qtdSessoesInput.value);
@@ -367,7 +528,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.dias-semana-check:checked').forEach(cb => diasSemana.push(parseInt(cb.value)));
         if (diasSemana.length === 0) { swalAlerta('Selecione pelo menos um dia da semana.'); return; }
 
-        const duracao = parseInt(opt.dataset.duracao);
+        const duracao = parseInt(servicoSelecionado.duracao);
         const inicio = new Date(dataInicio.value + 'T12:00:00');
         const datas = [];
         let cursor = new Date(inicio);
@@ -400,9 +561,62 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar estado
     if (tipoVendaInput.value === 'produto') {
         habilitarContainer(camposProduto, true);
-    } else if (servicoSelect.value) {
-        servicoSelect.dispatchEvent(new Event('change'));
+        habilitarContainer(cardCarrinho, true);
     }
+
+    // AJAX Search — Serviço
+    initAjaxSearch({
+        inputId: 'servicoSearch',
+        hiddenId: 'servicoHidden',
+        url: '{{ route("servicos.buscar") }}',
+        renderItem: function(item) {
+            var tipo = item.tipo;
+            if (typeof tipo === 'object' && tipo !== null) tipo = tipo.value || tipo;
+            var badge = tipo === 'pacote' ? '<span class="badge bg-info ms-1">Pacote</span>' : '<span class="badge bg-secondary ms-1">Avulso</span>';
+            return '<strong>' + item.nome + '</strong> ' + badge + '<br><small class="text-muted">R$ ' + parseFloat(item.valor).toFixed(2).replace('.', ',') + ' — ' + item.duracao + ' min</small>';
+        },
+        displayText: function(item) { return item.nome; },
+        onSelect: function(item) {
+            servicoSelecionado = item;
+            aplicarTipoServico(item);
+        },
+        onClear: function() {
+            servicoSelecionado = null;
+            aplicarTipoServico(null);
+        },
+    });
+
+    // AJAX Search — Cliente
+    initAjaxSearch({
+        inputId: 'clienteSearch',
+        hiddenId: 'clienteHidden',
+        url: '{{ route("clientes.buscar") }}',
+        renderItem: function(item) {
+            return '<strong>' + item.nome + '</strong>' + (item.telefone ? '<br><small class="text-muted">' + item.telefone + '</small>' : '');
+        },
+        displayText: function(item) { return item.nome; },
+    });
+
+    // AJAX Search — Produto
+    initAjaxSearch({
+        inputId: 'produtoSearch',
+        hiddenId: 'produtoHidden',
+        url: '{{ route("produtos.buscar") }}',
+        renderItem: function(item) {
+            return '<strong>' + item.nome + '</strong><br><small class="text-muted">R$ ' + parseFloat(item.valor_venda).toFixed(2).replace('.', ',') + ' — ' + item.quantidade + ' em estoque</small>';
+        },
+        displayText: function(item) { return item.nome; },
+        onSelect: function(item) {
+            produtoSelecionado = item;
+            produtoPreco.value = parseFloat(item.valor_venda).toFixed(2);
+            produtoQtd.value = 1;
+            produtoQtd.focus();
+        },
+        onClear: function() {
+            produtoSelecionado = null;
+            produtoPreco.value = '';
+        },
+    });
 });
 </script>
 @endpush

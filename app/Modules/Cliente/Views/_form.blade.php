@@ -1,3 +1,5 @@
+@php $entidade = $entidade ?? null; @endphp
+
 {{-- Dados Pessoais --}}
 <div class="card stretch stretch-full">
     <div class="card-header">

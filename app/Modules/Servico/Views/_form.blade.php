@@ -1,3 +1,5 @@
+@php $entidade = $entidade ?? null; @endphp
+
 <div class="card stretch stretch-full">
     <div class="card-header">
         <h5 class="card-title">{{ isset($entidade) ? 'Editar' : 'Cadastrar' }} Serviço</h5>

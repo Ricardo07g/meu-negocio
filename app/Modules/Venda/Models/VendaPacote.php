@@ -25,7 +25,10 @@ class VendaPacote extends BaseModel
         'cliente_id',
         'servico_id',
         'atendente_id',
+        'data',
         'valor_total',
+        'desconto',
+        'acrescimo',
         'qtd_sessoes',
         'status',
     ];
@@ -33,7 +36,10 @@ class VendaPacote extends BaseModel
     protected function casts(): array
     {
         return [
+            'data' => 'date',
             'valor_total' => 'decimal:2',
+            'desconto' => 'decimal:2',
+            'acrescimo' => 'decimal:2',
             'status' => StatusVendaPacote::class,
         ];
     }

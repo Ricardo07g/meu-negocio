@@ -8,6 +8,7 @@ class AbrirCaixaData extends Data
 {
     public function __construct(
         public float $saldo_abertura,
-        public ?string $observacao,
+        public string $data,
+        public ?string $observacao = null,
     ) {}
 }

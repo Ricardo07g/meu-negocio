@@ -16,8 +16,8 @@ class SalvarCategoriaProdutoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nome' => ['required', 'string', 'max:100'],
-            'descricao' => ['nullable', 'string', 'max:255'],
+            'descricao' => ['required', 'string', 'max:255'],
+            'ativo' => ['nullable', 'boolean'],
         ];
     }
 }

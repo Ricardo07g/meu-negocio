@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('categorias_produto', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rede_id')->constrained('redes')->cascadeOnDelete();
-            $table->string('nome', 100);
-            $table->string('descricao', 255)->nullable();
+            $table->string('descricao', 255);
+            $table->boolean('ativo')->default(true);
             $table->timestamps();
 
             $table->index('rede_id');

@@ -7,16 +7,17 @@
 @endsection
 
 @section('content')
-    {{-- Button row OUTSIDE the card --}}
-    @can('pagamento.criar')
+    {{-- Filtros --}}
     <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('pagamentos.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Pagamento
-            </a>
+        <div class="col-12">
+            <div class="hstack gap-2">
+                <a href="{{ route('pagamentos.index') }}" class="btn btn-sm {{ $filtro === 'todos' ? 'btn-primary' : 'btn-outline-primary' }}">Todos</a>
+                <a href="{{ route('pagamentos.index', ['status' => 'pendente']) }}" class="btn btn-sm {{ $filtro === 'pendente' ? 'btn-warning' : 'btn-outline-warning' }}">Pendentes</a>
+                <a href="{{ route('pagamentos.index', ['status' => 'pago']) }}" class="btn btn-sm {{ $filtro === 'pago' ? 'btn-success' : 'btn-outline-success' }}">Pagos</a>
+                <a href="{{ route('pagamentos.index', ['status' => 'estornado']) }}" class="btn btn-sm {{ $filtro === 'estornado' ? 'btn-secondary' : 'btn-outline-secondary' }}">Estornados</a>
+            </div>
         </div>
     </div>
-    @endcan
 
     {{-- Card with table --}}
     <div class="card stretch stretch-full">
@@ -25,17 +26,24 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
-                            <th>Valor</th>
-                            <th>Forma de Pagamento</th>
-                            <th>Status</th>
                             <th>Cliente</th>
+                            <th>Valor</th>
+                            <th>Pago</th>
+                            <th>Restante</th>
+                            <th>Forma</th>
+                            <th>Status</th>
+                            <th>Data</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($pagamentos as $pagamento)
+                        @php $restante = $pagamento->valor - $pagamento->valor_pago; @endphp
                         <tr>
+                            <td>{{ $pagamento->cliente->nome ?? '-' }}</td>
                             <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
+                            <td>R$ {{ number_format($pagamento->valor_pago, 2, ',', '.') }}</td>
+                            <td class="{{ $restante > 0 ? 'text-danger fw-bold' : '' }}">R$ {{ number_format($restante, 2, ',', '.') }}</td>
                             <td>{{ ucfirst($pagamento->forma_pagamento->value) }}</td>
                             <td>
                                 @switch($pagamento->status->value)
@@ -51,31 +59,19 @@
                                     @case('estornado')
                                         <span class="badge bg-secondary">Estornado</span>
                                         @break
-                                    @default
-                                        <span class="badge bg-secondary">{{ ucfirst($pagamento->status->value) }}</span>
                                 @endswitch
                             </td>
-                            <td>{{ $pagamento->cliente->nome ?? '-' }}</td>
+                            <td>{{ $pagamento->created_at->format('d/m/Y') }}</td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('pagamentos.show', $pagamento) }}">
-                                                    <i class="feather-eye me-3"></i>
-                                                    <span>Ver</span>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
+                                    <a href="{{ route('pagamentos.show', $pagamento) }}" class="avatar-text avatar-md" title="Ver">
+                                        <i class="feather-eye"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum pagamento cadastrado.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">Nenhum pagamento encontrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

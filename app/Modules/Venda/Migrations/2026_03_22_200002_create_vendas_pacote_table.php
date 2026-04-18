@@ -15,7 +15,10 @@ return new class extends Migration
             $table->foreignId('cliente_id')->constrained('clientes');
             $table->foreignId('servico_id')->constrained('servicos');
             $table->foreignId('atendente_id')->constrained('usuarios');
+            $table->date('data');
             $table->decimal('valor_total', 10, 2);
+            $table->decimal('desconto', 10, 2)->default(0);
+            $table->decimal('acrescimo', 10, 2)->default(0);
             $table->integer('qtd_sessoes');
             $table->string('status', 20)->default('ativo');
             $table->timestamps();

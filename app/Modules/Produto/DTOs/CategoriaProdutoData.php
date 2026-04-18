@@ -7,7 +7,7 @@ use Spatie\LaravelData\Data;
 class CategoriaProdutoData extends Data
 {
     public function __construct(
-        public string $nome,
-        public ?string $descricao,
+        public string $descricao,
+        public ?bool $ativo = true,
     ) {}
 }

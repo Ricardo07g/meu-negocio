@@ -20,17 +20,20 @@ class CaixaService
         return Caixa::where('status', StatusCaixa::Aberto)->first();
     }
 
-    public function abrir(float $saldoAbertura, ?string $observacao = null): Caixa
+    public function caixaDoDia(string $data): ?Caixa
     {
-        $caixaAberto = $this->caixaAberto();
+        return Caixa::where('data', $data)->first();
+    }
 
-        if ($caixaAberto) {
-            throw new NegocioException('Já existe um caixa aberto para esta empresa.');
+    public function abrir(float $saldoAbertura, string $data, ?string $observacao = null): Caixa
+    {
+        if ($this->caixaDoDia($data)) {
+            throw new NegocioException('Já existe um caixa para esta data.');
         }
 
         return Caixa::create([
             'usuario_id' => auth()->id(),
-            'data' => now(),
+            'data' => $data,
             'saldo_abertura' => $saldoAbertura,
             'status' => StatusCaixa::Aberto,
             'observacao' => $observacao,

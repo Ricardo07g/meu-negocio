@@ -2,42 +2,32 @@
 
 namespace App\Modules\Venda\Models;
 
-use App\Models\BaseModel;
-use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Usuario\Models\Usuario;
-use App\Traits\EmpresaTrait;
+use App\Modules\Produto\Models\Produto;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-class VendaProduto extends BaseModel
+class VendaProdutoItem extends Model
 {
-    use EmpresaTrait, SoftDeletes;
-
-    protected $table = 'vendas_produto';
+    protected $table = 'venda_produto_itens';
 
     protected $fillable = [
-        'rede_id',
-        'empresa_id',
-        'cliente_id',
-        'usuario_id',
-        'data',
-        'subtotal',
+        'venda_produto_id',
+        'produto_id',
+        'descricao',
+        'quantidade',
+        'valor_unitario',
         'desconto',
         'acrescimo',
-        'valor_total',
-        'status',
-        'observacao',
+        'subtotal',
     ];
 
     protected function casts(): array
     {
         return [
-            'data' => 'date',
-            'subtotal' => 'decimal:2',
+            'valor_unitario' => 'decimal:2',
             'desconto' => 'decimal:2',
             'acrescimo' => 'decimal:2',
-            'valor_total' => 'decimal:2',
+            'subtotal' => 'decimal:2',
         ];
     }
 
@@ -48,19 +38,14 @@ class VendaProduto extends BaseModel
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-    public function cliente(): BelongsTo
+    public function vendaProduto(): BelongsTo
     {
-        return $this->belongsTo(Cliente::class, 'cliente_id');
+        return $this->belongsTo(VendaProduto::class, 'venda_produto_id');
     }
 
-    public function usuario(): BelongsTo
+    public function produto(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'usuario_id');
-    }
-
-    public function itens(): HasMany
-    {
-        return $this->hasMany(VendaProdutoItem::class, 'venda_produto_id');
+        return $this->belongsTo(Produto::class, 'produto_id');
     }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗

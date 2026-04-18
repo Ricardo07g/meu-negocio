@@ -10,7 +10,9 @@ use App\Modules\Produto\Models\Produto;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\Services\ProdutoService;
 use App\Traits\TratamentoErros;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ProdutoController extends Controller
@@ -40,7 +42,7 @@ class ProdutoController extends Controller
         try
         {
             $this->authorize('create', Produto::class);
-            $categorias = CategoriaProduto::orderBy('nome')->get();
+            $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
             return view('produto::create', compact('categorias'));
         } catch (\Throwable $e) {
@@ -78,7 +80,7 @@ class ProdutoController extends Controller
         try
         {
             $this->authorize('update', $produto);
-            $categorias = CategoriaProduto::orderBy('nome')->get();
+            $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
             return view('produto::edit', compact('produto', 'categorias'));
         } catch (\Throwable $e) {
@@ -110,5 +112,24 @@ class ProdutoController extends Controller
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao excluir produto');
         }
+    }
+
+    public function buscar(Request $request): JsonResponse
+    {
+        $q = $request->query('q', '');
+
+        if (strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $produtos = Produto::where('ativo', true)
+            ->where(function ($query) use ($q) {
+                $query->where('nome', 'like', "%{$q}%")
+                      ->orWhere('codigo', 'like', "%{$q}%");
+            })
+            ->limit(10)
+            ->get(['id', 'nome', 'valor_venda', 'quantidade']);
+
+        return response()->json($produtos);
     }
 }
