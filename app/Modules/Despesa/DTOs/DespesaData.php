@@ -5,7 +5,7 @@ namespace App\Modules\Despesa\DTOs;
 use Carbon\Carbon;
 use Spatie\LaravelData\Data;
 
-class AtualizarDespesaData extends Data
+class DespesaData extends Data
 {
     public function __construct(
         public string $nome,

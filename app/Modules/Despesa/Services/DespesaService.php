@@ -2,8 +2,7 @@
 
 namespace App\Modules\Despesa\Services;
 
-use App\Modules\Despesa\DTOs\AtualizarDespesaData;
-use App\Modules\Despesa\DTOs\CriarDespesaData;
+use App\Modules\Despesa\DTOs\DespesaData;
 use App\Modules\Despesa\Models\Despesa;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,7 +19,7 @@ class DespesaService
         return Despesa::findOrFail($id);
     }
 
-    public function criar(CriarDespesaData $data): Despesa
+    public function criar(DespesaData $data): Despesa
     {
         return Despesa::create([
             'nome' => $data->nome,
@@ -29,7 +28,7 @@ class DespesaService
         ]);
     }
 
-    public function atualizar(Despesa $despesa, AtualizarDespesaData $data): Despesa
+    public function atualizar(Despesa $despesa, DespesaData $data): Despesa
     {
         $despesa->update([
             'nome' => $data->nome,

@@ -2,8 +2,7 @@
 
 namespace App\Modules\Produto\Services;
 
-use App\Modules\Produto\DTOs\AtualizarProdutoData;
-use App\Modules\Produto\DTOs\CriarProdutoData;
+use App\Modules\Produto\DTOs\ProdutoData;
 use App\Modules\Produto\Models\Produto;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -19,7 +18,7 @@ class ProdutoService
         return Produto::findOrFail($id);
     }
 
-    public function criar(CriarProdutoData $data): Produto
+    public function criar(ProdutoData $data): Produto
     {
         return Produto::create([
             'nome' => $data->nome,
@@ -37,7 +36,7 @@ class ProdutoService
         ]);
     }
 
-    public function atualizar(Produto $produto, AtualizarProdutoData $data): Produto
+    public function atualizar(Produto $produto, ProdutoData $data): Produto
     {
         $produto->update([
             'nome' => $data->nome,
@@ -61,5 +60,4 @@ class ProdutoService
     {
         $produto->delete();
     }
-
 }

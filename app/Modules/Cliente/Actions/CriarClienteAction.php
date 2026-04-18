@@ -2,13 +2,13 @@
 
 namespace App\Modules\Cliente\Actions;
 
-use App\Modules\Cliente\DTOs\CriarClienteData;
+use App\Modules\Cliente\DTOs\ClienteData;
 use App\Modules\Cliente\Models\Cliente;
 use Carbon\Carbon;
 
 class CriarClienteAction
 {
-    public function executar(CriarClienteData $data): Cliente
+    public function executar(ClienteData $data): Cliente
     {
         return Cliente::create([
             'nome' => $data->nome,

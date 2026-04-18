@@ -3,10 +3,8 @@
 namespace App\Modules\Servico\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Servico\DTOs\AtualizarServicoData;
-use App\Modules\Servico\DTOs\CriarServicoData;
-use App\Modules\Servico\Requests\AtualizarServicoRequest;
-use App\Modules\Servico\Requests\CriarServicoRequest;
+use App\Modules\Servico\DTOs\ServicoData;
+use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Services\ServicoService;
 use App\Traits\TratamentoErros;
@@ -44,10 +42,10 @@ class ServicoController extends Controller
         }
     }
 
-    public function store(CriarServicoRequest $request): RedirectResponse
+    public function store(SalvarServicoRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(CriarServicoData::from($request->validated()));
+            $this->service->criar(ServicoData::from($request->validated()));
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço criado com sucesso.');
         } catch (\Throwable $e) {
@@ -77,11 +75,11 @@ class ServicoController extends Controller
         }
     }
 
-    public function update(AtualizarServicoRequest $request, Servico $servico): RedirectResponse
+    public function update(SalvarServicoRequest $request, Servico $servico): RedirectResponse
     {
         try {
             $this->authorize('update', $servico);
-            $this->service->atualizar($servico, AtualizarServicoData::from($request->validated()));
+            $this->service->atualizar($servico, ServicoData::from($request->validated()));
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço atualizado com sucesso.');
         } catch (\Throwable $e) {

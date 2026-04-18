@@ -5,7 +5,7 @@ namespace App\Modules\Servico\DTOs;
 use App\Enums\TipoServico;
 use Spatie\LaravelData\Data;
 
-class AtualizarServicoData extends Data
+class ServicoData extends Data
 {
     public function __construct(
         public string $nome,

@@ -4,11 +4,13 @@ namespace App\Modules\Tenant\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class AtualizarEmpresaRequest extends FormRequest
+class SalvarEmpresaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('empresa.editar');
+        return $this->isMethod('post')
+            ? $this->user()->can('empresa.criar')
+            : $this->user()->can('empresa.editar');
     }
 
     public function rules(): array

@@ -6,11 +6,13 @@ use App\Enums\TipoServico;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class AtualizarServicoRequest extends FormRequest
+class SalvarServicoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('servico.editar');
+        return $this->isMethod('post')
+            ? $this->user()->can('servico.criar')
+            : $this->user()->can('servico.editar');
     }
 
     public function rules(): array

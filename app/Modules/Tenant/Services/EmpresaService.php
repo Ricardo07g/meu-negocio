@@ -3,8 +3,7 @@
 namespace App\Modules\Tenant\Services;
 
 use App\Modules\Tenant\Actions\CriarEmpresaAction;
-use App\Modules\Tenant\DTOs\AtualizarEmpresaData;
-use App\Modules\Tenant\DTOs\CriarEmpresaData;
+use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\Rede;
 use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,12 +24,12 @@ class EmpresaService
         return Empresa::findOrFail($id);
     }
 
-    public function criar(Rede $rede, CriarEmpresaData $data): Empresa
+    public function criar(Rede $rede, EmpresaData $data): Empresa
     {
         return $this->criarEmpresa->executar($rede, $data);
     }
 
-    public function atualizar(Empresa $empresa, AtualizarEmpresaData $data): Empresa
+    public function atualizar(Empresa $empresa, EmpresaData $data): Empresa
     {
         $empresa->update([
             'nome' => $data->nome,

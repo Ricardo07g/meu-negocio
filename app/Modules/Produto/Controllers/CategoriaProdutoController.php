@@ -3,11 +3,9 @@
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Produto\DTOs\AtualizarCategoriaProdutoData;
-use App\Modules\Produto\DTOs\CriarCategoriaProdutoData;
+use App\Modules\Produto\DTOs\CategoriaProdutoData;
 use App\Modules\Produto\Models\CategoriaProduto;
-use App\Modules\Produto\Requests\AtualizarCategoriaProdutoRequest;
-use App\Modules\Produto\Requests\CriarCategoriaProdutoRequest;
+use App\Modules\Produto\Requests\SalvarCategoriaProdutoRequest;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -39,10 +37,10 @@ class CategoriaProdutoController extends Controller
         }
     }
 
-    public function store(CriarCategoriaProdutoRequest $request): RedirectResponse
+    public function store(SalvarCategoriaProdutoRequest $request): RedirectResponse
     {
         try {
-            $dados = CriarCategoriaProdutoData::from($request->validated());
+            $dados = CategoriaProdutoData::from($request->validated());
             CategoriaProduto::create($dados->toArray());
 
             return redirect()->route('categorias-produto.index')->with('sucesso', 'Categoria criada com sucesso.');
@@ -62,11 +60,11 @@ class CategoriaProdutoController extends Controller
         }
     }
 
-    public function update(AtualizarCategoriaProdutoRequest $request, CategoriaProduto $categorias_produto): RedirectResponse
+    public function update(SalvarCategoriaProdutoRequest $request, CategoriaProduto $categorias_produto): RedirectResponse
     {
         try {
             $this->authorize('update', $categorias_produto);
-            $dados = AtualizarCategoriaProdutoData::from($request->validated());
+            $dados = CategoriaProdutoData::from($request->validated());
             $categorias_produto->update($dados->toArray());
 
             return redirect()->route('categorias-produto.index')->with('sucesso', 'Categoria atualizada com sucesso.');

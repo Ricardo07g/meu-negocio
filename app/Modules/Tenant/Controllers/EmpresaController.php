@@ -3,10 +3,8 @@
 namespace App\Modules\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Tenant\DTOs\AtualizarEmpresaData;
-use App\Modules\Tenant\DTOs\CriarEmpresaData;
-use App\Modules\Tenant\Requests\AtualizarEmpresaRequest;
-use App\Modules\Tenant\Requests\CriarEmpresaRequest;
+use App\Modules\Tenant\DTOs\EmpresaData;
+use App\Modules\Tenant\Requests\SalvarEmpresaRequest;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Tenant\Services\EmpresaService;
 use App\Traits\TratamentoErros;
@@ -44,11 +42,11 @@ class EmpresaController extends Controller
         }
     }
 
-    public function store(CriarEmpresaRequest $request): RedirectResponse
+    public function store(SalvarEmpresaRequest $request): RedirectResponse
     {
         try {
             $rede = $request->user()->rede;
-            $this->service->criar($rede, CriarEmpresaData::from($request->validated()));
+            $this->service->criar($rede, EmpresaData::from($request->validated()));
 
             return redirect()->route('empresas.index')->with('sucesso', 'Empresa criada com sucesso.');
         } catch (\Throwable $e) {
@@ -78,11 +76,11 @@ class EmpresaController extends Controller
         }
     }
 
-    public function update(AtualizarEmpresaRequest $request, Empresa $empresa): RedirectResponse
+    public function update(SalvarEmpresaRequest $request, Empresa $empresa): RedirectResponse
     {
         try {
             $this->authorize('update', $empresa);
-            $this->service->atualizar($empresa, AtualizarEmpresaData::from($request->validated()));
+            $this->service->atualizar($empresa, EmpresaData::from($request->validated()));
 
             return redirect()->route('empresas.index')->with('sucesso', 'Empresa atualizada com sucesso.');
         } catch (\Throwable $e) {

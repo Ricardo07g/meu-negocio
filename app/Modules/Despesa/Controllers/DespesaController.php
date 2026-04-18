@@ -3,10 +3,8 @@
 namespace App\Modules\Despesa\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Despesa\DTOs\AtualizarDespesaData;
-use App\Modules\Despesa\DTOs\CriarDespesaData;
-use App\Modules\Despesa\Requests\AtualizarDespesaRequest;
-use App\Modules\Despesa\Requests\CriarDespesaRequest;
+use App\Modules\Despesa\DTOs\DespesaData;
+use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Models\Despesa;
 use App\Modules\Despesa\Services\DespesaService;
 use App\Traits\TratamentoErros;
@@ -44,10 +42,10 @@ class DespesaController extends Controller
         }
     }
 
-    public function store(CriarDespesaRequest $request): RedirectResponse
+    public function store(SalvarDespesaRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(CriarDespesaData::from($request->validated()));
+            $this->service->criar(DespesaData::from($request->validated()));
 
             return redirect()->route('despesas.index')->with('sucesso', 'Despesa criada com sucesso.');
         } catch (\Throwable $e) {
@@ -66,11 +64,11 @@ class DespesaController extends Controller
         }
     }
 
-    public function update(AtualizarDespesaRequest $request, Despesa $despesa): RedirectResponse
+    public function update(SalvarDespesaRequest $request, Despesa $despesa): RedirectResponse
     {
         try {
             $this->authorize('update', $despesa);
-            $this->service->atualizar($despesa, AtualizarDespesaData::from($request->validated()));
+            $this->service->atualizar($despesa, DespesaData::from($request->validated()));
 
             return redirect()->route('despesas.index')->with('sucesso', 'Despesa atualizada com sucesso.');
         } catch (\Throwable $e) {

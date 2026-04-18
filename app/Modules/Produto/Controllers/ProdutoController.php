@@ -3,10 +3,8 @@
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Produto\DTOs\AtualizarProdutoData;
-use App\Modules\Produto\DTOs\CriarProdutoData;
-use App\Modules\Produto\Requests\AtualizarProdutoRequest;
-use App\Modules\Produto\Requests\CriarProdutoRequest;
+use App\Modules\Produto\DTOs\ProdutoData;
+use App\Modules\Produto\Requests\SalvarProdutoRequest;
 use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Estoque\Services\EstoqueService;
@@ -19,14 +17,15 @@ class ProdutoController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(
-        private ProdutoService $service,
-        private EstoqueService $estoqueService,
-    ) {}
+    public function __construct( private ProdutoService $service, private EstoqueService $estoqueService)
+    {
+
+    }
 
     public function index(): View|RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('viewAny', Produto::class);
             $produtos = $this->service->listar();
 
@@ -38,7 +37,8 @@ class ProdutoController extends Controller
 
     public function create(): View|RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('create', Produto::class);
             $categorias = CategoriaProduto::orderBy('nome')->get();
 
@@ -48,10 +48,11 @@ class ProdutoController extends Controller
         }
     }
 
-    public function store(CriarProdutoRequest $request): RedirectResponse
+    public function store(SalvarProdutoRequest $request): RedirectResponse
     {
-        try {
-            $this->service->criar(CriarProdutoData::from($request->validated()));
+        try
+        {
+            $this->service->criar(ProdutoData::from($request->validated()));
 
             return redirect()->route('produtos.index')->with('sucesso', 'Produto criado com sucesso.');
         } catch (\Throwable $e) {
@@ -61,7 +62,8 @@ class ProdutoController extends Controller
 
     public function show(Produto $produto): View|RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('view', $produto);
             $movimentos = $this->estoqueService->listarMovimentos($produto->id);
 
@@ -73,7 +75,8 @@ class ProdutoController extends Controller
 
     public function edit(Produto $produto): View|RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('update', $produto);
             $categorias = CategoriaProduto::orderBy('nome')->get();
 
@@ -83,11 +86,12 @@ class ProdutoController extends Controller
         }
     }
 
-    public function update(AtualizarProdutoRequest $request, Produto $produto): RedirectResponse
+    public function update(SalvarProdutoRequest $request, Produto $produto): RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('update', $produto);
-            $this->service->atualizar($produto, AtualizarProdutoData::from($request->validated()));
+            $this->service->atualizar($produto, ProdutoData::from($request->validated()));
 
             return redirect()->route('produtos.index')->with('sucesso', 'Produto atualizado com sucesso.');
         } catch (\Throwable $e) {
@@ -97,7 +101,8 @@ class ProdutoController extends Controller
 
     public function destroy(Produto $produto): RedirectResponse
     {
-        try {
+        try
+        {
             $this->authorize('delete', $produto);
             $this->service->excluir($produto);
 

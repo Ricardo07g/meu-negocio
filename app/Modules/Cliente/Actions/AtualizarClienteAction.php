@@ -2,13 +2,13 @@
 
 namespace App\Modules\Cliente\Actions;
 
-use App\Modules\Cliente\DTOs\AtualizarClienteData;
+use App\Modules\Cliente\DTOs\ClienteData;
 use App\Modules\Cliente\Models\Cliente;
 use Carbon\Carbon;
 
 class AtualizarClienteAction
 {
-    public function executar(Cliente $cliente, AtualizarClienteData $data): Cliente
+    public function executar(Cliente $cliente, ClienteData $data): Cliente
     {
         $cliente->update([
             'nome' => $data->nome,

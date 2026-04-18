@@ -14,8 +14,7 @@ class ProdutoPolicy
 
     public function view(Usuario $usuario, Produto $produto): bool
     {
-        return $usuario->rede_id === $produto->rede_id
-            && $usuario->can('produto.ver');
+        return $usuario->rede_id === $produto->rede_id && $usuario->can('produto.ver');
     }
 
     public function create(Usuario $usuario): bool
@@ -25,13 +24,11 @@ class ProdutoPolicy
 
     public function update(Usuario $usuario, Produto $produto): bool
     {
-        return $usuario->rede_id === $produto->rede_id
-            && $usuario->can('produto.editar');
+        return $usuario->rede_id === $produto->rede_id && $usuario->can('produto.editar');
     }
 
     public function delete(Usuario $usuario, Produto $produto): bool
     {
-        return $usuario->rede_id === $produto->rede_id
-            && $usuario->can('produto.excluir');
+        return $usuario->rede_id === $produto->rede_id && $usuario->can('produto.excluir');
     }
 }

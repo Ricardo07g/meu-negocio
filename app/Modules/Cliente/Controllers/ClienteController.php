@@ -3,10 +3,8 @@
 namespace App\Modules\Cliente\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Cliente\DTOs\AtualizarClienteData;
-use App\Modules\Cliente\DTOs\CriarClienteData;
-use App\Modules\Cliente\Requests\AtualizarClienteRequest;
-use App\Modules\Cliente\Requests\CriarClienteRequest;
+use App\Modules\Cliente\DTOs\ClienteData;
+use App\Modules\Cliente\Requests\SalvarClienteRequest;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Services\ClienteService;
 use App\Traits\TratamentoErros;
@@ -45,11 +43,11 @@ class ClienteController extends Controller
         }
     }
 
-    public function store(CriarClienteRequest $request): RedirectResponse
+    public function store(SalvarClienteRequest $request): RedirectResponse
     {
-        try 
+        try
         {
-            $this->service->criar(CriarClienteData::from($request->validated()));
+            $this->service->criar(ClienteData::from($request->validated()));
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente criado com sucesso.');
         } catch (\Throwable $e) {
@@ -89,11 +87,11 @@ class ClienteController extends Controller
         }
     }
 
-    public function update(AtualizarClienteRequest $request, Cliente $cliente): RedirectResponse
+    public function update(SalvarClienteRequest $request, Cliente $cliente): RedirectResponse
     {
         try {
             $this->authorize('update', $cliente);
-            $this->service->atualizar($cliente, AtualizarClienteData::from($request->validated()));
+            $this->service->atualizar($cliente, ClienteData::from($request->validated()));
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente atualizado com sucesso.');
         } catch (\Throwable $e) {

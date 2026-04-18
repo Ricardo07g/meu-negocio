@@ -2,8 +2,7 @@
 
 namespace App\Modules\Servico\Services;
 
-use App\Modules\Servico\DTOs\AtualizarServicoData;
-use App\Modules\Servico\DTOs\CriarServicoData;
+use App\Modules\Servico\DTOs\ServicoData;
 use App\Modules\Servico\Models\Servico;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -19,7 +18,7 @@ class ServicoService
         return Servico::findOrFail($id);
     }
 
-    public function criar(CriarServicoData $data): Servico
+    public function criar(ServicoData $data): Servico
     {
         return Servico::create([
             'nome' => $data->nome,
@@ -31,7 +30,7 @@ class ServicoService
         ]);
     }
 
-    public function atualizar(Servico $servico, AtualizarServicoData $data): Servico
+    public function atualizar(Servico $servico, ServicoData $data): Servico
     {
         $servico->update([
             'nome' => $data->nome,

@@ -3,7 +3,7 @@
 namespace App\Modules\Tenant\Actions;
 
 use App\Modules\Tenant\Actions\ValidarPlanoAction;
-use App\Modules\Tenant\DTOs\CriarEmpresaData;
+use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Tenant\Models\Rede;
 
@@ -13,7 +13,7 @@ class CriarEmpresaAction
         private ValidarPlanoAction $validarPlano,
     ) {}
 
-    public function executar(Rede $rede, CriarEmpresaData $data): Empresa
+    public function executar(Rede $rede, EmpresaData $data): Empresa
     {
         $this->validarPlano->executar($rede, 'empresa');
 

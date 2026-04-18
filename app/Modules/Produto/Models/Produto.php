@@ -4,11 +4,9 @@ namespace App\Modules\Produto\Models;
 
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Produto\Models\CategoriaProduto;
+use Illuminate\Database\Eloquent\{Model, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use App\Traits\PertenceARede;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Produto extends Model
 {

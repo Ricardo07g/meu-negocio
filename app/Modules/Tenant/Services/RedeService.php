@@ -6,7 +6,7 @@ use App\Modules\Tenant\Actions\CriarEmpresaAction;
 use App\Modules\Usuario\Actions\CriarUsuarioAction;
 use App\Modules\Tenant\DTOs\AtualizarRedeData;
 use App\Modules\Tenant\DTOs\CriarRedeData;
-use App\Modules\Tenant\DTOs\CriarEmpresaData;
+use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Usuario\DTOs\CriarUsuarioData;
 use App\Enums\StatusRede;
 use App\Modules\Produto\Models\CategoriaProduto;
@@ -34,7 +34,7 @@ class RedeService
 
             $empresa = $this->criarEmpresa->executar(
                 $rede,
-                new CriarEmpresaData(nome: $data->nome)
+                new EmpresaData(nome: $data->nome)
             );
 
             $usuario = $this->criarUsuario->executar(

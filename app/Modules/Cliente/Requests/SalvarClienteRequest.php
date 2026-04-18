@@ -4,11 +4,13 @@ namespace App\Modules\Cliente\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CriarClienteRequest extends FormRequest
+class SalvarClienteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('cliente.criar');
+        return $this->isMethod('post')
+            ? $this->user()->can('cliente.criar')
+            : $this->user()->can('cliente.editar');
     }
 
     public function rules(): array

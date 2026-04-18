@@ -4,7 +4,7 @@ namespace App\Modules\Tenant\DTOs;
 
 use Spatie\LaravelData\Data;
 
-class CriarEmpresaData extends Data
+class EmpresaData extends Data
 {
     public function __construct(
         public string $nome,

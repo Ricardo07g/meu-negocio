@@ -4,7 +4,7 @@ namespace App\Modules\Produto\DTOs;
 
 use Spatie\LaravelData\Data;
 
-class CriarProdutoData extends Data
+class ProdutoData extends Data
 {
     public function __construct(
         public string $nome,
