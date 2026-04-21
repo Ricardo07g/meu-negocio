@@ -3,7 +3,7 @@
 @section('titulo', 'Nova Despesa - Meu Negócio')
 @section('titulo-pagina', 'Nova Despesa')
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('despesas.index') }}">Despesas</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('despesas.index') }}">Contas a Pagar</a></li>
     <li class="breadcrumb-item active">Nova</li>
 @endsection
 

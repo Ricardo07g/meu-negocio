@@ -20,6 +20,7 @@ class MovimentoCaixa extends Model
         'forma_pagamento',
         'baixa_pagamento_id',
         'despesa_id',
+        'baixa_despesa_id',
     ];
 
     protected function casts(): array
@@ -51,6 +52,11 @@ class MovimentoCaixa extends Model
     public function despesa(): BelongsTo
     {
         return $this->belongsTo(Despesa::class, 'despesa_id');
+    }
+
+    public function baixaDespesa(): BelongsTo
+    {
+        return $this->belongsTo(BaixaDespesa::class, 'baixa_despesa_id');
     }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗

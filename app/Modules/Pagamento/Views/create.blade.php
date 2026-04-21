@@ -25,7 +25,7 @@
                         <label class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
                         <select name="forma_pagamento" class="form-select @error('forma_pagamento') is-invalid @enderror" required>
                             <option value="">Selecione...</option>
-                            @foreach(['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão', 'fiado' => 'Fiado'] as $valor => $label)
+                            @foreach(['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão'] as $valor => $label)
                                 <option value="{{ $valor }}" {{ old('forma_pagamento') == $valor ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>

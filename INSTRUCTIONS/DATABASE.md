@@ -224,7 +224,9 @@ formas:
 pix
 dinheiro
 cartao
-fiado
+
+Observacao: forma_pagamento e nullable. Null indica venda a prazo (fiado).
+A forma real e registrada em baixas_pagamento quando o cliente paga.
 
 ---
 

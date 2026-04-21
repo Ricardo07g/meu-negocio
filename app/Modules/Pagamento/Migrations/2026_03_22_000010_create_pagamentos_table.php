@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('empresa_id')->constrained('empresas');
             $table->foreignId('agendamento_id')->nullable()->constrained('agendamentos');
             $table->decimal('valor', 10, 2);
-            $table->string('forma_pagamento', 20);
+            $table->string('forma_pagamento', 20)->nullable();
             $table->string('status', 20)->default('pendente');
             $table->timestamps();
 

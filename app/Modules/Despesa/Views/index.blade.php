@@ -1,13 +1,12 @@
 @extends('layouts.app')
 
-@section('titulo', 'Despesas - Meu Negócio')
-@section('titulo-pagina', 'Despesas')
+@section('titulo', 'Contas a Pagar - Meu Negócio')
+@section('titulo-pagina', 'Contas a Pagar')
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Despesas</li>
+    <li class="breadcrumb-item active">Contas a Pagar</li>
 @endsection
 
 @section('content')
-    {{-- Button row OUTSIDE the card --}}
     @can('despesa.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
@@ -15,66 +14,91 @@
                 <i class="feather-plus me-2"></i>Nova Despesa
             </a>
         </div>
+        @can('categoria_despesa.ver')
+        <div class="col-xxl-3 col-md-6">
+            <a href="{{ route('categorias-despesa.index') }}" class="btn btn-outline-primary w-100">
+                <i class="feather-folder me-2"></i>Categorias
+            </a>
+        </div>
+        @endcan
     </div>
     @endcan
 
-    {{-- Card with table --}}
+    {{-- Filtros --}}
+    <div class="card stretch stretch-full mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('despesas.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="q" class="form-control" placeholder="Nome, fornecedor, documento ou ID..." value="{{ request('q') }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="pendente" @selected(request('status') === 'pendente')>Pendente</option>
+                            <option value="paga" @selected(request('status') === 'paga')>Paga</option>
+                            <option value="vencidas" @selected(request('status') === 'vencidas')>Vencidas</option>
+                            <option value="cancelada" @selected(request('status') === 'cancelada')>Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria_id" class="form-select">
+                            <option value="">Todas</option>
+                            @foreach($categorias as $cat)
+                                <option value="{{ $cat->id }}" @selected((int) request('categoria_id') === $cat->id)>{{ $cat->descricao }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Situação</label>
+                        <select name="situacao" class="form-select">
+                            <option value="">Todas</option>
+                            <option value="em_dia" @selected(request('situacao') === 'em_dia')>Em dia</option>
+                            <option value="vencida" @selected(request('situacao') === 'vencida')>Vencida</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <a href="{{ route('despesas.index') }}" class="btn btn-light" title="Limpar filtros">
+                            <i class="feather-x me-1"></i>Limpar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="feather-filter me-1"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card stretch stretch-full">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Valor</th>
-                            <th>Data</th>
-                            <th class="text-end">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($despesas as $despesa)
-                        <tr>
-                            <td>{{ $despesa->nome }}</td>
-                            <td>R$ {{ number_format($despesa->valor, 2, ',', '.') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($despesa->data)->format('d/m/Y') }}</td>
-                            <td>
-                                <div class="hstack gap-2 justify-content-end">
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            @can('despesa.editar')
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('despesas.edit', $despesa) }}">
-                                                    <i class="feather-edit-3 me-3"></i>
-                                                    <span>Editar</span>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                            @can('despesa.excluir')
-                                            <li class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('despesas.destroy', $despesa) }}" method="POST" data-confirm="Excluir esta despesa?">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Excluir</span>
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            @endcan
-                                        </ul>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma despesa cadastrada.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+        <div class="card-header">
+            <h5 class="card-title">Contas a Pagar</h5>
+            <div class="card-header-action">
+                <span class="badge bg-light text-dark">{{ $despesas->total() }} registro(s)</span>
             </div>
         </div>
+        <div class="card-body custom-card-action">
+            @forelse($despesas as $despesa)
+                @include('despesa::_despesa_card', ['despesa' => $despesa])
+                @if(!$loop->last)
+                    <hr class="border-dashed my-3">
+                @endif
+            @empty
+                <div class="text-center text-muted py-5">
+                    <i class="feather-trending-down" style="font-size:48px;"></i>
+                    <div class="mt-2">Nenhuma conta a pagar encontrada.</div>
+                </div>
+            @endforelse
+        </div>
+        @if($despesas->hasPages())
+            <div class="card-footer">
+                {{ $despesas->onEachSide(1)->links() }}
+            </div>
+        @endif
     </div>
 @endsection

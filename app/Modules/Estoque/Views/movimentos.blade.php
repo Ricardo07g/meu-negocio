@@ -7,18 +7,85 @@
 @endsection
 
 @section('content')
-    <div class="card stretch stretch-full">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="card-title">Lista de Movimentos</h5>
-            @can('movimento_estoque.criar')
-            <a href="{{ route('movimentos-estoque.create') }}" class="btn btn-sm btn-primary">
-                <i class="feather-plus me-1"></i> Novo Movimento
+    {{-- Botao Novo Movimento --}}
+    @can('movimento_estoque.criar')
+    <div class="row mb-4">
+        <div class="col-xxl-3 col-md-6">
+            <a href="{{ route('movimentos-estoque.create') }}" class="btn btn-primary w-100">
+                <i class="feather-plus me-2"></i>Novo Movimento
             </a>
-            @endcan
         </div>
-        <div class="card-body custom-card-action">
+    </div>
+    @endcan
+
+    {{-- Filtros --}}
+    <div class="card stretch stretch-full mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('movimentos-estoque.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="q" class="form-control" placeholder="Nome ou código do produto..." value="{{ request('q') }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Produto</label>
+                        <select name="produto_id" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach($produtos as $produto)
+                                <option value="{{ $produto->id }}" @selected((int) request('produto_id') === $produto->id)>
+                                    {{ $produto->nome }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo</label>
+                        <select name="tipo" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="entrada" @selected(request('tipo') === 'entrada')>Entrada</option>
+                            <option value="saida" @selected(request('tipo') === 'saida')>Saída</option>
+                            <option value="ajuste" @selected(request('tipo') === 'ajuste')>Ajuste</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Período</label>
+                        <select name="periodo_preset" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="hoje" @selected(request('periodo_preset') === 'hoje')>Hoje</option>
+                            <option value="7dias" @selected(request('periodo_preset') === '7dias')>Últimos 7 dias</option>
+                            <option value="30dias" @selected(request('periodo_preset') === '30dias')>Últimos 30 dias</option>
+                            <option value="mes_atual" @selected(request('periodo_preset') === 'mes_atual')>Mês atual</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Data início</label>
+                        <input type="date" name="data_inicio" class="form-control" value="{{ request('data_inicio') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Data fim</label>
+                        <input type="date" name="data_fim" class="form-control" value="{{ request('data_fim') }}">
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <a href="{{ route('movimentos-estoque.index') }}" class="btn btn-light" title="Limpar filtros">
+                            <i class="feather-x me-1"></i>Limpar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="feather-filter me-1"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Tabela --}}
+    <div class="card stretch stretch-full">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover mb-0">
                     <thead>
                         <tr>
                             <th>Produto</th>
@@ -50,11 +117,16 @@
                             <td>{{ $movimento->created_at->format('d/m/Y H:i') }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted">Nenhum movimento registrado.</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+        @if($movimentos->hasPages())
+            <div class="card-footer">
+                {{ $movimentos->onEachSide(1)->links() }}
+            </div>
+        @endif
     </div>
 @endsection

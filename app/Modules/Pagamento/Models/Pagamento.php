@@ -31,6 +31,7 @@ class Pagamento extends BaseModel
         'venda_produto_id',
         'valor',
         'valor_pago',
+        'data_vencimento',
         'desconto',
         'acrescimo',
         'forma_pagamento',
@@ -43,6 +44,7 @@ class Pagamento extends BaseModel
         return [
             'valor' => 'decimal:2',
             'valor_pago' => 'decimal:2',
+            'data_vencimento' => 'date',
             'desconto' => 'decimal:2',
             'acrescimo' => 'decimal:2',
             'forma_pagamento' => FormaPagamento::class,
@@ -113,5 +115,17 @@ class Pagamento extends BaseModel
     public function saldoRestante(): float
     {
         return (float) ($this->valor - $this->valor_pago);
+    }
+
+    public function diasAtraso(): int
+    {
+        if (!$this->data_vencimento) {
+            return 0;
+        }
+
+        $hoje = now()->startOfDay();
+        $vencimento = $this->data_vencimento->startOfDay();
+
+        return $vencimento->lt($hoje) ? (int) $vencimento->diffInDays($hoje) : 0;
     }
 }

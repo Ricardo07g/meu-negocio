@@ -21,13 +21,14 @@ class ServicoController extends Controller
         private ServicoService $service,
     ) {}
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('viewAny', Servico::class);
-            $servicos = $this->service->listar();
+            $filtros = $request->only(['q', 'tipo', 'valor_min', 'valor_max', 'duracao_min', 'duracao_max']);
+            $servicos = $this->service->listar($filtros);
 
-            return view('servico::index', compact('servicos'));
+            return view('servico::index', compact('servicos', 'filtros'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar serviços');
         }

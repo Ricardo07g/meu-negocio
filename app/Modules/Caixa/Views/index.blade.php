@@ -15,10 +15,30 @@
         $ehFuturo = $dataSelecionada->isFuture();
     @endphp
 
+    {{-- Botao Abrir Caixa (quando nao existe caixa nesse dia) --}}
+    @if(!$caixa && !$ehFuturo)
+    @can('financeiro.criar')
+    <div class="row mb-4">
+        <div class="col-xxl-3 col-md-6">
+            <button type="button" class="btn btn-primary w-100" id="btn-abrir">
+                <i class="feather-plus me-2"></i>Abrir Caixa
+            </button>
+        </div>
+    </div>
+
+    <form id="form-abrir" action="{{ route('caixas.store') }}" method="POST" style="display:none;">
+        @csrf
+        <input type="hidden" name="data" value="{{ $dataSelecionada->toDateString() }}">
+        <input type="hidden" name="saldo_abertura" id="abrir-saldo">
+        <input type="hidden" name="observacao" id="abrir-observacao">
+    </form>
+    @endcan
+    @endif
+
     <div class="card stretch stretch-full mb-4">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ route('caixas.index', ['data' => $dataAnterior]) }}" class="btn btn-light btn-sm">
+                <a href="{{ route('caixas.index', ['data' => $dataAnterior]) }}" class="btn btn-primary btn-sm py-3">
                     <i class="feather-chevron-left"></i>
                 </a>
 
@@ -32,7 +52,7 @@
                     @endif
                 </div>
 
-                <a href="{{ route('caixas.index', ['data' => $dataProxima]) }}" class="btn btn-light btn-sm">
+                <a href="{{ route('caixas.index', ['data' => $dataProxima]) }}" class="btn btn-primary btn-sm py-3">
                     <i class="feather-chevron-right"></i>
                 </a>
             </div>
@@ -210,22 +230,7 @@
         <div class="card stretch stretch-full">
             <div class="card-body text-center py-5">
                 <i class="feather-inbox text-muted" style="font-size: 48px;"></i>
-                <p class="text-muted mt-3 mb-4">Nenhum caixa registrado neste dia.</p>
-
-                @can('financeiro.criar')
-                @if(!$ehFuturo)
-                <button type="button" class="btn btn-primary" id="btn-abrir">
-                    <i class="feather-plus me-2"></i>Abrir Caixa
-                </button>
-
-                <form id="form-abrir" action="{{ route('caixas.store') }}" method="POST" style="display:none;">
-                    @csrf
-                    <input type="hidden" name="data" value="{{ $dataSelecionada->toDateString() }}">
-                    <input type="hidden" name="saldo_abertura" id="abrir-saldo">
-                    <input type="hidden" name="observacao" id="abrir-observacao">
-                </form>
-                @endif
-                @endcan
+                <p class="text-muted mt-3 mb-0">Nenhum caixa registrado neste dia.</p>
             </div>
         </div>
     @endif

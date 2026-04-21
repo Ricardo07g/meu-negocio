@@ -9,11 +9,8 @@
 
 @section('content')
     <div class="card stretch stretch-full">
-        <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="card-header">
             <h5 class="card-title">Dados da Empresa</h5>
-            @can('empresa.editar')
-            <a href="{{ route('empresas.edit', $empresa) }}" class="btn btn-sm btn-primary"><i class="feather-edit me-1"></i> Editar</a>
-            @endcan
         </div>
         <div class="card-body">
             <div class="row">
@@ -23,5 +20,18 @@
                 <div class="col-md-6 mb-3"><strong>Email:</strong> {{ $empresa->email ?? '-' }}</div>
             </div>
         </div>
+    </div>
+
+    <div class="d-flex gap-2 text-center pt-4">
+        <a href="{{ route('empresas.index') }}" class="w-50 btn btn-light">
+            <i class="feather-arrow-left me-2"></i>
+            <span>Voltar</span>
+        </a>
+        @can('empresa.editar')
+        <a href="{{ route('empresas.edit', $empresa) }}" class="w-50 btn btn-primary">
+            <i class="feather-edit me-2"></i>
+            <span>Editar</span>
+        </a>
+        @endcan
     </div>
 @endsection

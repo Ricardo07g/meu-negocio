@@ -5,6 +5,7 @@ use App\Modules\Auth\Controllers\LoginController;
 use App\Modules\Auth\Controllers\RegistrarController;
 use App\Modules\Cliente\Controllers\ClienteController;
 use App\Modules\Dashboard\Controllers\DashboardController;
+use App\Modules\Despesa\Controllers\CategoriaDespesaController;
 use App\Modules\Despesa\Controllers\DespesaController;
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
@@ -43,9 +44,11 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         // Agenda
         Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
         Route::get('agenda/json', [AgendaController::class, 'json'])->name('agenda.json');
+        Route::post('agenda/criar-rapido', [AgendaController::class, 'criarRapido'])->name('agenda.criar-rapido');
         Route::get('agenda/{agendamento}', [AgendaController::class, 'show'])->name('agenda.show');
         Route::get('agenda/{agendamento}/editar', [AgendaController::class, 'edit'])->name('agenda.edit');
         Route::put('agenda/{agendamento}', [AgendaController::class, 'update'])->name('agenda.update');
+        Route::patch('agenda/{agendamento}/reagendar', [AgendaController::class, 'reagendar'])->name('agenda.reagendar');
         Route::patch('agenda/{agendamento}/confirmar', [AgendaController::class, 'confirmar'])->name('agenda.confirmar');
         Route::patch('agenda/{agendamento}/finalizar', [AgendaController::class, 'finalizar'])->name('agenda.finalizar');
         Route::patch('agenda/{agendamento}/cancelar', [AgendaController::class, 'cancelar'])->name('agenda.cancelar');
@@ -54,12 +57,16 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         Route::get('vendas', [VendaController::class, 'index'])->name('vendas.index');
         Route::get('vendas/nova', [VendaController::class, 'create'])->name('vendas.create');
         Route::post('vendas', [VendaController::class, 'store'])->name('vendas.store');
-        Route::get('vendas/avulso/{agendamento}', [VendaController::class, 'showAvulso'])->name('vendas.show-avulso');
-        Route::get('vendas/pacote/{pacote}', [VendaController::class, 'showPacote'])->name('vendas.show-pacote');
         Route::patch('vendas/avulso/{agendamento}/cancelar', [VendaController::class, 'cancelarAvulso'])->name('vendas.cancelar-avulso');
         Route::patch('vendas/pacote/{pacote}/cancelar', [VendaController::class, 'cancelarPacote'])->name('vendas.cancelar-pacote');
-        Route::get('vendas/produto/{vendaProduto}', [VendaController::class, 'showProduto'])->name('vendas.show-produto');
         Route::patch('vendas/produto/{vendaProduto}/cancelar', [VendaController::class, 'cancelarProduto'])->name('vendas.cancelar-produto');
+        Route::get('vendas/recibo/{tipo}/{id}', [VendaController::class, 'recibo'])->name('vendas.recibo')->whereIn('tipo', ['avulso', 'pacote', 'produto']);
+        Route::get('vendas/avulso/{agendamento}/editar', [VendaController::class, 'editAvulso'])->name('vendas.edit-avulso');
+        Route::patch('vendas/avulso/{agendamento}', [VendaController::class, 'updateAvulso'])->name('vendas.update-avulso');
+        Route::get('vendas/pacote/{pacote}/editar', [VendaController::class, 'editPacote'])->name('vendas.edit-pacote');
+        Route::patch('vendas/pacote/{pacote}', [VendaController::class, 'updatePacote'])->name('vendas.update-pacote');
+        Route::get('vendas/produto/{vendaProduto}/editar', [VendaController::class, 'editProduto'])->name('vendas.edit-produto');
+        Route::patch('vendas/produto/{vendaProduto}', [VendaController::class, 'updateProduto'])->name('vendas.update-produto');
 
         // Clientes
         Route::get('clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
@@ -71,10 +78,17 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Financeiro (verificar plano)
         Route::middleware(['verificar.plano:financeiro'])->group(function () {
-            Route::resource('pagamentos', PagamentoController::class)->only(['index', 'create', 'store', 'show']);
+            Route::resource('pagamentos', PagamentoController::class)->only(['index', 'create', 'store']);
+            Route::get('pagamentos/{pagamento}/baixa', [PagamentoController::class, 'baixaForm'])->name('pagamentos.baixa-form');
             Route::post('pagamentos/{pagamento}/baixa', [PagamentoController::class, 'baixa'])->name('pagamentos.baixa');
+            Route::get('pagamentos/{pagamento}/recibo', [PagamentoController::class, 'recibo'])->name('pagamentos.recibo');
             Route::get('contas-a-receber', [PagamentoController::class, 'contasAReceber'])->name('pagamentos.contas-a-receber');
-            Route::resource('despesas', DespesaController::class);
+            Route::get('despesas/{despesa}/baixa', [DespesaController::class, 'baixaForm'])->name('despesas.baixa-form');
+            Route::post('despesas/{despesa}/baixa', [DespesaController::class, 'baixa'])->name('despesas.baixa');
+            Route::get('contas-a-pagar', [DespesaController::class, 'contasAPagar'])->name('despesas.contas-a-pagar');
+            Route::get('despesas/{despesa}/recibo', [DespesaController::class, 'recibo'])->name('despesas.recibo');
+            Route::resource('despesas', DespesaController::class)->except(['show']);
+            Route::resource('categorias-despesa', CategoriaDespesaController::class)->except(['show']);
 
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');

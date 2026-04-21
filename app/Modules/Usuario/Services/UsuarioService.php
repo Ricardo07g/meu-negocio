@@ -7,7 +7,7 @@ use App\Modules\Usuario\DTOs\AtualizarUsuarioData;
 use App\Modules\Usuario\DTOs\CriarUsuarioData;
 use App\Modules\Tenant\Models\Rede;
 use App\Modules\Usuario\Models\Usuario;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class UsuarioService
 {
@@ -15,9 +15,9 @@ class UsuarioService
         private CriarUsuarioAction $criarUsuario,
     ) {}
 
-    public function listar(): Collection
+    public function listar(int $perPage = 20): LengthAwarePaginator
     {
-        return Usuario::all();
+        return Usuario::orderBy('nome')->paginate($perPage);
     }
 
     public function buscar(int $id): Usuario

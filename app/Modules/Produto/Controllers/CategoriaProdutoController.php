@@ -8,19 +8,38 @@ use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Requests\SalvarCategoriaProdutoRequest;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CategoriaProdutoController extends Controller
 {
     use TratamentoErros;
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('viewAny', CategoriaProduto::class);
-            $categorias = CategoriaProduto::orderBy('descricao')->get();
 
-            return view('produto::categorias.index', compact('categorias'));
+            $filtros = $request->only(['q', 'ativo', 'com_produtos']);
+            $query = CategoriaProduto::withCount('produtos')->orderBy('descricao');
+
+            if (!empty($filtros['q'])) {
+                $query->where('descricao', 'like', '%' . $filtros['q'] . '%');
+            }
+
+            if (isset($filtros['ativo']) && $filtros['ativo'] !== '') {
+                $query->where('ativo', (bool) $filtros['ativo']);
+            }
+
+            if (($filtros['com_produtos'] ?? null) === 'com') {
+                $query->has('produtos');
+            } elseif (($filtros['com_produtos'] ?? null) === 'sem') {
+                $query->doesntHave('produtos');
+            }
+
+            $categorias = $query->get();
+
+            return view('produto::categorias.index', compact('categorias', 'filtros'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar categorias de produto');
         }

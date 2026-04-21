@@ -99,8 +99,10 @@ planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_paco
 ## Fluxos de Negocio
 
 ### Venda → Pagamento → Caixa
-- Venda paga + caixa aberto → MovimentoCaixa entrada
-- Venda pendente (fiado) → Contas a Receber → Baixa parcial/total (exige caixa aberto)
+- **Condicao de pagamento** (escolhida na venda): `a_vista` ou `a_prazo` (fiado)
+- A vista → pede forma (pix/dinheiro/cartao) → Pagamento(status=pago, forma=<x>) + MovimentoCaixa entrada
+- A prazo → Pagamento(status=pendente, forma=NULL) → Contas a Receber → Baixa parcial/total (forma real na baixa, exige caixa aberto)
+- `forma_pagamento` no Pagamento e nullable — NULL indica fiado (aguardando recebimento)
 
 ### Estorno ao Cancelar
 - Pagamento estornado + estoque devolvido + saida no caixa + agendamentos cancelados

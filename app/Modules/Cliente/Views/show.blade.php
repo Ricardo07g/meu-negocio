@@ -238,7 +238,7 @@
                                     <tr>
                                         <td>{{ $pagamento->agendamento->servico->nome ?? '-' }}</td>
                                         <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
-                                        <td>{{ ucfirst($pagamento->forma_pagamento->value) }}</td>
+                                        <td>{{ $pagamento->forma_pagamento ? ucfirst($pagamento->forma_pagamento->value) : '—' }}</td>
                                         <td>
                                             @switch($pagamento->status->value)
                                                 @case('pago') <span class="badge bg-success">Pago</span> @break

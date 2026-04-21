@@ -21,6 +21,8 @@ class BaixaPagamento extends BaseModel
         'pagamento_id',
         'caixa_id',
         'valor',
+        'multa',
+        'juros',
         'forma_pagamento',
         'data',
         'observacao',
@@ -30,9 +32,16 @@ class BaixaPagamento extends BaseModel
     {
         return [
             'valor' => 'decimal:2',
+            'multa' => 'decimal:2',
+            'juros' => 'decimal:2',
             'data' => 'datetime',
             'forma_pagamento' => FormaPagamento::class,
         ];
+    }
+
+    public function valorTotal(): float
+    {
+        return (float) ($this->valor + $this->multa + $this->juros);
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗

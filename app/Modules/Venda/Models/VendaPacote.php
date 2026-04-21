@@ -6,11 +6,13 @@ use App\Enums\StatusVendaPacote;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VendaPacote extends BaseModel
@@ -31,6 +33,7 @@ class VendaPacote extends BaseModel
         'acrescimo',
         'qtd_sessoes',
         'status',
+        'observacao',
     ];
 
     protected function casts(): array
@@ -69,6 +72,11 @@ class VendaPacote extends BaseModel
     public function agendamentos(): HasMany
     {
         return $this->hasMany(Agendamento::class, 'venda_pacote_id');
+    }
+
+    public function pagamento(): HasOne
+    {
+        return $this->hasOne(Pagamento::class, 'venda_pacote_id');
     }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗

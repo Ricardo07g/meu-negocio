@@ -8,22 +8,6 @@
 @endsection
 
 @section('content')
-    {{-- Botões no topo --}}
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6 d-flex gap-2">
-            @can('agendamento.editar')
-            @if(!in_array($agendamento->status->value, ['cancelado', 'finalizado']))
-            <a href="{{ route('agenda.edit', $agendamento) }}" class="btn btn-primary">
-                <i class="feather-edit me-2"></i>Editar
-            </a>
-            @endif
-            @endcan
-            <a href="{{ route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')]) }}" class="btn btn-light">
-                <i class="feather-arrow-left me-2"></i>Voltar
-            </a>
-        </div>
-    </div>
-
     <div class="card stretch stretch-full">
         <div class="card-body">
             <div class="row">
@@ -47,11 +31,27 @@
                 @endif
                 @if($agendamento->vendaPacote)
                 <div class="col-md-6 mb-3">
-                    <strong>Pacote:</strong>
-                    <a href="{{ route('vendas.show-pacote', $agendamento->vendaPacote) }}">#{{ $agendamento->vendaPacote->id }}</a>
+                    <strong>Pacote:</strong> #{{ $agendamento->vendaPacote->id }}
                 </div>
                 @endif
             </div>
         </div>
+    </div>
+
+    @php
+        $podeEditar = auth()->user()->can('agendamento.editar')
+            && !in_array($agendamento->status->value, ['cancelado', 'finalizado']);
+    @endphp
+    <div class="d-flex gap-2 text-center pt-4">
+        <a href="{{ route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')]) }}" class="w-50 btn btn-light">
+            <i class="feather-arrow-left me-2"></i>
+            <span>Voltar</span>
+        </a>
+        @if($podeEditar)
+        <a href="{{ route('agenda.edit', $agendamento) }}" class="w-50 btn btn-primary">
+            <i class="feather-edit me-2"></i>
+            <span>Editar</span>
+        </a>
+        @endif
     </div>
 @endsection

@@ -4,6 +4,8 @@ namespace App\Modules\Agenda\Controllers;
 
 use App\Enums\StatusAgendamento;
 use App\Http\Controllers\Controller;
+use App\Modules\Agenda\Actions\CriarAgendamentoAction;
+use App\Modules\Agenda\DTOs\CriarAgendamentoData;
 use App\Modules\Agenda\Requests\AtualizarAgendamentoRequest;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
@@ -39,20 +41,29 @@ class AgendaController extends Controller
 
             $agendamentos = $this->service->listarPorPeriodo($start, $end);
 
-            $atendentes = $agendamentos->pluck('atendente_id')->unique()->values();
+            $atendentesLista = Usuario::where('atende', true)->orderBy('nome')->get();
+            $calendars = $atendentesLista->values()->map(fn ($u, $i) => [
+                'id' => (string) $u->id,
+                'name' => $u->nome,
+                'backgroundColor' => $this->coresAtendente[$i % count($this->coresAtendente)],
+                'borderColor' => $this->coresAtendente[$i % count($this->coresAtendente)],
+            ]);
 
-            $eventos = $agendamentos->map(function ($ag) use ($atendentes) {
-                $corIndex = $atendentes->search($ag->atendente_id);
-                $cor = $this->coresAtendente[$corIndex % count($this->coresAtendente)];
+            $eventos = $agendamentos->map(function ($ag) {
+                $cancelado = $ag->status === StatusAgendamento::Cancelado;
+                $finalizado = $ag->status === StatusAgendamento::Finalizado;
 
                 return [
-                    'id' => $ag->id,
-                    'title' => ($ag->cliente->nome ?? '-') . ' - ' . ($ag->servico->nome ?? '-'),
+                    'id' => (string) $ag->id,
+                    'calendarId' => (string) $ag->atendente_id,
+                    'title' => ($ag->cliente->nome ?? '-') . ' — ' . ($ag->servico->nome ?? '-'),
                     'start' => $ag->inicio->format('Y-m-d\TH:i:s'),
                     'end' => $ag->fim->format('Y-m-d\TH:i:s'),
-                    'color' => $cor,
-                    'extendedProps' => [
+                    'category' => 'time',
+                    'isReadOnly' => $cancelado || $finalizado,
+                    'raw' => [
                         'status' => $ag->status->value,
+                        'status_label' => $ag->status->label(),
                         'cliente' => $ag->cliente->nome ?? '-',
                         'servico' => $ag->servico->nome ?? '-',
                         'atendente' => $ag->atendente->nome ?? '-',
@@ -66,9 +77,64 @@ class AgendaController extends Controller
                 ];
             });
 
-            return response()->json($eventos->values());
+            return response()->json([
+                'calendars' => $calendars,
+                'events' => $eventos->values(),
+            ]);
         } catch (\Throwable $e) {
-            return response()->json([], 500);
+            return response()->json(['calendars' => [], 'events' => [], 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function criarRapido(Request $request, CriarAgendamentoAction $action): JsonResponse
+    {
+        try {
+            $this->authorize('create', Agendamento::class);
+
+            $dados = $request->validate([
+                'cliente_id' => 'required|exists:clientes,id',
+                'servico_id' => 'required|exists:servicos,id',
+                'atendente_id' => 'required|exists:usuarios,id',
+                'inicio' => 'required|date',
+                'fim' => 'nullable|date|after:inicio',
+            ]);
+
+            $agendamento = $action->executar(CriarAgendamentoData::from([
+                'cliente_id' => (int) $dados['cliente_id'],
+                'servico_id' => (int) $dados['servico_id'],
+                'atendente_id' => (int) $dados['atendente_id'],
+                'inicio' => Carbon::parse($dados['inicio']),
+                'fim' => !empty($dados['fim']) ? Carbon::parse($dados['fim']) : null,
+            ]));
+
+            return response()->json(['id' => $agendamento->id], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function reagendar(Request $request, Agendamento $agendamento): JsonResponse
+    {
+        try {
+            $this->authorize('update', $agendamento);
+
+            $dados = $request->validate([
+                'inicio' => 'required|date',
+                'fim' => 'required|date|after:inicio',
+            ]);
+
+            $agendamento->update([
+                'inicio' => Carbon::parse($dados['inicio']),
+                'fim' => Carbon::parse($dados['fim']),
+            ]);
+
+            return response()->json(['ok' => true]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
         }
     }
 

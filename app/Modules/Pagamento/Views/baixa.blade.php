@@ -1,0 +1,223 @@
+@extends('layouts.app')
+
+@section('titulo', 'Registrar Baixa - Meu Negócio')
+@section('titulo-pagina', 'Registrar Baixa')
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{ route('pagamentos.index') }}">Contas a Receber</a></li>
+    <li class="breadcrumb-item active">Registrar Baixa</li>
+@endsection
+
+@section('content')
+    @php
+        $saldo = $pagamento->saldoRestante();
+        $diasAtraso = $pagamento->diasAtraso();
+
+        if ($pagamento->agendamento) {
+            $origemLabel = 'Atendimento avulso — ' . ($pagamento->agendamento->servico->nome ?? '—');
+        } elseif ($pagamento->vendaPacote) {
+            $origemLabel = 'Pacote — ' . ($pagamento->vendaPacote->servico->nome ?? '—');
+        } elseif ($pagamento->vendaProduto) {
+            $origemLabel = 'Venda de produto — ' . ($pagamento->vendaProduto->itens->pluck('descricao')->implode(', ') ?: '—');
+        } else {
+            $origemLabel = '—';
+        }
+    @endphp
+
+    @if($diasAtraso > 0)
+    <div class="alert alert-danger d-flex align-items-center mb-4" role="alert">
+        <i class="feather-alert-triangle me-2"></i>
+        <div>
+            <strong>Pagamento em atraso:</strong>
+            {{ $diasAtraso }} {{ $diasAtraso === 1 ? 'dia' : 'dias' }}
+            (vencimento em {{ $pagamento->data_vencimento->format('d/m/Y') }}).
+            Aplique multa e/ou juros conforme a política do seu negócio.
+        </div>
+    </div>
+    @endif
+
+    {{-- Resumo do pagamento --}}
+    <div class="card stretch stretch-full">
+        <div class="card-header">
+            <h5 class="card-title">Pagamento #{{ $pagamento->id }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="fs-12 text-muted">Cliente</div>
+                    <div class="fw-semibold">{{ $pagamento->cliente->nome ?? '—' }}</div>
+                </div>
+                <div class="col-md-8">
+                    <div class="fs-12 text-muted">Origem</div>
+                    <div class="fw-semibold">{{ $origemLabel }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="fs-12 text-muted">Valor total</div>
+                    <div class="fw-semibold">R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="fs-12 text-muted">Valor pago</div>
+                    <div class="fw-semibold">R$ {{ number_format($pagamento->valor_pago, 2, ',', '.') }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="fs-12 text-muted">Saldo restante</div>
+                    <div class="fw-semibold fs-18 text-danger">
+                        R$ {{ number_format($saldo, 2, ',', '.') }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="fs-12 text-muted">Vencimento</div>
+                    <div class="fw-semibold">
+                        {{ $pagamento->data_vencimento ? $pagamento->data_vencimento->format('d/m/Y') : '—' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Histórico de baixas anteriores --}}
+    @if($pagamento->baixas->count() > 0)
+    <div class="card stretch stretch-full">
+        <div class="card-header">
+            <h5 class="card-title">Baixas anteriores</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Forma</th>
+                            <th>Observação</th>
+                            <th class="text-end">Principal</th>
+                            <th class="text-end">Multa</th>
+                            <th class="text-end">Juros</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pagamento->baixas->sortByDesc('data') as $baixa)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
+                            <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>
+                            <td>{{ $baixa->observacao ?? '—' }}</td>
+                            <td class="text-end">R$ {{ number_format($baixa->valor, 2, ',', '.') }}</td>
+                            <td class="text-end">R$ {{ number_format($baixa->multa, 2, ',', '.') }}</td>
+                            <td class="text-end">R$ {{ number_format($baixa->juros, 2, ',', '.') }}</td>
+                            <td class="text-end fw-semibold">R$ {{ number_format($baixa->valorTotal(), 2, ',', '.') }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- Formulário de baixa --}}
+    <div class="card stretch stretch-full">
+        <div class="card-header">
+            <h5 class="card-title">Registrar nova baixa</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('pagamentos.baixa', $pagamento) }}" method="POST">
+                @csrf
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="valor" class="form-label">Valor principal (R$) <span class="text-danger">*</span></label>
+                        <input type="number"
+                               step="0.01"
+                               min="0.01"
+                               max="{{ number_format($saldo, 2, '.', '') }}"
+                               name="valor"
+                               id="valor"
+                               class="form-control @error('valor') is-invalid @enderror"
+                               value="{{ old('valor', number_format($saldo, 2, '.', '')) }}"
+                               required>
+                        <div class="form-text">Máximo: R$ {{ number_format($saldo, 2, ',', '.') }}.</div>
+                        @error('valor') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="multa" class="form-label">Multa (R$)</label>
+                        <input type="number"
+                               step="0.01"
+                               min="0"
+                               name="multa"
+                               id="multa"
+                               class="form-control @error('multa') is-invalid @enderror"
+                               value="{{ old('multa', '0.00') }}">
+                        <div class="form-text">Encargo fixo por atraso.</div>
+                        @error('multa') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="juros" class="form-label">Juros (R$)</label>
+                        <input type="number"
+                               step="0.01"
+                               min="0"
+                               name="juros"
+                               id="juros"
+                               class="form-control @error('juros') is-invalid @enderror"
+                               value="{{ old('juros', '0.00') }}">
+                        <div class="form-text">Juros acumulados pelo atraso.</div>
+                        @error('juros') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-3">
+                        <label for="forma_pagamento" class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
+                        <select name="forma_pagamento" id="forma_pagamento" class="form-select @error('forma_pagamento') is-invalid @enderror" required>
+                            @foreach(\App\Enums\FormaPagamento::cases() as $forma)
+                                <option value="{{ $forma->value }}" @selected(old('forma_pagamento') === $forma->value)>{{ ucfirst($forma->value) }}</option>
+                            @endforeach
+                        </select>
+                        @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-12">
+                        <div class="alert alert-light border d-flex justify-content-between align-items-center mb-0">
+                            <span class="fw-semibold">Total a receber</span>
+                            <span class="fs-18 fw-bold text-success" id="totalRecebido">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="observacao" class="form-label">Observação</label>
+                        <textarea name="observacao" id="observacao" rows="3" class="form-control @error('observacao') is-invalid @enderror">{{ old('observacao') }}</textarea>
+                        @error('observacao') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mb-5 pb-4">
+                    <a href="{{ route('pagamentos.index') }}" class="btn btn-light px-5" style="min-width: 300px;">
+                        <i class="feather-arrow-left me-2"></i>Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary px-5" style="min-width: 300px;">
+                        <i class="feather-dollar-sign me-2"></i>Registrar Baixa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+
+@push('js')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const valor = document.getElementById('valor');
+    const multa = document.getElementById('multa');
+    const juros = document.getElementById('juros');
+    const total = document.getElementById('totalRecebido');
+
+    function atualizarTotal() {
+        const v = parseFloat(valor.value) || 0;
+        const m = parseFloat(multa.value) || 0;
+        const j = parseFloat(juros.value) || 0;
+        total.textContent = 'R$ ' + (v + m + j).toFixed(2).replace('.', ',');
+    }
+
+    [valor, multa, juros].forEach(el => el.addEventListener('input', atualizarTotal));
+    atualizarTotal();
+});
+</script>
+@endpush

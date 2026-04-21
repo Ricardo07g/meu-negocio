@@ -20,14 +20,15 @@ class ClienteController extends Controller
     public function __construct(private ClienteService $service)
     {}
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try
         {
             $this->authorize('viewAny', Cliente::class);
-            $clientes = $this->service->listar();
+            $filtros = $request->only(['q', 'situacao_financeira', 'atividade', 'aniversariantes', 'com_whatsapp']);
+            $clientes = $this->service->listar($filtros);
 
-            return view('cliente::index', compact('clientes'));
+            return view('cliente::index', compact('clientes', 'filtros'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar clientes');
         }

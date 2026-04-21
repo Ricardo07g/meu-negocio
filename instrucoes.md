@@ -335,7 +335,8 @@ formas:
 pix
 dinheiro
 cartao
-fiado
+
+(fiado = venda a prazo, registrado como status=pendente + forma=null)
 
 saldo calculado
 

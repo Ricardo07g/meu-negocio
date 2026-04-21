@@ -10,6 +10,7 @@ use App\Modules\Produto\Models\Produto;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class MovimentoEstoqueController extends Controller
@@ -20,13 +21,15 @@ class MovimentoEstoqueController extends Controller
         private EstoqueService $service,
     ) {}
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('viewAny', MovimentoEstoque::class);
-            $movimentos = MovimentoEstoque::with('produto')->orderBy('created_at', 'desc')->get();
+            $filtros = $request->only(['q', 'produto_id', 'tipo', 'periodo_preset', 'data_inicio', 'data_fim']);
+            $movimentos = $this->service->listarMovimentos($filtros);
+            $produtos = Produto::orderBy('nome')->get(['id', 'nome']);
 
-            return view('estoque::movimentos', compact('movimentos'));
+            return view('estoque::movimentos', compact('movimentos', 'filtros', 'produtos'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar movimentos de estoque');
         }

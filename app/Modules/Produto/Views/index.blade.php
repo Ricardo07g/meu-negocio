@@ -18,6 +18,67 @@
     </div>
     @endcan
 
+    {{-- Filtros --}}
+    <div class="card stretch stretch-full mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('produtos.index') }}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-12">
+                        <label class="form-label">Buscar</label>
+                        <input type="text" name="q" class="form-control" placeholder="Nome, código, código de barras ou descrição..." value="{{ request('q') }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Categoria</label>
+                        <select name="categoria_produto_id" class="form-select">
+                            <option value="">Todas</option>
+                            @foreach($categorias as $categoria)
+                                <option value="{{ $categoria->id }}" @selected((int) request('categoria_produto_id') === $categoria->id)>
+                                    {{ $categoria->descricao }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <select name="ativo" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="1" @selected(request('ativo') === '1')>Ativo</option>
+                            <option value="0" @selected(request('ativo') === '0')>Inativo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Estoque</label>
+                        <select name="estoque" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="disponivel" @selected(request('estoque') === 'disponivel')>Disponível (&gt; 0)</option>
+                            <option value="baixo" @selected(request('estoque') === 'baixo')>Estoque baixo (&le; mínimo)</option>
+                            <option value="zerado" @selected(request('estoque') === 'zerado')>Zerado</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Preço mínimo</label>
+                        <input type="number" step="0.01" min="0" name="preco_min" class="form-control" placeholder="0,00" value="{{ request('preco_min') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Preço máximo</label>
+                        <input type="number" step="0.01" min="0" name="preco_max" class="form-control" placeholder="0,00" value="{{ request('preco_max') }}">
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <a href="{{ route('produtos.index') }}" class="btn btn-light" title="Limpar filtros">
+                            <i class="feather-x me-1"></i>Limpar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="feather-filter me-1"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Card with table --}}
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
@@ -39,7 +100,7 @@
                         <tr>
                             <td>{{ $produto->codigo ?? '-' }}</td>
                             <td>{{ $produto->nome }}</td>
-                            <td>{{ $produto->categoriaProduto->nome ?? '-' }}</td>
+                            <td>{{ $produto->categoria->descricao ?? '-' }}</td>
                             <td>
                                 @if($produto->estoque_minimo !== null && $produto->quantidade <= $produto->estoque_minimo)
                                     <span class="text-danger fw-bold">{{ $produto->quantidade }}</span>
@@ -101,5 +162,10 @@
                 </table>
             </div>
         </div>
+        @if($produtos->hasPages())
+            <div class="card-footer">
+                {{ $produtos->onEachSide(1)->links() }}
+            </div>
+        @endif
     </div>
 @endsection

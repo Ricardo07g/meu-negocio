@@ -49,8 +49,13 @@ Baixas de pagamento (BaixaPagamento) registram cada parcela:
 
 ## Formas de pagamento
 
-Pix, Dinheiro, Cartao, Fiado (FormaPagamento enum).
-Definida na criacao e pode variar por baixa (pagamento misto).
+Pix, Dinheiro, Cartao (FormaPagamento enum).
+
+**Fiado nao e forma de pagamento** — e uma **condicao de venda**. No modelo:
+- Venda a vista → `forma_pagamento` preenchida (pix/dinheiro/cartao) + `status=pago`
+- Venda a prazo (fiado) → `forma_pagamento=NULL` + `status=pendente`
+
+A forma real do recebimento de um fiado e registrada apenas quando o cliente paga, via BaixaPagamento.
 
 ## Vinculacoes
 

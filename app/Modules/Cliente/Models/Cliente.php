@@ -5,9 +5,9 @@ namespace App\Modules\Cliente\Models;
 use App\Models\BaseModel;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Agenda\Models\Agendamento;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cliente extends BaseModel
@@ -57,9 +57,14 @@ class Cliente extends BaseModel
         return $this->hasMany(VendaPacote::class, 'cliente_id');
     }
 
-    public function pagamentos(): HasManyThrough
+    public function vendasProduto(): HasMany
     {
-        return $this->hasManyThrough(Pagamento::class, Agendamento::class, 'cliente_id', 'agendamento_id');
+        return $this->hasMany(VendaProduto::class, 'cliente_id');
+    }
+
+    public function pagamentos(): HasMany
+    {
+        return $this->hasMany(Pagamento::class, 'cliente_id');
     }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗

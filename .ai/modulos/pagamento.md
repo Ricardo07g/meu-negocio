@@ -44,7 +44,9 @@ Pago → Estornado (quando agendamento e cancelado)
 | Pix | Pagamento via PIX |
 | Dinheiro | Dinheiro fisico |
 | Cartao | Cartao (debito/credito) |
-| Fiado | Anotado para pagamento futuro |
+
+`forma_pagamento` e **nullable** — fica NULL quando a venda e a prazo (fiado).
+A forma real e registrada na BaixaPagamento quando o cliente paga.
 
 ## Pagamento parcial
 
@@ -75,7 +77,7 @@ Todos nullable (pagamento pode ser avulso/manual tambem).
 | venda_produto_id | FK vendas_produto | null |
 | valor | decimal(10,2) | — |
 | valor_pago | decimal(10,2) | 0 |
-| forma_pagamento | string(20) | — |
+| forma_pagamento | string(20) | null |
 | status | string(20) | 'pendente' |
 | descricao | text | null |
 | deleted_at | timestamp | null |

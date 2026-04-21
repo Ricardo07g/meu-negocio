@@ -84,3 +84,17 @@ Registro de decisoes tomadas durante o desenvolvimento.
 **Decisao:** Todo o codigo (tabelas, models, controllers, campos, permissoes) em portugues.
 **Motivo:** Preparado para open source voltado ao mercado brasileiro. Mais acessivel para desenvolvedores brasileiros.
 **Trade-off:** Incomum para projetos open source internacionais. Pode limitar contribuicoes externas.
+
+---
+
+## D010: Fiado nao e forma de pagamento
+
+**Data:** 2026-04-19
+**Decisao:** Remover `Fiado` do enum `FormaPagamento`. Fiado passa a ser uma **condicao de venda** ("a_vista" / "a_prazo"), nao uma forma de pagamento.
+**Motivo:** O modelo anterior permitia combinacao invalida `forma=fiado + status=pago`, gerando entrada fantasma no caixa e inconsistencias em contas a receber. Praticas consolidadas em ERPs (Odoo, Dynamics 365, ERP M8, SIGE Cloud) separam os conceitos: "forma de pagamento" e preenchida apenas quando o dinheiro entra; "fiado" e a decisao comercial de receber depois.
+**Impacto:**
+- `FormaPagamento` enum: so `pix/dinheiro/cartao`
+- `pagamentos.forma_pagamento` e nullable — NULL quando a venda e a prazo
+- Form de venda agora tem campo "Condicao de Pagamento" (a_vista / a_prazo); forma so aparece no a_vista
+- Forma real do fiado fica registrada apenas na BaixaPagamento quando o cliente paga
+**Trade-off:** Remove flexibilidade de marcar fiado "direto como pago" — mas isso era um anti-padrao que gerava inconsistencia.

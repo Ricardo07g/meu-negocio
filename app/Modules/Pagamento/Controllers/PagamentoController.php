@@ -26,10 +26,10 @@ class PagamentoController extends Controller
     {
         try {
             $this->authorize('viewAny', Pagamento::class);
-            $filtro = $request->query('status', 'todos');
-            $pagamentos = $this->service->listar($filtro);
+            $filtros = $request->only(['q', 'status', 'origem', 'situacao']);
+            $pagamentos = $this->service->listar($filtros);
 
-            return view('pagamento::index', compact('pagamentos', 'filtro'));
+            return view('pagamento::index', compact('pagamentos', 'filtros'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar pagamentos');
         }
@@ -57,15 +57,20 @@ class PagamentoController extends Controller
         }
     }
 
-    public function show(Pagamento $pagamento): View|RedirectResponse
+    public function baixaForm(Pagamento $pagamento): View|RedirectResponse
     {
         try {
             $this->authorize('view', $pagamento);
+
+            if ($pagamento->status->value !== 'pendente' || $pagamento->saldoRestante() <= 0) {
+                return redirect()->route('pagamentos.index')->with('erro', 'Este pagamento não possui saldo a receber.');
+            }
+
             $pagamento->load(['cliente', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens', 'baixas']);
 
-            return view('pagamento::show', compact('pagamento'));
+            return view('pagamento::baixa', compact('pagamento'));
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir pagamento');
+            return $this->tratarErro($e, 'Erro ao carregar formulário de baixa');
         }
     }
 
@@ -78,6 +83,8 @@ class PagamentoController extends Controller
 
             $request->validate([
                 'valor' => ['required', 'numeric', 'min:0.01'],
+                'multa' => ['nullable', 'numeric', 'min:0'],
+                'juros' => ['nullable', 'numeric', 'min:0'],
                 'forma_pagamento' => ['required', 'string'],
                 'observacao' => ['nullable', 'string'],
             ]);
@@ -87,24 +94,33 @@ class PagamentoController extends Controller
                 (float) $request->valor,
                 $request->forma_pagamento,
                 $request->observacao,
+                (float) ($request->multa ?? 0),
+                (float) ($request->juros ?? 0),
             );
 
-            return redirect()->route('pagamentos.show', $pagamento)->with('sucesso', 'Pagamento registrado com sucesso.');
+            return redirect()->route('pagamentos.index')->with('sucesso', 'Pagamento registrado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar baixa');
         }
     }
 
-    public function contasAReceber(): View|RedirectResponse
+    public function contasAReceber(): RedirectResponse
+    {
+        return redirect()->route('pagamentos.index', ['status' => 'pendente']);
+    }
+
+    public function recibo(Pagamento $pagamento): \Illuminate\Http\Response|RedirectResponse
     {
         try {
-            $this->authorize('viewAny', Pagamento::class);
-            $pagamentos = $this->service->listarContasAReceber();
-            $totalReceber = $pagamentos->sum(fn ($p) => $p->valor - $p->valor_pago);
+            $this->authorize('view', $pagamento);
+            $pagamento->load(['cliente', 'baixas', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens']);
+            $empresa = auth()->user()->empresa ?? null;
 
-            return view('pagamento::contas-a-receber', compact('pagamentos', 'totalReceber'));
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pagamento::recibo', compact('pagamento', 'empresa'));
+
+            return $pdf->stream("comprovante-recebimento-{$pagamento->id}.pdf");
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao listar contas a receber');
+            return $this->tratarErro($e, 'Erro ao gerar comprovante');
         }
     }
 }

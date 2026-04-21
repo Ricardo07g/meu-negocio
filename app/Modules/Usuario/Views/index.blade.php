@@ -90,5 +90,10 @@
                 </table>
             </div>
         </div>
+        @if($usuarios->hasPages())
+            <div class="card-footer">
+                {{ $usuarios->onEachSide(1)->links() }}
+            </div>
+        @endif
     </div>
 @endsection

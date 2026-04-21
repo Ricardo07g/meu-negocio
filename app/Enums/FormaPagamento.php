@@ -7,5 +7,4 @@ enum FormaPagamento: string
     case Pix = 'pix';
     case Dinheiro = 'dinheiro';
     case Cartao = 'cartao';
-    case Fiado = 'fiado';
 }

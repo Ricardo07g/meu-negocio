@@ -17,17 +17,23 @@ class CriarVendaRequest extends FormRequest
         $tipoVenda = $this->input('tipo_venda', 'servico');
 
         $pagamentoRules = [
-            'forma_pagamento' => ['required', 'in:pix,dinheiro,cartao,fiado'],
-            'status_pagamento' => ['required', 'in:pago,pendente'],
+            'condicao_pagamento' => ['required', 'in:a_vista,a_prazo'],
+            'forma_pagamento' => ['required_if:condicao_pagamento,a_vista', 'nullable', 'in:pix,dinheiro,cartao'],
+            'data_vencimento' => ['required_if:condicao_pagamento,a_prazo', 'nullable', 'date', 'after_or_equal:today'],
         ];
 
         if ($tipoVenda === 'produto') {
             return array_merge([
                 'tipo_venda' => ['required', 'in:servico,produto'],
                 'cliente_id' => ['nullable', 'integer', 'exists:clientes,id'],
-                'produto_id' => ['required', 'integer', 'exists:produtos,id'],
-                'quantidade' => ['required', 'integer', 'min:1'],
-                'valor_total' => ['required', 'numeric', 'min:0.01'],
+                'itens' => ['required', 'array', 'min:1'],
+                'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
+                'itens.*.quantidade' => ['required', 'integer', 'min:1'],
+                'itens.*.valor_unitario' => ['required', 'numeric', 'min:0'],
+                'itens.*.desconto' => ['nullable', 'numeric', 'min:0'],
+                'itens.*.acrescimo' => ['nullable', 'numeric', 'min:0'],
+                'data' => ['nullable', 'date'],
+                'observacao' => ['nullable', 'string'],
             ], $pagamentoRules);
         }
 
@@ -52,8 +58,8 @@ class CriarVendaRequest extends FormRequest
             ];
         } else {
             $rules += [
-                'inicio' => ['required', 'date'],
-                'fim' => ['nullable', 'date', 'after:inicio'],
+                'data' => ['required', 'date_format:Y-m-d'],
+                'horario' => ['required', 'date_format:H:i'],
             ];
         }
 

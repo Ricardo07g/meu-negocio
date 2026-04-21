@@ -52,6 +52,15 @@
         .btn-primary:hover,
         .btn-primary:focus,
         .btn-primary:active { background-color: var(--cor-destaque) !important; border-color: var(--cor-destaque) !important; }
+
+        /* Alinha altura de botoes com form-control/form-select do Duralux (~50px: padding 24 + line-height 24 + border 2) */
+        .btn-group .btn,
+        .btn.w-100,
+        .btn.flex-fill,
+        .d-flex.gap-2 > .btn { min-height: calc(3rem + 2px); }
+
+        /* Alinha btn-sm no carrinho com form-control-sm (~47px: padding 24 + 14*1.5 + 2) */
+        #tabelaCarrinho .btn-sm { min-height: calc(2.8125rem + 2px); }
     </style>
 </head>
 
@@ -146,7 +155,7 @@
                     <li class="nxl-item">
                         <a href="{{ route('pagamentos.index') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-dollar-sign"></i></span>
-                            <span class="nxl-mtext">Pagamentos</span>
+                            <span class="nxl-mtext">Contas a Receber</span>
                         </a>
                     </li>
                     @endcan
@@ -155,7 +164,7 @@
                     <li class="nxl-item">
                         <a href="{{ route('despesas.index') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-trending-down"></i></span>
-                            <span class="nxl-mtext">Despesas</span>
+                            <span class="nxl-mtext">Contas a Pagar</span>
                         </a>
                     </li>
                     @endcan
@@ -332,7 +341,6 @@
     </main>
 
     <script src="{{ asset('assets/vendors/js/vendors.min.js') }}"></script>
-    <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
     <script src="{{ asset('assets/js/common-init.min.js') }}"></script>
     <script src="{{ asset('assets/vendors/js/sweetalert2.min.js') }}"></script>
     <script>
@@ -507,6 +515,28 @@
         });
     }
     </script>
+
+    <script>
+    // Atalho que expande accordion + seleciona aba especifica em cards (venda/pagamento/despesa)
+    document.addEventListener('click', function (e) {
+        const trigger = e.target.closest('[data-open-payments]');
+        if (!trigger) return;
+        e.preventDefault();
+
+        const collapseEl = document.querySelector(trigger.dataset.openPayments);
+        const tabEl = document.querySelector(`[data-bs-target="${trigger.dataset.targetTab}"]`);
+        if (!collapseEl || !tabEl) return;
+
+        bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+        bootstrap.Tab.getOrCreateInstance(tabEl).show();
+
+        collapseEl.addEventListener('shown.bs.collapse', function handler() {
+            collapseEl.removeEventListener('shown.bs.collapse', handler);
+            collapseEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    </script>
+
     @stack('js')
 </body>
 

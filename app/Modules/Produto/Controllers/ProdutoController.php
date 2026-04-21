@@ -24,14 +24,16 @@ class ProdutoController extends Controller
 
     }
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try
         {
             $this->authorize('viewAny', Produto::class);
-            $produtos = $this->service->listar();
+            $filtros = $request->only(['q', 'categoria_produto_id', 'ativo', 'estoque', 'preco_min', 'preco_max']);
+            $produtos = $this->service->listar($filtros);
+            $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
-            return view('produto::index', compact('produtos'));
+            return view('produto::index', compact('produtos', 'filtros', 'categorias'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar produtos');
         }

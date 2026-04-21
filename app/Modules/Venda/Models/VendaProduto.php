@@ -2,12 +2,15 @@
 
 namespace App\Modules\Venda\Models;
 
+use App\Enums\StatusVendaProduto;
 use App\Models\BaseModel;
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VendaProduto extends BaseModel
@@ -38,6 +41,7 @@ class VendaProduto extends BaseModel
             'desconto' => 'decimal:2',
             'acrescimo' => 'decimal:2',
             'valor_total' => 'decimal:2',
+            'status' => StatusVendaProduto::class,
         ];
     }
 
@@ -61,6 +65,11 @@ class VendaProduto extends BaseModel
     public function itens(): HasMany
     {
         return $this->hasMany(VendaProdutoItem::class, 'venda_produto_id');
+    }
+
+    public function pagamento(): HasOne
+    {
+        return $this->hasOne(Pagamento::class, 'venda_produto_id');
     }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗

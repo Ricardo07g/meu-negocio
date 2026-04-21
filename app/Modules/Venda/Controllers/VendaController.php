@@ -5,6 +5,9 @@ namespace App\Modules\Venda\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\DTOs\CriarAgendamentoData;
 use App\Modules\Venda\DTOs\VenderPacoteData;
+use App\Modules\Venda\Requests\AtualizarVendaAvulsoRequest;
+use App\Modules\Venda\Requests\AtualizarVendaPacoteRequest;
+use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
 use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
@@ -16,7 +19,9 @@ use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Venda\Services\VendaService;
 use App\Traits\TratamentoErros;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class VendaController extends Controller
@@ -28,13 +33,19 @@ class VendaController extends Controller
         private CaixaService $caixaService,
     ) {}
 
-    public function index(): View|RedirectResponse
+    public function index(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('viewAny', Agendamento::class);
-            $vendas = $this->service->listar();
+            $filtros = $request->only([
+                'q', 'periodo_preset', 'data_inicio', 'data_fim', 'tipo',
+                'situacao_pagamento', 'forma_pagamento', 'status_venda',
+                'atendente_id', 'valor_min', 'valor_max',
+            ]);
+            $vendas = $this->service->listar($filtros);
+            $atendentes = Usuario::where('atende', true)->orderBy('nome')->get();
 
-            return view('venda::index', compact('vendas'));
+            return view('venda::index', compact('vendas', 'filtros', 'atendentes'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar vendas');
         }
@@ -47,7 +58,26 @@ class VendaController extends Controller
 
             $atendentes = Usuario::where('atende', true)->get();
 
-            return view('venda::create', compact('atendentes'));
+            // Restaura entidades selecionadas via AJAX apos erro de validacao
+            $clienteOld = old('cliente_id') ? Cliente::find(old('cliente_id')) : null;
+            $servicoOld = old('servico_id') ? Servico::find(old('servico_id')) : null;
+
+            $itensOld = [];
+            foreach ((array) old('itens', []) as $item) {
+                $produto = isset($item['produto_id']) ? Produto::find($item['produto_id']) : null;
+                if ($produto) {
+                    $itensOld[] = [
+                        'produto_id' => $produto->id,
+                        'nome' => $produto->nome,
+                        'quantidade' => (int) ($item['quantidade'] ?? 1),
+                        'valor_unitario' => (float) ($item['valor_unitario'] ?? $produto->valor_venda),
+                        'desconto' => (float) ($item['desconto'] ?? 0),
+                        'acrescimo' => (float) ($item['acrescimo'] ?? 0),
+                    ];
+                }
+            }
+
+            return view('venda::create', compact('atendentes', 'clienteOld', 'servicoOld', 'itensOld'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -57,10 +87,12 @@ class VendaController extends Controller
     {
         try
         {
-            $formaPagamento = $request->forma_pagamento;
-            $statusPagamento = $request->status_pagamento;
+            $aVista = $request->condicao_pagamento === 'a_vista';
+            $formaPagamento = $aVista ? $request->forma_pagamento : null;
+            $statusPagamento = $aVista ? 'pago' : 'pendente';
+            $dataVencimento = $aVista ? null : $request->data_vencimento;
 
-            if ($statusPagamento === 'pago' && !$this->caixaService->caixaAberto()) {
+            if ($aVista && !$this->caixaService->caixaAberto()) {
                 return redirect()->back()->withInput()
                     ->with('erro', 'É necessário abrir o caixa para registrar vendas com pagamento à vista.');
             }
@@ -86,6 +118,7 @@ class VendaController extends Controller
                     $statusPagamento,
                     $request->data,
                     $request->observacao,
+                    $dataVencimento,
                 );
                 return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
             }
@@ -93,51 +126,18 @@ class VendaController extends Controller
             $servico = Servico::findOrFail($request->servico_id);
 
             if ($servico->isPacote()) {
-                $this->service->criarPacote(VenderPacoteData::from($request->validated()), $formaPagamento, $statusPagamento);
+                $this->service->criarPacote(VenderPacoteData::from($request->validated()), $formaPagamento, $statusPagamento, $dataVencimento);
                 $msg = 'Pacote vendido com sucesso! Agendamentos criados.';
             } else {
-                $this->service->criarAvulso(CriarAgendamentoData::from($request->validated()), $formaPagamento, $statusPagamento);
+                $payload = $request->validated();
+                $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'] . ' ' . $payload['horario']);
+                $this->service->criarAvulso(CriarAgendamentoData::from($payload), $formaPagamento, $statusPagamento, $dataVencimento);
                 $msg = 'Agendamento criado com sucesso.';
             }
 
             return redirect()->route('vendas.index')->with('sucesso', $msg);
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
-        }
-    }
-
-    public function showProduto(VendaProduto $vendaProduto): View|RedirectResponse
-    {
-        try {
-            $vendaProduto->load(['cliente', 'itens.produto', 'usuario']);
-
-            return view('venda::show-produto', compact('vendaProduto'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir venda de produto');
-        }
-    }
-
-    public function showAvulso(Agendamento $agendamento): View|RedirectResponse
-    {
-        try {
-            $this->authorize('view', $agendamento);
-            $agendamento->load(['cliente', 'servico', 'atendente', 'pagamento']);
-
-            return view('venda::show-avulso', compact('agendamento'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir venda avulsa');
-        }
-    }
-
-    public function showPacote(VendaPacote $pacote): View|RedirectResponse
-    {
-        try {
-            $this->authorize('view', $pacote);
-            $pacote->load(['cliente', 'servico', 'atendente', 'agendamentos']);
-
-            return view('venda::show-pacote', compact('pacote'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir pacote');
         }
     }
 
@@ -174,5 +174,190 @@ class VendaController extends Controller
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar venda de produto');
         }
+    }
+
+    public function editAvulso(Agendamento $agendamento): View|RedirectResponse
+    {
+        try {
+            $agendamento->load(['cliente', 'servico', 'pagamento']);
+            if (!$this->service->podeEditar($agendamento->pagamento) || !in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
+                return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
+            }
+
+            return view('venda::edit-avulso', compact('agendamento'));
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao abrir edição de venda avulsa');
+        }
+    }
+
+    public function updateAvulso(AtualizarVendaAvulsoRequest $request, Agendamento $agendamento): RedirectResponse
+    {
+        try {
+            $this->service->atualizarAvulso($agendamento, $request->validated());
+
+            return redirect()->route('vendas.index')->with('sucesso', 'Agendamento atualizado.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao atualizar venda avulsa');
+        }
+    }
+
+    public function editPacote(VendaPacote $pacote): View|RedirectResponse
+    {
+        try {
+            $this->authorize('view', $pacote);
+            $pacote->load(['cliente', 'servico', 'pagamento']);
+            if (!$this->service->podeEditar($pacote->pagamento) || $pacote->status->value !== 'ativo') {
+                return redirect()->route('vendas.index')->with('erro', 'Pacote não pode ser editado.');
+            }
+
+            return view('venda::edit-pacote', compact('pacote'));
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao abrir edição de pacote');
+        }
+    }
+
+    public function updatePacote(AtualizarVendaPacoteRequest $request, VendaPacote $pacote): RedirectResponse
+    {
+        try {
+            $this->authorize('view', $pacote);
+            $this->service->atualizarPacote($pacote, $request->validated());
+
+            return redirect()->route('vendas.index')->with('sucesso', 'Pacote atualizado.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao atualizar pacote');
+        }
+    }
+
+    public function editProduto(VendaProduto $vendaProduto): View|RedirectResponse
+    {
+        try {
+            $vendaProduto->load(['cliente', 'itens.produto', 'pagamento']);
+            if (!$this->service->podeEditar($vendaProduto->pagamento) || $vendaProduto->status->value !== 'ativa') {
+                return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
+            }
+
+            return view('venda::edit-produto', compact('vendaProduto'));
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao abrir edição de venda de produto');
+        }
+    }
+
+    public function updateProduto(AtualizarVendaProdutoRequest $request, VendaProduto $vendaProduto): RedirectResponse
+    {
+        try {
+            $this->service->atualizarVendaProduto($vendaProduto, $request->validated());
+
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda atualizada.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao atualizar venda de produto');
+        }
+    }
+
+    public function recibo(string $tipo, int $id): \Illuminate\Http\Response|RedirectResponse
+    {
+        try {
+            $empresa = auth()->user()->empresa ?? null;
+
+            $dados = match ($tipo) {
+                'avulso' => $this->dadosReciboAvulso($id),
+                'pacote' => $this->dadosReciboPacote($id),
+                'produto' => $this->dadosReciboProduto($id),
+                default => abort(404, 'Tipo de venda inválido'),
+            };
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('venda::recibo', array_merge($dados, [
+                'empresa' => $empresa,
+                'tipo' => $tipo,
+            ]));
+
+            return $pdf->stream("recibo-{$tipo}-{$id}.pdf");
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao gerar recibo');
+        }
+    }
+
+    private function dadosReciboAvulso(int $id): array
+    {
+        $agendamento = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.baixas'])->findOrFail($id);
+        $pagamento = $agendamento->pagamento;
+        $valor = $agendamento->servico->valor ?? 0;
+
+        return [
+            'numero' => $agendamento->id,
+            'tipoLabel' => 'Serviço avulso',
+            'statusLabel' => $agendamento->status->label(),
+            'dataVenda' => $agendamento->created_at,
+            'cliente' => $agendamento->cliente,
+            'atendente' => $agendamento->atendente,
+            'atendenteLabel' => 'Atendente',
+            'servico' => $agendamento->servico,
+            'inicio' => $agendamento->inicio,
+            'fim' => $agendamento->fim,
+            'itens' => collect(),
+            'sessoes' => null,
+            'qtdSessoes' => null,
+            'sessoesRealizadas' => null,
+            'subtotal' => null,
+            'desconto' => 0,
+            'acrescimo' => 0,
+            'valorTotal' => $valor,
+            'pagamento' => $pagamento,
+        ];
+    }
+
+    private function dadosReciboPacote(int $id): array
+    {
+        $pacote = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.baixas'])->findOrFail($id);
+        $this->authorize('view', $pacote);
+        $subtotal = $pacote->valor_total + $pacote->desconto - $pacote->acrescimo;
+
+        return [
+            'numero' => $pacote->id,
+            'tipoLabel' => 'Pacote de sessões',
+            'statusLabel' => $pacote->status->label(),
+            'dataVenda' => $pacote->created_at,
+            'cliente' => $pacote->cliente,
+            'atendente' => $pacote->atendente,
+            'atendenteLabel' => 'Atendente',
+            'servico' => $pacote->servico,
+            'inicio' => null,
+            'fim' => null,
+            'itens' => collect(),
+            'sessoes' => $pacote->agendamentos->sortBy('inicio')->values(),
+            'qtdSessoes' => $pacote->qtd_sessoes,
+            'sessoesRealizadas' => $pacote->sessoesRealizadas(),
+            'subtotal' => $pacote->desconto > 0 || $pacote->acrescimo > 0 ? $subtotal : null,
+            'desconto' => (float) $pacote->desconto,
+            'acrescimo' => (float) $pacote->acrescimo,
+            'valorTotal' => (float) $pacote->valor_total,
+            'pagamento' => $pacote->pagamento,
+        ];
+    }
+
+    private function dadosReciboProduto(int $id): array
+    {
+        $venda = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.baixas'])->findOrFail($id);
+
+        return [
+            'numero' => $venda->id,
+            'tipoLabel' => 'Venda de produtos',
+            'statusLabel' => $venda->status->label(),
+            'dataVenda' => $venda->data ?? $venda->created_at,
+            'cliente' => $venda->cliente,
+            'atendente' => $venda->usuario,
+            'atendenteLabel' => 'Vendedor',
+            'servico' => null,
+            'inicio' => null,
+            'fim' => null,
+            'itens' => $venda->itens,
+            'sessoes' => null,
+            'qtdSessoes' => null,
+            'sessoesRealizadas' => null,
+            'subtotal' => (float) $venda->subtotal,
+            'desconto' => (float) $venda->desconto,
+            'acrescimo' => (float) $venda->acrescimo,
+            'valorTotal' => (float) $venda->valor_total,
+            'pagamento' => $venda->pagamento,
+        ];
     }
 }

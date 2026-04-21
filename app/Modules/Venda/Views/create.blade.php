@@ -33,7 +33,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Cliente</label>
                         <div>
-                            <input type="text" id="clienteSearch" class="form-control @error('cliente_id') is-invalid @enderror" placeholder="Digite o nome ou telefone do cliente..." autocomplete="off">
+                            <input type="text" id="clienteSearch" class="form-control @error('cliente_id') is-invalid @enderror" placeholder="Digite o nome ou telefone do cliente..." autocomplete="off" value="{{ $clienteOld->nome ?? '' }}">
                             <input type="hidden" name="cliente_id" id="clienteHidden" value="{{ old('cliente_id') }}">
                         </div>
                         @error('cliente_id') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
@@ -46,7 +46,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Serviço <span class="text-danger">*</span></label>
                             <div>
-                                <input type="text" id="servicoSearch" class="form-control @error('servico_id') is-invalid @enderror" placeholder="Digite o nome do serviço..." autocomplete="off">
+                                <input type="text" id="servicoSearch" class="form-control @error('servico_id') is-invalid @enderror" placeholder="Digite o nome do serviço..." autocomplete="off" value="{{ $servicoOld->nome ?? '' }}">
                                 <input type="hidden" name="servico_id" id="servicoHidden" value="{{ old('servico_id') }}">
                             </div>
                             @error('servico_id') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
@@ -67,17 +67,19 @@
                     <div id="campos-avulso" style="display:none;">
                         <div class="row mb-4">
                             <div class="col-md-4">
-                                <label class="form-label">Data/Hora Início <span class="text-danger">*</span></label>
-                                <input type="datetime-local" name="inicio" id="inicioAvulso" class="form-control @error('inicio') is-invalid @enderror" value="{{ old('inicio') }}" disabled>
-                                @error('inicio') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label class="form-label">Data <span class="text-danger">*</span></label>
+                                <input type="date" name="data" id="dataAvulso" class="form-control @error('data') is-invalid @enderror" value="{{ old('data', now()->format('Y-m-d')) }}" disabled>
+                                @error('data') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Fim <small class="text-muted">(opcional)</small></label>
-                                <input type="datetime-local" name="fim" id="fimAvulso" class="form-control @error('fim') is-invalid @enderror" value="{{ old('fim') }}" disabled>
-                                @error('fim') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label class="form-label">Horário <span class="text-danger">*</span></label>
+                                <input type="time" name="horario" id="horarioAvulso" class="form-control @error('horario') is-invalid @enderror" value="{{ old('horario', '09:00') }}" disabled>
+                                @error('horario') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end pb-2">
+                                <span id="fimCalculadoAvulso" class="text-muted fs-13"></span>
                             </div>
                         </div>
-                        {{-- botões no final do form --}}
                     </div>
 
                     {{-- Campos Pacote --}}
@@ -191,7 +193,7 @@
                             </tr>
                         </thead>
                         <tbody id="carrinhoTbody">
-                            <tr id="carrinhoVazio"><td colspan="6" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>
+                            <tr id="carrinhoVazio"><td colspan="7" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -232,25 +234,42 @@
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-5">
+                        <label class="form-label">Condição de Pagamento <span class="text-danger">*</span></label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="condicao_pagamento" id="condAVista" value="a_vista" {{ old('condicao_pagamento', 'a_vista') === 'a_vista' ? 'checked' : '' }}>
+                            <label class="btn btn-outline-success" for="condAVista"><i class="feather-check-circle me-1"></i> À Vista</label>
+                            <input type="radio" class="btn-check" name="condicao_pagamento" id="condAPrazo" value="a_prazo" {{ old('condicao_pagamento') === 'a_prazo' ? 'checked' : '' }}>
+                            <label class="btn btn-outline-warning" for="condAPrazo"><i class="feather-clock me-1"></i> A Prazo (fiado)</label>
+                        </div>
+                        @error('condicao_pagamento') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-md-4" id="formaPagamentoWrapper">
                         <label class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
-                        <select name="forma_pagamento" class="form-select @error('forma_pagamento') is-invalid @enderror" required>
+                        <select name="forma_pagamento" id="formaPagamentoSelect" class="form-select @error('forma_pagamento') is-invalid @enderror">
                             <option value="">Selecione...</option>
-                            @foreach(['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão', 'fiado' => 'Fiado'] as $val => $label)
+                            @foreach(['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão'] as $val => $label)
                             <option value="{{ $val }}" {{ old('forma_pagamento') === $val ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+                </div>
+                <div class="row mt-3" id="vencimentoWrapper" style="display:none;">
                     <div class="col-md-4">
-                        <label class="form-label">Status do Pagamento <span class="text-danger">*</span></label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="status_pagamento" id="statusPago" value="pago" {{ old('status_pagamento', 'pago') === 'pago' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-success" for="statusPago">Pago</label>
-                            <input type="radio" class="btn-check" name="status_pagamento" id="statusPendente" value="pendente" {{ old('status_pagamento') === 'pendente' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-warning" for="statusPendente">Pendente</label>
-                        </div>
-                        @error('status_pagamento') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
+                        <label class="form-label" for="dataVencimento">Data de Vencimento <span class="text-danger">*</span></label>
+                        <input type="date" name="data_vencimento" id="dataVencimento" class="form-control @error('data_vencimento') is-invalid @enderror"
+                               value="{{ old('data_vencimento', now()->addDays(30)->format('Y-m-d')) }}"
+                               min="{{ now()->format('Y-m-d') }}">
+                        @error('data_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                </div>
+                <div class="row mt-2" id="fiadoAviso" style="display:none;">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="feather-info me-1"></i>
+                            A venda ficará em Contas a Receber. A forma de pagamento será registrada no momento do recebimento.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -353,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
             previewCard.style.display = 'none';
             habilitarContainer(camposAvulso, true);
             habilitarContainer(camposPacote, false);
+            atualizarFimAvulso();
         } else if (tipo === 'pacote') {
             camposAvulso.style.display = 'none';
             camposPacote.style.display = 'block';
@@ -513,6 +533,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Calcula e exibe o horario de termino para servico avulso
+    const horarioAvulso = document.getElementById('horarioAvulso');
+    const fimCalculadoAvulso = document.getElementById('fimCalculadoAvulso');
+
+    horarioAvulso.addEventListener('input', atualizarFimAvulso);
+
+    function atualizarFimAvulso() {
+        if (!servicoSelecionado || !horarioAvulso.value) {
+            fimCalculadoAvulso.textContent = '';
+            return;
+        }
+        const duracao = parseInt(servicoSelecionado.duracao) || 0;
+        if (duracao <= 0) {
+            fimCalculadoAvulso.textContent = '';
+            return;
+        }
+        const [h, m] = horarioAvulso.value.split(':').map(Number);
+        const totalMin = h * 60 + m + duracao;
+        const hFim = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
+        const mFim = String(totalMin % 60).padStart(2, '0');
+        fimCalculadoAvulso.textContent = 'Termina às ' + hFim + ':' + mFim;
+    }
+
     // Gerar preview das sessoes (pacote)
     document.getElementById('btnGerarPreview').addEventListener('click', function() {
         const dataInicio = document.getElementById('dataInicio');
@@ -563,6 +606,82 @@ document.addEventListener('DOMContentLoaded', function() {
         habilitarContainer(camposProduto, true);
         habilitarContainer(cardCarrinho, true);
     }
+
+    // Restaurar estado apos erro de validacao
+    @if(!empty($itensOld))
+    @json($itensOld).forEach(function(item) {
+        carrinhoItens.push({
+            produto_id: item.produto_id,
+            nome: item.nome,
+            quantidade: item.quantidade,
+            valor_unitario: parseFloat(item.valor_unitario),
+            desconto: parseFloat(item.desconto),
+            acrescimo: parseFloat(item.acrescimo),
+        });
+    });
+    renderCarrinho();
+    @endif
+
+    @if($servicoOld ?? false)
+    servicoSelecionado = {
+        id: {{ $servicoOld->id }},
+        nome: @json($servicoOld->nome),
+        tipo: @json($servicoOld->tipo->value),
+        valor: {{ $servicoOld->valor }},
+        duracao: {{ $servicoOld->duracao }},
+        qtd_sessoes: {{ $servicoOld->qtd_sessoes ?? 'null' }},
+    };
+    aplicarTipoServico(servicoSelecionado);
+    @endif
+
+    @if(!empty(old('datas')))
+    (function() {
+        const oldDatas = @json(old('datas', []));
+        const oldHorarios = @json(old('horarios', []));
+        const tbody = document.getElementById('sessoesTbody');
+        tbody.innerHTML = '';
+        oldDatas.forEach(function(dataStr, i) {
+            const horario = oldHorarios[i] || '09:00';
+            const dateObj = new Date(dataStr + 'T12:00:00');
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + (i + 1) + '</td>' +
+                           '<td>' + diasNomes[dateObj.getDay()] + '</td>' +
+                           '<td><input type="date" name="datas[]" value="' + dataStr + '" class="form-control form-control-sm" required></td>' +
+                           '<td><input type="time" name="horarios[]" value="' + horario + '" class="form-control form-control-sm" required></td>';
+            tbody.appendChild(tr);
+        });
+        document.getElementById('qtdSessoesBadge').textContent = oldDatas.length + ' sessões';
+        previewCard.style.display = 'block';
+    })();
+    @endif
+
+    // Toggle Condicao de Pagamento (a vista / a prazo)
+    const formaPagamentoWrapper = document.getElementById('formaPagamentoWrapper');
+    const formaPagamentoSelect = document.getElementById('formaPagamentoSelect');
+    const fiadoAviso = document.getElementById('fiadoAviso');
+    const vencimentoWrapper = document.getElementById('vencimentoWrapper');
+    const dataVencimento = document.getElementById('dataVencimento');
+
+    function aplicarCondicaoPagamento() {
+        const aVista = document.getElementById('condAVista').checked;
+        if (aVista) {
+            formaPagamentoWrapper.style.display = '';
+            formaPagamentoSelect.disabled = false;
+            fiadoAviso.style.display = 'none';
+            vencimentoWrapper.style.display = 'none';
+            dataVencimento.disabled = true;
+        } else {
+            formaPagamentoWrapper.style.display = 'none';
+            formaPagamentoSelect.value = '';
+            formaPagamentoSelect.disabled = true;
+            fiadoAviso.style.display = '';
+            vencimentoWrapper.style.display = '';
+            dataVencimento.disabled = false;
+        }
+    }
+    document.getElementById('condAVista').addEventListener('change', aplicarCondicaoPagamento);
+    document.getElementById('condAPrazo').addEventListener('change', aplicarCondicaoPagamento);
+    aplicarCondicaoPagamento();
 
     // AJAX Search — Serviço
     initAjaxSearch({
