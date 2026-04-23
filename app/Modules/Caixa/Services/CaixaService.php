@@ -125,74 +125,24 @@ class CaixaService
         float $juros = 0,
         float $desconto = 0,
     ): BaixaPagamento {
-        return DB::transaction(function () use ($parcela, $valor, $formaPagamento, $observacao, $multa, $juros, $desconto) {
-            if ($multa < 0 || $juros < 0 || $desconto < 0) {
-                throw new NegocioException('Multa, juros e desconto não podem ser negativos.');
-            }
-
-            $saldo = $parcela->saldoRestante();
-            if ($valor > $saldo + 0.001) {
-                throw new NegocioException('O valor principal excede o saldo restante da parcela.');
-            }
-            if ($desconto > $valor + 0.001) {
-                throw new NegocioException('O desconto não pode ser maior que o valor principal.');
-            }
-            if (($valor + $multa + $juros - $desconto) <= 0) {
-                throw new NegocioException('O total líquido do recebimento precisa ser positivo.');
-            }
-
-            $caixa = $this->caixaAberto();
-            if (!$caixa) {
-                throw new NegocioException('É necessário um caixa aberto para registrar a baixa.');
-            }
-
-            $baixa = BaixaPagamento::create([
-                'parcela_pagamento_id' => $parcela->id,
-                'caixa_id' => $caixa->id,
-                'valor' => $valor,
-                'multa' => $multa,
-                'juros' => $juros,
-                'desconto' => $desconto,
-                'forma_pagamento' => $formaPagamento,
-                'data' => now(),
-                'observacao' => $observacao,
-            ]);
-
-            // O principal abate o saldo da parcela; desconto/multa/juros ajustam só o caixa.
-            $parcela->update([
-                'valor_pago' => (float) $parcela->valor_pago + $valor,
-                'forma_pagamento' => $formaPagamento,
-            ]);
-
-            $parcela->refresh();
-
-            if ((float) $parcela->valor_pago + 0.001 >= (float) $parcela->valor) {
-                $parcela->update(['status' => StatusParcela::Pago]);
-            }
-
-            $totalRecebido = $valor + $multa + $juros - $desconto;
-            $descricao = "Parcela {$parcela->numero}/{$parcela->total} do pagamento #{$parcela->pagamento_id}";
-            if ($multa > 0 || $juros > 0 || $desconto > 0) {
-                $partes = ['principal R$ ' . number_format($valor, 2, ',', '.')];
-                if ($multa > 0) $partes[] = 'multa R$ ' . number_format($multa, 2, ',', '.');
-                if ($juros > 0) $partes[] = 'juros R$ ' . number_format($juros, 2, ',', '.');
-                if ($desconto > 0) $partes[] = 'desconto R$ ' . number_format($desconto, 2, ',', '.');
-                $descricao .= ' (' . implode(' + ', $partes) . ')';
-            }
-
-            MovimentoCaixa::create([
-                'caixa_id' => $caixa->id,
-                'tipo' => TipoMovimentoCaixa::Entrada,
-                'valor' => $totalRecebido,
-                'descricao' => $descricao,
-                'forma_pagamento' => $formaPagamento,
-                'baixa_pagamento_id' => $baixa->id,
-            ]);
-
-            $parcela->pagamento?->recalcularStatus();
-
-            return $baixa;
-        });
+        return $this->aplicarBaixaParcela(
+            parcela: $parcela,
+            valor: $valor,
+            formaPagamento: $formaPagamento,
+            observacao: $observacao,
+            multa: $multa,
+            juros: $juros,
+            desconto: $desconto,
+            baixaClass: BaixaPagamento::class,
+            parcelaFk: 'parcela_pagamento_id',
+            tipoMovimento: TipoMovimentoCaixa::Entrada,
+            movimentoFk: 'baixa_pagamento_id',
+            tituloLabel: 'do pagamento',
+            tituloId: $parcela->pagamento_id,
+            mensagemSemCaixa: 'É necessário um caixa aberto para registrar a baixa.',
+            mensagemLiquidoInvalido: 'O total líquido do recebimento precisa ser positivo.',
+            recalcularTitulo: fn () => $parcela->pagamento?->recalcularStatus(),
+        );
     }
 
     /**
@@ -208,7 +158,59 @@ class CaixaService
         float $juros = 0,
         float $desconto = 0,
     ): BaixaDespesa {
-        return DB::transaction(function () use ($parcela, $valor, $formaPagamento, $observacao, $multa, $juros, $desconto) {
+        return $this->aplicarBaixaParcela(
+            parcela: $parcela,
+            valor: $valor,
+            formaPagamento: $formaPagamento,
+            observacao: $observacao,
+            multa: $multa,
+            juros: $juros,
+            desconto: $desconto,
+            baixaClass: BaixaDespesa::class,
+            parcelaFk: 'parcela_despesa_id',
+            tipoMovimento: TipoMovimentoCaixa::Saida,
+            movimentoFk: 'baixa_despesa_id',
+            tituloLabel: 'da despesa',
+            tituloId: $parcela->despesa_id,
+            mensagemSemCaixa: 'É necessário um caixa aberto para registrar o pagamento.',
+            mensagemLiquidoInvalido: 'O total líquido do pagamento precisa ser positivo.',
+            recalcularTitulo: fn () => $parcela->despesa?->recalcularStatus(),
+        );
+    }
+
+    /**
+     * Template de baixa por parcela (recebimento ou pagamento).
+     * Valida, exige caixa aberto, cria Baixa + MovimentoCaixa, atualiza parcela
+     * e recalcula status do titulo.
+     *
+     * @param  ParcelaPagamento|ParcelaDespesa  $parcela
+     * @param  class-string<BaixaPagamento|BaixaDespesa>  $baixaClass
+     * @param  \Closure():void  $recalcularTitulo
+     * @return BaixaPagamento|BaixaDespesa
+     */
+    private function aplicarBaixaParcela(
+        $parcela,
+        float $valor,
+        FormaPagamento $formaPagamento,
+        ?string $observacao,
+        float $multa,
+        float $juros,
+        float $desconto,
+        string $baixaClass,
+        string $parcelaFk,
+        TipoMovimentoCaixa $tipoMovimento,
+        string $movimentoFk,
+        string $tituloLabel,
+        int $tituloId,
+        string $mensagemSemCaixa,
+        string $mensagemLiquidoInvalido,
+        \Closure $recalcularTitulo,
+    ) {
+        return DB::transaction(function () use (
+            $parcela, $valor, $formaPagamento, $observacao, $multa, $juros, $desconto,
+            $baixaClass, $parcelaFk, $tipoMovimento, $movimentoFk,
+            $tituloLabel, $tituloId, $mensagemSemCaixa, $mensagemLiquidoInvalido, $recalcularTitulo,
+        ) {
             if ($multa < 0 || $juros < 0 || $desconto < 0) {
                 throw new NegocioException('Multa, juros e desconto não podem ser negativos.');
             }
@@ -221,16 +223,16 @@ class CaixaService
                 throw new NegocioException('O desconto não pode ser maior que o valor principal.');
             }
             if (($valor + $multa + $juros - $desconto) <= 0) {
-                throw new NegocioException('O total líquido do pagamento precisa ser positivo.');
+                throw new NegocioException($mensagemLiquidoInvalido);
             }
 
             $caixa = $this->caixaAberto();
             if (!$caixa) {
-                throw new NegocioException('É necessário um caixa aberto para registrar o pagamento.');
+                throw new NegocioException($mensagemSemCaixa);
             }
 
-            $baixa = BaixaDespesa::create([
-                'parcela_despesa_id' => $parcela->id,
+            $baixa = $baixaClass::create([
+                $parcelaFk => $parcela->id,
                 'caixa_id' => $caixa->id,
                 'valor' => $valor,
                 'multa' => $multa,
@@ -252,8 +254,8 @@ class CaixaService
                 $parcela->update(['status' => StatusParcela::Pago]);
             }
 
-            $totalPago = $valor + $multa + $juros - $desconto;
-            $descricao = "Parcela {$parcela->numero}/{$parcela->total} da despesa #{$parcela->despesa_id}";
+            $totalLiquido = $valor + $multa + $juros - $desconto;
+            $descricao = "Parcela {$parcela->numero}/{$parcela->total} {$tituloLabel} #{$tituloId}";
             if ($multa > 0 || $juros > 0 || $desconto > 0) {
                 $partes = ['principal R$ ' . number_format($valor, 2, ',', '.')];
                 if ($multa > 0) $partes[] = 'multa R$ ' . number_format($multa, 2, ',', '.');
@@ -264,14 +266,14 @@ class CaixaService
 
             MovimentoCaixa::create([
                 'caixa_id' => $caixa->id,
-                'tipo' => TipoMovimentoCaixa::Saida,
-                'valor' => $totalPago,
+                'tipo' => $tipoMovimento,
+                'valor' => $totalLiquido,
                 'descricao' => $descricao,
                 'forma_pagamento' => $formaPagamento,
-                'baixa_despesa_id' => $baixa->id,
+                $movimentoFk => $baixa->id,
             ]);
 
-            $parcela->despesa?->recalcularStatus();
+            $recalcularTitulo();
 
             return $baixa;
         });
@@ -282,6 +284,10 @@ class CaixaService
      * - Parcelas pagas: permanecem marcadas como pagas (histórico), mas geram saída no caixa aberto.
      * - Parcelas pendentes: marcadas como canceladas.
      * - Título: status = estornado.
+     *
+     * Se o titulo ja tem valor recebido (parcelas pagas), exige caixa aberto
+     * para registrar a saida. Sem essa validacao o saldo do caixa ficaria
+     * inconsistente com o historico contabil.
      */
     public function estornarPagamento(Pagamento $pagamento): void
     {
@@ -290,6 +296,12 @@ class CaixaService
 
             $totalPago = (float) $pagamento->valorPago();
 
+            if ($totalPago > 0 && !$this->caixaAberto()) {
+                throw new NegocioException(
+                    'Não é possível estornar um pagamento com valores recebidos sem caixa aberto. Abra o caixa antes de cancelar a venda.'
+                );
+            }
+
             foreach ($pagamento->parcelas as $parcela) {
                 if ($parcela->status === StatusParcela::Pendente) {
                     $parcela->update(['status' => StatusParcela::Cancelado]);
@@ -297,15 +309,12 @@ class CaixaService
             }
 
             if ($totalPago > 0) {
-                $caixa = $this->caixaAberto();
-                if ($caixa) {
-                    MovimentoCaixa::create([
-                        'caixa_id' => $caixa->id,
-                        'tipo' => TipoMovimentoCaixa::Saida,
-                        'valor' => $totalPago,
-                        'descricao' => "Estorno pagamento #{$pagamento->id}",
-                    ]);
-                }
+                MovimentoCaixa::create([
+                    'caixa_id' => $this->caixaAberto()->id,
+                    'tipo' => TipoMovimentoCaixa::Saida,
+                    'valor' => $totalPago,
+                    'descricao' => "Estorno pagamento #{$pagamento->id}",
+                ]);
             }
 
             $pagamento->update(['status' => StatusPagamento::Estornado]);
