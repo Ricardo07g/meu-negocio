@@ -2,7 +2,12 @@
 
 namespace App\Modules\Despesa\Requests;
 
+use App\Enums\CondicaoPagamento;
+use App\Enums\FormaPagamento;
+use App\Enums\FormaRecebimentoPrazo;
+use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class SalvarDespesaRequest extends FormRequest
 {
@@ -15,25 +20,63 @@ class SalvarDespesaRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $isCreate = $this->isMethod('post');
+
+        $rules = [
             'nome' => ['required', 'string', 'max:200'],
-            'valor' => ['required', 'numeric', 'min:0.01'],
             'categoria_despesa_id' => ['nullable', 'integer', 'exists:categorias_despesa,id'],
             'fornecedor_nome' => ['nullable', 'string', 'max:150'],
             'documento' => ['nullable', 'string', 'max:80'],
             'observacoes' => ['nullable', 'string'],
+            'mes_referencia' => ['required', 'date'],
             'data_emissao' => ['required', 'date'],
-            'data_vencimento' => ['required', 'date', 'after_or_equal:data_emissao'],
-            'competencia' => ['required', 'date'],
-            'parcelar' => ['sometimes', 'boolean'],
-            'numero_parcelas' => ['nullable', 'integer', 'min:2', 'max:60', 'required_if:parcelar,1'],
         ];
-    }
 
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'parcelar' => filter_var($this->input('parcelar'), FILTER_VALIDATE_BOOLEAN),
-        ]);
+        if ($isCreate) {
+            $condicoesParceladas = [
+                CondicaoPagamento::APrazo->value,
+            ];
+
+            $condicoesHabilitadas = [
+                CondicaoPagamento::AVista->value,
+                CondicaoPagamento::APrazo->value,
+            ];
+
+            $condicoesComForma = [
+                CondicaoPagamento::AVista->value,
+                CondicaoPagamento::APrazo->value,
+            ];
+
+            $rules += [
+                'valor_total' => ['required', 'numeric', 'min:0.01'],
+                'condicao_pagamento' => ['required', Rule::in($condicoesHabilitadas)],
+                'primeiro_vencimento' => ['required', 'date', 'after_or_equal:data_emissao'],
+                'forma_pagamento' => [
+                    'required_if:condicao_pagamento,' . implode(',', $condicoesComForma),
+                    'nullable',
+                    Rule::enum(FormaPagamento::class),
+                ],
+                'numero_parcelas' => [
+                    'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                    'nullable',
+                    'integer',
+                    'min:2',
+                    'max:' . CalculadoraParcelas::MAX_PARCELAS,
+                ],
+                'forma_recebimento_prazo' => [
+                    'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                    'nullable',
+                    Rule::enum(FormaRecebimentoPrazo::class),
+                ],
+                'parcelas' => ['nullable', 'array'],
+                'parcelas.*.numero' => ['required_with:parcelas', 'integer', 'min:1'],
+                'parcelas.*.total' => ['required_with:parcelas', 'integer', 'min:1'],
+                'parcelas.*.valor' => ['required_with:parcelas', 'numeric', 'min:0.01'],
+                'parcelas.*.data_vencimento' => ['required_with:parcelas', 'date'],
+                'parcelas.*.mes_referencia' => ['required_with:parcelas', 'date'],
+            ];
+        }
+
+        return $rules;
     }
 }
