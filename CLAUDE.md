@@ -54,6 +54,7 @@ Single DB + tenant_id. Traits: `RedeTrait` (rede_id), `EmpresaTrait` (empresa_id
 ### BaseModel
 `App\Models\BaseModel` extends Model + usa `RedeTrait`. Todos models tenant-aware estendem BaseModel.
 Excecoes: Plano, Rede, MovimentoCaixa (Model direto). Usuario (Authenticatable + traits direto).
+Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 
 ### Estrutura Modular
 `app/Modules/{NomeModulo}/` com Controllers, Services, Actions, DTOs, Requests, Policies, Models, Views, Migrations.
@@ -75,12 +76,12 @@ Excecoes: Plano, Rede, MovimentoCaixa (Model direto). Usuario (Authenticatable +
 - **Cliente** — CRUD + Actions + busca AJAX
 - **Servico** — CRUD, tipos avulso/pacote + busca AJAX
 - **Agenda** — CRUD + confirmar/finalizar/cancelar, FullCalendar
-- **Pagamento** — CRUD + baixa parcial + contas a receber + filtros status
-- **Despesa** — CRUD completo
+- **Pagamento** — Titulo+Parcelas, baixa parcial por parcela, renegociacao, cancelamento, contas a receber, recibo
+- **Despesa** — Titulo+Parcelas, categorias, baixa parcial por parcela, recibo
 - **Estoque** — Movimentos entrada/saida/ajuste
 - **Produto** — CRUD + CategoriaProduto (descricao + ativo) + busca AJAX
 - **Venda** — VendaPacote + VendaProduto (carrinho multi-item) + estorno automatico
-- **Caixa** — Navegacao por dia, abrir/fechar, sangria/reforco, retroativo
+- **Caixa** — Navegacao por dia, abrir/fechar/reabrir, sangria/reforco, retroativo
 - **Dashboard** — Cards reais (agendamentos, clientes, receita, contas a receber, caixa)
 
 ### Parciais
@@ -92,23 +93,34 @@ Excecoes: Plano, Rede, MovimentoCaixa (Model direto). Usuario (Authenticatable +
 ## Banco de Dados
 
 ### Tabelas
-planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_pacote, vendas_produto, venda_produto_itens, pagamentos, baixas_pagamento, despesas, produtos, categorias_produto, movimentos_estoque, caixas, movimentos_caixa
+planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_pacote, vendas_produto, venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas, parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto, movimentos_estoque, caixas, movimentos_caixa
 
 ---
 
 ## Fluxos de Negocio
 
+### Modelo financeiro: Titulo + Parcela
+- **Titulo** = `Pagamento` (a receber) ou `Despesa` (a pagar). Contem `condicao_pagamento`, `forma_recebimento_prazo`, valor bruto/liquido, referencia ao originador (venda, despesa avulsa).
+- **Parcela** = `ParcelaPagamento` / `ParcelaDespesa`. Tem `numero`, `data_vencimento`, `valor`, `valor_pago`, `status` (Pendente/Pago/ParcialmentePago/Cancelado), `forma_pagamento` (preenchida na baixa).
+- **Baixa** = `BaixaPagamento` / `BaixaDespesa`. Vincula parcela + caixa + valor + multa/juros/desconto. Uma parcela pode ter N baixas.
+- Geracao de parcelas: `App\Support\Parcelamento\CalculadoraParcelas`.
+
+### Enums do modelo
+- `CondicaoPagamento`: `a_vista`, `a_prazo`, `boleto`, `pix_parcelado`
+- `FormaRecebimentoPrazo`: canais esperados de recebimento do titulo a prazo
+- `StatusParcela`: `Pendente`, `Pago`, `ParcialmentePago`, `Cancelado`
+- `FormaPagamento`: pix, dinheiro, cartao etc. (na parcela/baixa, NAO no titulo)
+
 ### Venda → Pagamento → Caixa
-- **Condicao de pagamento** (escolhida na venda): `a_vista` ou `a_prazo` (fiado)
-- A vista → pede forma (pix/dinheiro/cartao) → Pagamento(status=pago, forma=<x>) + MovimentoCaixa entrada
-- A prazo → Pagamento(status=pendente, forma=NULL) → Contas a Receber → Baixa parcial/total (forma real na baixa, exige caixa aberto)
-- `forma_pagamento` no Pagamento e nullable — NULL indica fiado (aguardando recebimento)
+- A vista → `CriarPagamentoComParcelasAction` cria Pagamento + 1 parcela e baixa automaticamente via `CaixaService::darBaixaParcelaPagamento` (exige caixa aberto, pre-validado no controller antes da transacao)
+- A prazo → cria Pagamento + N parcelas status Pendente → aparecem em Contas a Receber → baixa por parcela (forma real na baixa, exige caixa aberto)
+- `forma_pagamento` **fica na parcela/baixa**, nao no titulo. O que indica fiado agora e `condicao_pagamento = a_prazo`.
 
 ### Estorno ao Cancelar
-- Pagamento estornado + estoque devolvido + saida no caixa + agendamentos cancelados
+- `CaixaService::estornarPagamento`: marca parcelas Pendente->Cancelado, cria MovimentoCaixa(saida) com `valorPago()`, seta Pagamento.status=Estornado. Estoque devolvido e agendamentos cancelados pelo VendaService.
 
 ### Caixa Diario
-- Navegacao prev/next por dia, 1 caixa por empresa/dia, permite retroativo
+- Navegacao prev/next por dia (`?data=YYYY-MM-DD`), 1 caixa por empresa/dia, permite retroativo. Reabertura via `ReabrirCaixaData`/`ReabrirCaixaRequest`.
 
 ---
 
