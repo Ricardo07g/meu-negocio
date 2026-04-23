@@ -8,10 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $tables = ['servicos', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
+        // despesas e pagamentos já criam softDeletes na própria tabela (fase título/parcelas);
+        // aqui cobrimos apenas as tabelas herdadas que ainda não tinham.
+        $tables = ['servicos', 'produtos', 'agendamentos'];
 
         foreach ($tables as $table) {
-            if (!Schema::hasColumn($table, 'deleted_at')) {
+            if (Schema::hasTable($table) && !Schema::hasColumn($table, 'deleted_at')) {
                 Schema::table($table, function (Blueprint $t) {
                     $t->softDeletes();
                 });
@@ -21,12 +23,14 @@ return new class extends Migration
 
     public function down(): void
     {
-        $tables = ['servicos', 'produtos', 'despesas', 'pagamentos', 'agendamentos'];
+        $tables = ['servicos', 'produtos', 'agendamentos'];
 
         foreach ($tables as $table) {
-            Schema::table($table, function (Blueprint $t) {
-                $t->dropSoftDeletes();
-            });
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'deleted_at')) {
+                Schema::table($table, function (Blueprint $t) {
+                    $t->dropSoftDeletes();
+                });
+            }
         }
     }
 };

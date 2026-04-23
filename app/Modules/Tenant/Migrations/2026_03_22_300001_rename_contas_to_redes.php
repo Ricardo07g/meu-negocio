@@ -10,23 +10,25 @@ return new class extends Migration
     {
         Schema::rename('contas', 'redes');
 
+        // pagamentos e despesas passaram a nascer já com rede_id (migrations posteriores);
+        // aqui renomeamos apenas as herdadas que ainda usavam conta_id.
         $tabelas = [
             'empresas',
             'usuarios',
             'clientes',
             'servicos',
             'agendamentos',
-            'pagamentos',
-            'despesas',
             'produtos',
             'movimentos_estoque',
             'vendas_pacote',
         ];
 
         foreach ($tabelas as $tabela) {
-            Schema::table($tabela, function (Blueprint $table) {
-                $table->renameColumn('conta_id', 'rede_id');
-            });
+            if (Schema::hasTable($tabela) && Schema::hasColumn($tabela, 'conta_id')) {
+                Schema::table($tabela, function (Blueprint $table) {
+                    $table->renameColumn('conta_id', 'rede_id');
+                });
+            }
         }
     }
 
@@ -38,17 +40,17 @@ return new class extends Migration
             'clientes',
             'servicos',
             'agendamentos',
-            'pagamentos',
-            'despesas',
             'produtos',
             'movimentos_estoque',
             'vendas_pacote',
         ];
 
         foreach ($tabelas as $tabela) {
-            Schema::table($tabela, function (Blueprint $table) {
-                $table->renameColumn('rede_id', 'conta_id');
-            });
+            if (Schema::hasTable($tabela) && Schema::hasColumn($tabela, 'rede_id')) {
+                Schema::table($tabela, function (Blueprint $table) {
+                    $table->renameColumn('rede_id', 'conta_id');
+                });
+            }
         }
 
         Schema::rename('redes', 'contas');
