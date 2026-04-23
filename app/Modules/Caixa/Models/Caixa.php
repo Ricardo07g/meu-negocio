@@ -7,12 +7,14 @@ use App\Enums\TipoMovimentoCaixa;
 use App\Models\BaseModel;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
+use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Caixa extends BaseModel
 {
     use EmpresaTrait;
+    use RegistraAtividade;
 
     protected $table = 'caixas';
 

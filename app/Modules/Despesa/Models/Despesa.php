@@ -2,13 +2,15 @@
 
 namespace App\Modules\Despesa\Models;
 
-use App\Enums\FormaPagamento;
+use App\Enums\CondicaoPagamento;
+use App\Enums\FormaRecebimentoPrazo;
 use App\Enums\StatusDespesa;
+use App\Enums\StatusParcela;
 use App\Models\BaseModel;
-use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Despesa extends BaseModel
@@ -25,30 +27,23 @@ class Despesa extends BaseModel
         'fornecedor_nome',
         'documento',
         'observacoes',
-        'valor',
-        'valor_pago',
-        'forma_pagamento',
+        'valor_total',
+        'condicao_pagamento',
+        'forma_recebimento_prazo',
+        'mes_referencia',
         'data_emissao',
-        'data_vencimento',
-        'competencia',
         'status',
-        'grupo_parcelamento_id',
-        'parcela_numero',
-        'parcela_total',
     ];
 
     protected function casts(): array
     {
         return [
-            'valor' => 'decimal:2',
-            'valor_pago' => 'decimal:2',
+            'valor_total' => 'decimal:2',
+            'mes_referencia' => 'date',
             'data_emissao' => 'date',
-            'data_vencimento' => 'date',
-            'competencia' => 'date',
+            'condicao_pagamento' => CondicaoPagamento::class,
+            'forma_recebimento_prazo' => FormaRecebimentoPrazo::class,
             'status' => StatusDespesa::class,
-            'forma_pagamento' => FormaPagamento::class,
-            'parcela_numero' => 'integer',
-            'parcela_total' => 'integer',
         ];
     }
 
@@ -64,9 +59,19 @@ class Despesa extends BaseModel
         return $this->belongsTo(CategoriaDespesa::class, 'categoria_despesa_id');
     }
 
-    public function baixas(): HasMany
+    public function parcelas(): HasMany
     {
-        return $this->hasMany(BaixaDespesa::class, 'despesa_id');
+        return $this->hasMany(ParcelaDespesa::class, 'despesa_id')->orderBy('numero');
+    }
+
+    public function baixas(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \App\Modules\Caixa\Models\BaixaDespesa::class,
+            ParcelaDespesa::class,
+            'despesa_id',
+            'parcela_despesa_id',
+        );
     }
 
     // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
@@ -76,15 +81,71 @@ class Despesa extends BaseModel
     // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
     // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
-    public function saldoRestante(): float
+    /** Principal abatido das parcelas (base do saldo devedor). */
+    public function valorPago(): float
     {
-        return (float) $this->valor - (float) $this->valor_pago;
+        return (float) $this->parcelas->sum('valor_pago');
     }
 
-    public function estaVencida(): bool
+    /**
+     * Total líquido que efetivamente saiu do caixa:
+     * valor principal + multa + juros − desconto de cada baixa.
+     */
+    public function totalPagoLiquido(): float
     {
-        return $this->status === StatusDespesa::Pendente
-            && $this->data_vencimento
-            && $this->data_vencimento->isPast();
+        $total = 0;
+        foreach ($this->parcelas as $parcela) {
+            foreach ($parcela->baixas as $baixa) {
+                $total += $baixa->valorTotal();
+            }
+        }
+        return (float) $total;
+    }
+
+    public function saldoRestante(): float
+    {
+        $ativo = $this->parcelas
+            ->whereNotIn('status', [StatusParcela::Cancelado, StatusParcela::Renegociado])
+            ->sum('valor');
+
+        return (float) max($ativo - $this->valorPago(), 0);
+    }
+
+    public function proximaParcela(): ?ParcelaDespesa
+    {
+        return $this->parcelas
+            ->where('status', StatusParcela::Pendente)
+            ->sortBy('data_vencimento')
+            ->first();
+    }
+
+    public function parcelasPagas(): int
+    {
+        return $this->parcelas->where('status', StatusParcela::Pago)->count();
+    }
+
+    public function recalcularStatus(): void
+    {
+        $parcelas = $this->parcelas()->get();
+        if ($parcelas->isEmpty()) {
+            return;
+        }
+
+        $ativas = $parcelas->reject(fn ($p) => $p->status === StatusParcela::Cancelado);
+
+        if ($ativas->isEmpty()) {
+            $this->update(['status' => StatusDespesa::Cancelada]);
+            return;
+        }
+
+        $pagas = $ativas->filter(fn ($p) => $p->status === StatusParcela::Pago)->count();
+
+        if ($pagas === $ativas->count()) {
+            $this->update(['status' => StatusDespesa::Paga]);
+        } elseif ($pagas > 0) {
+            $this->update(['status' => StatusDespesa::Parcial]);
+        } else {
+            $this->update(['status' => StatusDespesa::Pendente]);
+        }
     }
 }

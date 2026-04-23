@@ -4,7 +4,7 @@ namespace App\Modules\Caixa\Models;
 
 use App\Enums\FormaPagamento;
 use App\Models\BaseModel;
-use App\Modules\Despesa\Models\Despesa;
+use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -19,9 +19,12 @@ class BaixaDespesa extends BaseModel
     protected $fillable = [
         'rede_id',
         'empresa_id',
-        'despesa_id',
+        'parcela_despesa_id',
         'caixa_id',
         'valor',
+        'multa',
+        'juros',
+        'desconto',
         'forma_pagamento',
         'data',
         'observacao',
@@ -31,9 +34,18 @@ class BaixaDespesa extends BaseModel
     {
         return [
             'valor' => 'decimal:2',
+            'multa' => 'decimal:2',
+            'juros' => 'decimal:2',
+            'desconto' => 'decimal:2',
             'data' => 'datetime',
             'forma_pagamento' => FormaPagamento::class,
         ];
+    }
+
+    /** Valor líquido que sai do caixa: principal + multa + juros - desconto. */
+    public function valorTotal(): float
+    {
+        return (float) ($this->valor + $this->multa + $this->juros - $this->desconto);
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
@@ -43,9 +55,9 @@ class BaixaDespesa extends BaseModel
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-    public function despesa(): BelongsTo
+    public function parcela(): BelongsTo
     {
-        return $this->belongsTo(Despesa::class, 'despesa_id');
+        return $this->belongsTo(ParcelaDespesa::class, 'parcela_despesa_id');
     }
 
     public function caixa(): BelongsTo
