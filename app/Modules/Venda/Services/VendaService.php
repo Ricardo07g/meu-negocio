@@ -9,7 +9,7 @@ use App\Enums\StatusVendaPacote;
 use App\Enums\StatusVendaProduto;
 use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
 use App\Modules\Agenda\Actions\CriarAgendamentoAction;
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Estoque\Models\MovimentoEstoque;
@@ -286,7 +286,7 @@ class VendaService
      * Cria venda avulsa + pagamento (título + parcelas).
      */
     public function criarAvulso(
-        CriarAgendamentoData $data,
+        AgendamentoData $data,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
         ?FormaPagamento $formaAvista = null,

@@ -4,7 +4,7 @@ namespace App\Modules\Usuario\DTOs;
 
 use Spatie\LaravelData\Data;
 
-class AtualizarUsuarioData extends Data
+class UsuarioData extends Data
 {
     public function __construct(
         public string $nome,

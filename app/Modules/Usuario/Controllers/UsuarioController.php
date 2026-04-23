@@ -3,11 +3,9 @@
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Usuario\DTOs\AtualizarUsuarioData;
-use App\Modules\Usuario\DTOs\CriarUsuarioData;
-use App\Modules\Usuario\Requests\AtualizarUsuarioRequest;
-use App\Modules\Usuario\Requests\CriarUsuarioRequest;
+use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
+use App\Modules\Usuario\Requests\SalvarUsuarioRequest;
 use App\Modules\Usuario\Services\UsuarioService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
@@ -46,11 +44,11 @@ class UsuarioController extends Controller
         }
     }
 
-    public function store(CriarUsuarioRequest $request): RedirectResponse
+    public function store(SalvarUsuarioRequest $request): RedirectResponse
     {
         try {
             $rede = $request->user()->rede;
-            $this->service->criar($rede, CriarUsuarioData::from($request->validated()));
+            $this->service->criar($rede, UsuarioData::from($request->validated()));
 
             return redirect()->route('usuarios.index')->with('sucesso', 'Usuário criado com sucesso.');
         } catch (\Throwable $e) {
@@ -81,11 +79,11 @@ class UsuarioController extends Controller
         }
     }
 
-    public function update(AtualizarUsuarioRequest $request, Usuario $usuario): RedirectResponse
+    public function update(SalvarUsuarioRequest $request, Usuario $usuario): RedirectResponse
     {
         try {
             $this->authorize('update', $usuario);
-            $this->service->atualizar($usuario, AtualizarUsuarioData::from($request->validated()));
+            $this->service->atualizar($usuario, UsuarioData::from($request->validated()));
 
             return redirect()->route('usuarios.index')->with('sucesso', 'Usuário atualizado com sucesso.');
         } catch (\Throwable $e) {

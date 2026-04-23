@@ -5,9 +5,9 @@ namespace App\Modules\Agenda\Controllers;
 use App\Enums\StatusAgendamento;
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\Actions\CriarAgendamentoAction;
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
-use App\Modules\Agenda\Requests\AtualizarAgendamentoRequest;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Agenda\Requests\SalvarAgendamentoRequest;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
@@ -99,7 +99,7 @@ class AgendaController extends Controller
                 'fim' => 'nullable|date|after:inicio',
             ]);
 
-            $agendamento = $action->executar(CriarAgendamentoData::from([
+            $agendamento = $action->executar(AgendamentoData::from([
                 'cliente_id' => (int) $dados['cliente_id'],
                 'servico_id' => (int) $dados['servico_id'],
                 'atendente_id' => (int) $dados['atendente_id'],
@@ -192,11 +192,11 @@ class AgendaController extends Controller
         }
     }
 
-    public function update(AtualizarAgendamentoRequest $request, Agendamento $agendamento): RedirectResponse
+    public function update(SalvarAgendamentoRequest $request, Agendamento $agendamento): RedirectResponse
     {
         try {
             $this->authorize('update', $agendamento);
-            $this->service->atualizar($agendamento, \App\Modules\Agenda\DTOs\AtualizarAgendamentoData::from($request->validated()));
+            $this->service->atualizar($agendamento, AgendamentoData::from($request->validated()));
 
             return redirect()->route('agenda.index')->with('sucesso', 'Agendamento atualizado.');
         } catch (\Throwable $e) {

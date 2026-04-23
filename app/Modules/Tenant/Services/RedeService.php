@@ -7,7 +7,7 @@ use App\Modules\Usuario\Actions\CriarUsuarioAction;
 use App\Modules\Tenant\DTOs\AtualizarRedeData;
 use App\Modules\Tenant\DTOs\CriarRedeData;
 use App\Modules\Tenant\DTOs\EmpresaData;
-use App\Modules\Usuario\DTOs\CriarUsuarioData;
+use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Enums\StatusRede;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\CategoriaProduto;
@@ -24,7 +24,7 @@ class RedeService
         private CriarUsuarioAction $criarUsuario,
     ) {}
 
-    public function criar(CriarRedeData $data, CriarUsuarioData $usuarioData): Rede
+    public function criar(CriarRedeData $data, UsuarioData $usuarioData): Rede
     {
         return DB::transaction(function () use ($data, $usuarioData) {
             $planoFree = Plano::where('nome', 'free')->firstOrFail();
@@ -42,7 +42,7 @@ class RedeService
 
             $usuario = $this->criarUsuario->executar(
                 $rede,
-                new CriarUsuarioData(
+                new UsuarioData(
                     nome: $usuarioData->nome,
                     email: $usuarioData->email,
                     password: $usuarioData->password,

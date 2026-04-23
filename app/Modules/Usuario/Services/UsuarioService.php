@@ -2,10 +2,9 @@
 
 namespace App\Modules\Usuario\Services;
 
-use App\Modules\Usuario\Actions\CriarUsuarioAction;
-use App\Modules\Usuario\DTOs\AtualizarUsuarioData;
-use App\Modules\Usuario\DTOs\CriarUsuarioData;
 use App\Modules\Tenant\Models\Rede;
+use App\Modules\Usuario\Actions\CriarUsuarioAction;
+use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -25,12 +24,12 @@ class UsuarioService
         return Usuario::findOrFail($id);
     }
 
-    public function criar(Rede $rede, CriarUsuarioData $data): Usuario
+    public function criar(Rede $rede, UsuarioData $data): Usuario
     {
         return $this->criarUsuario->executar($rede, $data);
     }
 
-    public function atualizar(Usuario $usuario, AtualizarUsuarioData $data): Usuario
+    public function atualizar(Usuario $usuario, UsuarioData $data): Usuario
     {
         $campos = [
             'nome' => $data->nome,

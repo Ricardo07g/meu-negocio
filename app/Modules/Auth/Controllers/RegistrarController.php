@@ -5,7 +5,7 @@ namespace App\Modules\Auth\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\RegistrarRequest;
 use App\Modules\Tenant\DTOs\CriarRedeData;
-use App\Modules\Usuario\DTOs\CriarUsuarioData;
+use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Tenant\Services\RedeService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +34,7 @@ class RegistrarController extends Controller
         try {
             $rede = $this->redeService->criar(
                 new CriarRedeData(nome: $request->empresa),
-                new CriarUsuarioData(
+                new UsuarioData(
                     nome: $request->nome,
                     email: $request->email,
                     password: $request->password,

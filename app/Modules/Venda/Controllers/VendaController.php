@@ -6,7 +6,7 @@ use App\Enums\CondicaoPagamento;
 use App\Enums\FormaPagamento;
 use App\Enums\FormaRecebimentoPrazo;
 use App\Http\Controllers\Controller;
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Cliente\Models\Cliente;
@@ -149,7 +149,7 @@ class VendaController extends Controller
                 $payload = $request->validated();
                 $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'] . ' ' . $payload['horario']);
                 $this->service->criarAvulso(
-                    CriarAgendamentoData::from($payload),
+                    AgendamentoData::from($payload),
                     $condicao,
                     $mesReferencia,
                     $forma,

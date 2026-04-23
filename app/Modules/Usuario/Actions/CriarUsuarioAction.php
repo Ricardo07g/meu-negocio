@@ -3,8 +3,8 @@
 namespace App\Modules\Usuario\Actions;
 
 use App\Modules\Tenant\Actions\ValidarPlanoAction;
-use App\Modules\Usuario\DTOs\CriarUsuarioData;
 use App\Modules\Tenant\Models\Rede;
+use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 
 class CriarUsuarioAction
@@ -13,9 +13,11 @@ class CriarUsuarioAction
         private ValidarPlanoAction $validarPlano,
     ) {}
 
-    public function executar(Rede $rede, CriarUsuarioData $data): Usuario
+    public function executar(Rede $rede, UsuarioData $data): Usuario
     {
         $this->validarPlano->executar($rede, 'usuario');
+
+        $papel = $data->papel ?? 'Visualizador';
 
         $usuario = Usuario::create([
             'rede_id' => $rede->id,
@@ -24,10 +26,10 @@ class CriarUsuarioAction
             'email' => $data->email,
             'password' => $data->password,
             'ativo' => true,
-            'atende' => $data->atende ?? ($data->papel === 'Admin'),
+            'atende' => $data->atende ?? ($papel === 'Admin'),
         ]);
 
-        $usuario->assignRole($data->papel);
+        $usuario->assignRole($papel);
 
         return $usuario;
     }

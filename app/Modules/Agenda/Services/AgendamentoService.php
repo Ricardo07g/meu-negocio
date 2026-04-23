@@ -6,8 +6,7 @@ use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
 use App\Modules\Agenda\Actions\CriarAgendamentoAction;
 use App\Modules\Agenda\Actions\FinalizarAgendamentoAction;
 use App\Enums\StatusAgendamento;
-use App\Modules\Agenda\DTOs\AtualizarAgendamentoData;
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
@@ -39,12 +38,12 @@ class AgendamentoService
         return Agendamento::with(['cliente', 'servico', 'atendente'])->findOrFail($id);
     }
 
-    public function criar(CriarAgendamentoData $data): Agendamento
+    public function criar(AgendamentoData $data): Agendamento
     {
         return $this->criarAgendamento->executar($data);
     }
 
-    public function atualizar(Agendamento $agendamento, AtualizarAgendamentoData $data): Agendamento
+    public function atualizar(Agendamento $agendamento, AgendamentoData $data): Agendamento
     {
         $campos = array_filter($data->toArray(), fn ($v) => $v !== null);
         $agendamento->update($campos);

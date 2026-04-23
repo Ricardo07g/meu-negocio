@@ -2,7 +2,7 @@
 
 namespace App\Modules\Agenda\Actions;
 
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Enums\StatusAgendamento;
 use App\Exceptions\ConflitoAgendamentoException;
 use App\Modules\Agenda\Models\Agendamento;
@@ -10,7 +10,7 @@ use App\Modules\Servico\Models\Servico;
 
 class CriarAgendamentoAction
 {
-    public function executar(CriarAgendamentoData $data): Agendamento
+    public function executar(AgendamentoData $data): Agendamento
     {
         // Calcular fim automaticamente se nao informado
         $fim = $data->fim;
