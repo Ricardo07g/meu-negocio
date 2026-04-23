@@ -12,6 +12,11 @@ class PapelPolicy
         return $usuario->can('papel.ver');
     }
 
+    public function view(Usuario $usuario, Role $papel): bool
+    {
+        return $usuario->can('papel.ver');
+    }
+
     public function create(Usuario $usuario): bool
     {
         return $usuario->can('papel.criar');

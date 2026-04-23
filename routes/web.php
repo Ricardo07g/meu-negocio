@@ -124,6 +124,6 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         // Administracao
         Route::resource('empresas', EmpresaController::class);
         Route::resource('usuarios', UsuarioController::class);
-        Route::resource('papeis', PapelController::class)->except(['show'])->parameters(['papeis' => 'papel']);
+        Route::resource('papeis', PapelController::class)->parameters(['papeis' => 'papel']);
     });
 });
