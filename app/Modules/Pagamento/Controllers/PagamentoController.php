@@ -8,6 +8,9 @@ use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Requests\CancelarParcelaRequest;
+use App\Modules\Pagamento\Requests\RenegociarParcelaRequest;
+use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
 use App\Modules\Pagamento\Services\PagamentoService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
@@ -51,18 +54,9 @@ class PagamentoController extends Controller
         }
     }
 
-    public function baixaParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
+    public function baixaParcela(SalvarBaixaParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            $request->validate([
-                'valor' => ['required', 'numeric', 'min:0.01'],
-                'multa' => ['nullable', 'numeric', 'min:0'],
-                'juros' => ['nullable', 'numeric', 'min:0'],
-                'desconto' => ['nullable', 'numeric', 'min:0'],
-                'forma_pagamento' => ['required', 'string'],
-                'observacao' => ['nullable', 'string'],
-            ]);
-
             $this->caixaService->darBaixaParcelaPagamento(
                 $parcela,
                 (float) $request->valor,
@@ -79,15 +73,9 @@ class PagamentoController extends Controller
         }
     }
 
-    public function renegociarParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
+    public function renegociarParcela(RenegociarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            $request->validate([
-                'data_vencimento' => ['required', 'date'],
-                'valor' => ['required', 'numeric', 'min:0.01'],
-                'observacao' => ['nullable', 'string'],
-            ]);
-
             $this->service->renegociarParcela(
                 $parcela,
                 new RenegociarParcelaData(
@@ -103,7 +91,7 @@ class PagamentoController extends Controller
         }
     }
 
-    public function cancelarParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
+    public function cancelarParcela(CancelarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
             $this->service->cancelarParcela($parcela, $request->input('motivo'));
