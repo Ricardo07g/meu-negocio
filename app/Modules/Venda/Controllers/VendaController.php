@@ -2,21 +2,24 @@
 
 namespace App\Modules\Venda\Controllers;
 
+use App\Enums\CondicaoPagamento;
+use App\Enums\FormaPagamento;
+use App\Enums\FormaRecebimentoPrazo;
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\DTOs\CriarAgendamentoData;
-use App\Modules\Venda\DTOs\VenderPacoteData;
-use App\Modules\Venda\Requests\AtualizarVendaAvulsoRequest;
-use App\Modules\Venda\Requests\AtualizarVendaPacoteRequest;
-use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
-use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\Venda\Requests\AtualizarVendaAvulsoRequest;
+use App\Modules\Venda\Requests\AtualizarVendaPacoteRequest;
+use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
+use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
@@ -58,7 +61,6 @@ class VendaController extends Controller
 
             $atendentes = Usuario::where('atende', true)->get();
 
-            // Restaura entidades selecionadas via AJAX apos erro de validacao
             $clienteOld = old('cliente_id') ? Cliente::find(old('cliente_id')) : null;
             $servicoOld = old('servico_id') ? Servico::find(old('servico_id')) : null;
 
@@ -85,40 +87,46 @@ class VendaController extends Controller
 
     public function store(CriarVendaRequest $request): RedirectResponse
     {
-        try
-        {
-            $aVista = $request->condicao_pagamento === 'a_vista';
-            $formaPagamento = $aVista ? $request->forma_pagamento : null;
-            $statusPagamento = $aVista ? 'pago' : 'pendente';
-            $dataVencimento = $aVista ? null : $request->data_vencimento;
+        try {
+            $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+            $aVista = $condicao === CondicaoPagamento::AVista;
+
+            $forma = $request->forma_pagamento
+                ? FormaPagamento::from($request->forma_pagamento)
+                : null;
+
+            $formaRecebimentoPrazo = $request->forma_recebimento_prazo
+                ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
+                : null;
+
+            $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
+            $primeiroVencimento = $condicao->geraParcelas()
+                ? Carbon::parse($request->primeiro_vencimento)
+                : now();
+            $mesReferencia = Carbon::parse($request->mes_referencia)->startOfMonth();
+
+            $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
             if ($aVista && !$this->caixaService->caixaAberto()) {
                 return redirect()->back()->withInput()
-                    ->with('erro', 'É necessário abrir o caixa para registrar vendas com pagamento à vista.');
+                    ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
             }
 
             if ($request->tipo_venda === 'produto') {
                 $itens = $request->input('itens', []);
 
-                // Compatibilidade: form antigo manda produto_id/quantidade avulso
-                if (empty($itens) && $request->produto_id) {
-                    $itens = [[
-                        'produto_id' => $request->produto_id,
-                        'quantidade' => $request->quantidade,
-                        'valor_unitario' => $request->valor_unitario ?? null,
-                        'desconto' => 0,
-                        'acrescimo' => 0,
-                    ]];
-                }
-
                 $this->service->criarVendaProduto(
                     $request->cliente_id,
                     $itens,
-                    $formaPagamento,
-                    $statusPagamento,
+                    $condicao,
+                    $mesReferencia,
+                    $forma,
+                    $numeroParcelas,
+                    $primeiroVencimento,
                     $request->data,
                     $request->observacao,
-                    $dataVencimento,
+                    $parcelasPersonalizadas,
+                    $formaRecebimentoPrazo,
                 );
                 return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
             }
@@ -126,12 +134,30 @@ class VendaController extends Controller
             $servico = Servico::findOrFail($request->servico_id);
 
             if ($servico->isPacote()) {
-                $this->service->criarPacote(VenderPacoteData::from($request->validated()), $formaPagamento, $statusPagamento, $dataVencimento);
+                $this->service->criarPacote(
+                    VenderPacoteData::from($request->validated()),
+                    $condicao,
+                    $mesReferencia,
+                    $forma,
+                    $numeroParcelas,
+                    $primeiroVencimento,
+                    $parcelasPersonalizadas,
+                    $formaRecebimentoPrazo,
+                );
                 $msg = 'Pacote vendido com sucesso! Agendamentos criados.';
             } else {
                 $payload = $request->validated();
                 $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'] . ' ' . $payload['horario']);
-                $this->service->criarAvulso(CriarAgendamentoData::from($payload), $formaPagamento, $statusPagamento, $dataVencimento);
+                $this->service->criarAvulso(
+                    CriarAgendamentoData::from($payload),
+                    $condicao,
+                    $mesReferencia,
+                    $forma,
+                    $numeroParcelas,
+                    $primeiroVencimento,
+                    $parcelasPersonalizadas,
+                    $formaRecebimentoPrazo,
+                );
                 $msg = 'Agendamento criado com sucesso.';
             }
 
@@ -139,6 +165,29 @@ class VendaController extends Controller
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
         }
+    }
+
+    /**
+     * Converte o array cru de parcelas editadas no preview em estrutura
+     * consumível pelo CriarPagamentoComParcelasAction (datas como Carbon).
+     * Retorna null se não há parcelas no request.
+     */
+    private function extrairParcelasPersonalizadas(CriarVendaRequest $request): ?array
+    {
+        $raw = $request->input('parcelas');
+        if (empty($raw) || !is_array($raw)) {
+            return null;
+        }
+
+        return array_map(function (array $p) {
+            return [
+                'numero' => (int) $p['numero'],
+                'total' => (int) $p['total'],
+                'valor' => (float) $p['valor'],
+                'data_vencimento' => Carbon::parse($p['data_vencimento']),
+                'mes_referencia' => Carbon::parse($p['mes_referencia']),
+            ];
+        }, array_values($raw));
     }
 
     public function cancelarAvulso(Agendamento $agendamento): RedirectResponse
@@ -179,7 +228,7 @@ class VendaController extends Controller
     public function editAvulso(Agendamento $agendamento): View|RedirectResponse
     {
         try {
-            $agendamento->load(['cliente', 'servico', 'pagamento']);
+            $agendamento->load(['cliente', 'servico', 'pagamento.parcelas']);
             if (!$this->service->podeEditar($agendamento->pagamento) || !in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
                 return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
             }
@@ -205,7 +254,7 @@ class VendaController extends Controller
     {
         try {
             $this->authorize('view', $pacote);
-            $pacote->load(['cliente', 'servico', 'pagamento']);
+            $pacote->load(['cliente', 'servico', 'pagamento.parcelas']);
             if (!$this->service->podeEditar($pacote->pagamento) || $pacote->status->value !== 'ativo') {
                 return redirect()->route('vendas.index')->with('erro', 'Pacote não pode ser editado.');
             }
@@ -231,7 +280,7 @@ class VendaController extends Controller
     public function editProduto(VendaProduto $vendaProduto): View|RedirectResponse
     {
         try {
-            $vendaProduto->load(['cliente', 'itens.produto', 'pagamento']);
+            $vendaProduto->load(['cliente', 'itens.produto', 'pagamento.parcelas']);
             if (!$this->service->podeEditar($vendaProduto->pagamento) || $vendaProduto->status->value !== 'ativa') {
                 return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
             }
@@ -278,7 +327,7 @@ class VendaController extends Controller
 
     private function dadosReciboAvulso(int $id): array
     {
-        $agendamento = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.baixas'])->findOrFail($id);
+        $agendamento = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])->findOrFail($id);
         $pagamento = $agendamento->pagamento;
         $valor = $agendamento->servico->valor ?? 0;
 
@@ -307,7 +356,7 @@ class VendaController extends Controller
 
     private function dadosReciboPacote(int $id): array
     {
-        $pacote = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.baixas'])->findOrFail($id);
+        $pacote = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])->findOrFail($id);
         $this->authorize('view', $pacote);
         $subtotal = $pacote->valor_total + $pacote->desconto - $pacote->acrescimo;
 
@@ -336,7 +385,7 @@ class VendaController extends Controller
 
     private function dadosReciboProduto(int $id): array
     {
-        $venda = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.baixas'])->findOrFail($id);
+        $venda = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.parcelas.baixas'])->findOrFail($id);
 
         return [
             'numero' => $venda->id,

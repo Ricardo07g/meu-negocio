@@ -3,30 +3,37 @@
 namespace App\Modules\Despesa\Services;
 
 use App\Enums\StatusDespesa;
-use App\Modules\Despesa\Actions\CriarDespesaParceladaAction;
-use App\Modules\Despesa\DTOs\DespesaData;
+use App\Enums\StatusParcela;
+use App\Exceptions\NegocioException;
+use App\Modules\Despesa\Actions\CriarDespesaComParcelasAction;
+use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Models\Despesa;
-use Carbon\Carbon;
+use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class DespesaService
 {
     public function __construct(
-        private CriarDespesaParceladaAction $criarParcelada,
+        private CriarDespesaComParcelasAction $criarComParcelas,
     ) {}
 
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Despesa::with(['categoria', 'baixas'])
-            ->orderBy('data_vencimento', 'asc');
+        $query = Despesa::with(['categoria', 'parcelas.baixas'])
+            ->orderByDesc('created_at');
 
         $status = $filtros['status'] ?? 'todas';
-        if ($status === 'vencidas') {
-            $query->where('status', StatusDespesa::Pendente)
-                ->whereDate('data_vencimento', '<', now()->toDateString());
-        } elseif (in_array($status, ['pendente', 'paga', 'cancelada'], true)) {
-            $query->where('status', $status);
+        if ($status !== 'todas' && $status !== '') {
+            if ($status === 'vencidas') {
+                $hoje = now()->toDateString();
+                $query->whereIn('status', ['pendente', 'parcial'])
+                    ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                        ->whereDate('data_vencimento', '<', $hoje));
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         if (!empty($filtros['q'])) {
@@ -46,10 +53,19 @@ class DespesaService
         if (!empty($filtros['situacao'])) {
             $hoje = now()->toDateString();
             match ($filtros['situacao']) {
-                'em_dia' => $query->where('status', StatusDespesa::Pendente)->where(fn ($q) => $q->whereNull('data_vencimento')->orWhereDate('data_vencimento', '>=', $hoje)),
-                'vencida' => $query->where('status', StatusDespesa::Pendente)->whereDate('data_vencimento', '<', $hoje),
+                'em_dia' => $query->whereIn('status', ['pendente', 'parcial'])
+                    ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                        ->whereDate('data_vencimento', '>=', $hoje)),
+                'vencida' => $query->whereIn('status', ['pendente', 'parcial'])
+                    ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                        ->whereDate('data_vencimento', '<', $hoje)),
                 default => null,
             };
+        }
+
+        if (!empty($filtros['mes_referencia'])) {
+            $mes = $filtros['mes_referencia'];
+            $query->whereRaw("DATE_FORMAT(mes_referencia, '%Y-%m') = ?", [$mes]);
         }
 
         return $query->paginate($perPage)->withQueryString();
@@ -60,39 +76,21 @@ class DespesaService
         return Despesa::findOrFail($id);
     }
 
-    public function criar(DespesaData $data): Despesa|Collection
+    public function criar(CriarDespesaData $data): Despesa
     {
-        if ($data->parcelar && $data->numero_parcelas && $data->numero_parcelas >= 2) {
-            return $this->criarParcelada->executar($data);
-        }
-
-        return Despesa::create([
-            'categoria_despesa_id' => $data->categoria_despesa_id,
-            'nome' => $data->nome,
-            'fornecedor_nome' => $data->fornecedor_nome,
-            'documento' => $data->documento,
-            'observacoes' => $data->observacoes,
-            'valor' => $data->valor,
-            'valor_pago' => 0,
-            'data_emissao' => $data->data_emissao,
-            'data_vencimento' => $data->data_vencimento,
-            'competencia' => $data->competencia,
-            'status' => 'pendente',
-        ]);
+        return $this->criarComParcelas->executar($data);
     }
 
-    public function atualizar(Despesa $despesa, DespesaData $data): Despesa
+    public function atualizar(Despesa $despesa, array $data): Despesa
     {
         $despesa->update([
-            'categoria_despesa_id' => $data->categoria_despesa_id,
-            'nome' => $data->nome,
-            'fornecedor_nome' => $data->fornecedor_nome,
-            'documento' => $data->documento,
-            'observacoes' => $data->observacoes,
-            'valor' => $data->valor,
-            'data_emissao' => $data->data_emissao,
-            'data_vencimento' => $data->data_vencimento,
-            'competencia' => $data->competencia,
+            'categoria_despesa_id' => $data['categoria_despesa_id'] ?? $despesa->categoria_despesa_id,
+            'nome' => $data['nome'] ?? $despesa->nome,
+            'fornecedor_nome' => $data['fornecedor_nome'] ?? $despesa->fornecedor_nome,
+            'documento' => $data['documento'] ?? $despesa->documento,
+            'observacoes' => $data['observacoes'] ?? $despesa->observacoes,
+            'mes_referencia' => $data['mes_referencia'] ?? $despesa->mes_referencia,
+            'data_emissao' => $data['data_emissao'] ?? $despesa->data_emissao,
         ]);
 
         return $despesa->fresh();
@@ -103,19 +101,63 @@ class DespesaService
         $despesa->delete();
     }
 
-    public function listarContasAPagar(): Collection
+    public function renegociarParcela(ParcelaDespesa $parcela, RenegociarParcelaData $data): ParcelaDespesa
     {
-        return Despesa::with(['categoria', 'baixas'])
-            ->where('status', StatusDespesa::Pendente)
-            ->whereRaw('valor_pago < valor')
-            ->orderBy('data_vencimento', 'asc')
-            ->get();
+        return DB::transaction(function () use ($parcela, $data) {
+            if ($parcela->status === StatusParcela::Pago) {
+                throw new NegocioException('Parcela já paga não pode ser renegociada.');
+            }
+            if ($parcela->status === StatusParcela::Cancelado) {
+                throw new NegocioException('Parcela cancelada não pode ser renegociada.');
+            }
+            if ($data->valor < (float) $parcela->valor_pago) {
+                throw new NegocioException('O novo valor não pode ser menor que o já pago.');
+            }
+
+            $observacaoAcumulada = trim(
+                ($parcela->observacao ? $parcela->observacao . "\n" : '')
+                . sprintf(
+                    '[Renegociado em %s] valor R$ %s → R$ %s; vencimento %s → %s. %s',
+                    now()->format('d/m/Y H:i'),
+                    number_format((float) $parcela->valor, 2, ',', '.'),
+                    number_format($data->valor, 2, ',', '.'),
+                    $parcela->data_vencimento?->format('d/m/Y') ?? '—',
+                    $data->data_vencimento->format('d/m/Y'),
+                    $data->observacao ? "Motivo: {$data->observacao}" : '',
+                )
+            );
+
+            $parcela->update([
+                'valor' => $data->valor,
+                'data_vencimento' => $data->data_vencimento,
+                'status' => (float) $parcela->valor_pago > 0 ? StatusParcela::Renegociado : StatusParcela::Pendente,
+                'observacao' => $observacaoAcumulada,
+            ]);
+
+            $parcela->despesa?->recalcularStatus();
+
+            return $parcela->fresh();
+        });
     }
 
-    public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
+    public function cancelarParcela(ParcelaDespesa $parcela, ?string $motivo = null): ParcelaDespesa
     {
-        return Despesa::whereBetween('data_vencimento', [$inicio, $fim])
-            ->orderBy('data_vencimento', 'desc')
-            ->get();
+        return DB::transaction(function () use ($parcela, $motivo) {
+            if ($parcela->status === StatusParcela::Pago) {
+                throw new NegocioException('Parcela já paga não pode ser cancelada.');
+            }
+
+            $observacao = $parcela->observacao ? $parcela->observacao . "\n" : '';
+            $observacao .= sprintf('[Cancelada em %s] %s', now()->format('d/m/Y H:i'), $motivo ?? '');
+
+            $parcela->update([
+                'status' => StatusParcela::Cancelado,
+                'observacao' => trim($observacao),
+            ]);
+
+            $parcela->despesa?->recalcularStatus();
+
+            return $parcela->fresh();
+        });
     }
 }

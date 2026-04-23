@@ -2,20 +2,16 @@
 
 namespace App\Modules\Pagamento\Services;
 
-use App\Enums\StatusPagamento;
-use App\Modules\Pagamento\Actions\RegistrarPagamentoAction;
-use App\Modules\Pagamento\DTOs\RegistrarPagamentoData;
+use App\Enums\StatusParcela;
+use App\Exceptions\NegocioException;
+use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Modules\Pagamento\Models\Pagamento;
-use Carbon\Carbon;
+use App\Modules\Pagamento\Models\ParcelaPagamento;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PagamentoService
 {
-    public function __construct(
-        private RegistrarPagamentoAction $registrarPagamento,
-    ) {}
-
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
     {
         $query = Pagamento::with([
@@ -23,11 +19,11 @@ class PagamentoService
             'agendamento.servico',
             'vendaPacote.servico',
             'vendaProduto.itens',
-            'baixas',
+            'parcelas.baixas',
         ])->orderByDesc('created_at');
 
         $status = $filtros['status'] ?? 'todos';
-        if ($status !== 'todos') {
+        if ($status !== 'todos' && $status !== '') {
             $query->where('status', $status);
         }
 
@@ -51,10 +47,19 @@ class PagamentoService
         if (!empty($filtros['situacao'])) {
             $hoje = now()->toDateString();
             match ($filtros['situacao']) {
-                'em_dia' => $query->where('status', 'pendente')->where(fn ($q) => $q->whereNull('data_vencimento')->orWhereDate('data_vencimento', '>=', $hoje)),
-                'vencido' => $query->where('status', 'pendente')->whereDate('data_vencimento', '<', $hoje),
+                'em_dia' => $query->whereIn('status', ['pendente', 'parcial'])
+                    ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                        ->whereDate('data_vencimento', '>=', $hoje)),
+                'vencido' => $query->whereIn('status', ['pendente', 'parcial'])
+                    ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                        ->whereDate('data_vencimento', '<', $hoje)),
                 default => null,
             };
+        }
+
+        if (!empty($filtros['mes_referencia'])) {
+            $mes = $filtros['mes_referencia']; // formato Y-m
+            $query->whereRaw("DATE_FORMAT(mes_referencia, '%Y-%m') = ?", [$mes]);
         }
 
         return $query->paginate($perPage)->withQueryString();
@@ -62,28 +67,75 @@ class PagamentoService
 
     public function buscar(int $id): Pagamento
     {
-        return Pagamento::with('cliente')->findOrFail($id);
+        return Pagamento::with(['cliente', 'parcelas'])->findOrFail($id);
     }
 
-    public function registrar(RegistrarPagamentoData $data): Pagamento
+    /**
+     * Renegocia uma parcela: ajusta valor e/ou vencimento, marca como renegociada.
+     */
+    public function renegociarParcela(ParcelaPagamento $parcela, RenegociarParcelaData $data): ParcelaPagamento
     {
-        return $this->registrarPagamento->executar($data);
+        return DB::transaction(function () use ($parcela, $data) {
+            if ($parcela->status === StatusParcela::Pago) {
+                throw new NegocioException('Parcela já paga não pode ser renegociada.');
+            }
+            if ($parcela->status === StatusParcela::Cancelado) {
+                throw new NegocioException('Parcela cancelada não pode ser renegociada.');
+            }
+            if ($data->valor <= 0) {
+                throw new NegocioException('Valor da parcela deve ser positivo.');
+            }
+            if ($data->valor < (float) $parcela->valor_pago) {
+                throw new NegocioException('O novo valor não pode ser menor que o já pago.');
+            }
+
+            $observacaoAcumulada = trim(
+                ($parcela->observacao ? $parcela->observacao . "\n" : '')
+                . sprintf(
+                    '[Renegociado em %s] valor R$ %s → R$ %s; vencimento %s → %s. %s',
+                    now()->format('d/m/Y H:i'),
+                    number_format((float) $parcela->valor, 2, ',', '.'),
+                    number_format($data->valor, 2, ',', '.'),
+                    $parcela->data_vencimento?->format('d/m/Y') ?? '—',
+                    $data->data_vencimento->format('d/m/Y'),
+                    $data->observacao ? "Motivo: {$data->observacao}" : '',
+                )
+            );
+
+            $parcela->update([
+                'valor' => $data->valor,
+                'data_vencimento' => $data->data_vencimento,
+                'status' => (float) $parcela->valor_pago > 0 ? StatusParcela::Renegociado : StatusParcela::Pendente,
+                'observacao' => $observacaoAcumulada,
+            ]);
+
+            $parcela->pagamento?->recalcularStatus();
+
+            return $parcela->fresh();
+        });
     }
 
-    public function listarContasAReceber(): Collection
+    /**
+     * Cancela uma parcela específica (cliente desistiu, acordo parcial, etc).
+     */
+    public function cancelarParcela(ParcelaPagamento $parcela, ?string $motivo = null): ParcelaPagamento
     {
-        return Pagamento::with('cliente')
-            ->where('status', StatusPagamento::Pendente)
-            ->whereRaw('valor_pago < valor')
-            ->orderByDesc('created_at')
-            ->get();
-    }
+        return DB::transaction(function () use ($parcela, $motivo) {
+            if ($parcela->status === StatusParcela::Pago) {
+                throw new NegocioException('Parcela já paga não pode ser cancelada.');
+            }
 
-    public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
-    {
-        return Pagamento::with('cliente')
-            ->whereBetween('created_at', [$inicio, $fim])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            $observacao = $parcela->observacao ? $parcela->observacao . "\n" : '';
+            $observacao .= sprintf('[Cancelada em %s] %s', now()->format('d/m/Y H:i'), $motivo ?? '');
+
+            $parcela->update([
+                'status' => StatusParcela::Cancelado,
+                'observacao' => trim($observacao),
+            ]);
+
+            $parcela->pagamento?->recalcularStatus();
+
+            return $parcela->fresh();
+        });
     }
 }

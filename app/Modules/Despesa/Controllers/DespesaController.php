@@ -2,14 +2,20 @@
 
 namespace App\Modules\Despesa\Controllers;
 
+use App\Enums\CondicaoPagamento;
+use App\Enums\FormaPagamento;
+use App\Enums\FormaRecebimentoPrazo;
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\Services\CaixaService;
-use App\Modules\Despesa\DTOs\DespesaData;
+use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Models\CategoriaDespesa;
 use App\Modules\Despesa\Models\Despesa;
+use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Services\DespesaService;
+use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Traits\TratamentoErros;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -27,9 +33,9 @@ class DespesaController extends Controller
     {
         try {
             $this->authorize('viewAny', Despesa::class);
-            $filtros = $request->only(['q', 'status', 'categoria_id', 'situacao']);
+            $filtros = $request->only(['q', 'status', 'categoria_id', 'situacao', 'mes_referencia']);
             $despesas = $this->service->listar($filtros);
-            $categorias = \App\Modules\Despesa\Models\CategoriaDespesa::orderBy('descricao')->get();
+            $categorias = CategoriaDespesa::orderBy('descricao')->get();
 
             return view('despesa::index', compact('despesas', 'filtros', 'categorias'));
         } catch (\Throwable $e) {
@@ -52,7 +58,50 @@ class DespesaController extends Controller
     public function store(SalvarDespesaRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(DespesaData::from($request->validated()));
+            $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+
+            $forma = $request->forma_pagamento
+                ? FormaPagamento::from($request->forma_pagamento)
+                : null;
+
+            $formaRecebimentoPrazo = $request->forma_recebimento_prazo
+                ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
+                : null;
+
+            $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
+
+            $parcelasPersonalizadas = null;
+            $raw = $request->input('parcelas');
+            if (!empty($raw) && is_array($raw)) {
+                $parcelasPersonalizadas = array_map(function (array $p) {
+                    return [
+                        'numero' => (int) $p['numero'],
+                        'total' => (int) $p['total'],
+                        'valor' => (float) $p['valor'],
+                        'data_vencimento' => Carbon::parse($p['data_vencimento']),
+                        'mes_referencia' => Carbon::parse($p['mes_referencia']),
+                    ];
+                }, array_values($raw));
+            }
+
+            $data = new CriarDespesaData(
+                nome: $request->nome,
+                valor_total: (float) $request->valor_total,
+                condicao_pagamento: $condicao,
+                mes_referencia: Carbon::parse($request->mes_referencia)->startOfMonth(),
+                data_emissao: Carbon::parse($request->data_emissao),
+                primeiro_vencimento: Carbon::parse($request->primeiro_vencimento),
+                categoria_despesa_id: $request->categoria_despesa_id,
+                fornecedor_nome: $request->fornecedor_nome,
+                documento: $request->documento,
+                observacoes: $request->observacoes,
+                numero_parcelas: $numeroParcelas,
+                forma_pagamento_avista: $forma,
+                forma_recebimento_prazo: $formaRecebimentoPrazo,
+                parcelas_personalizadas: $parcelasPersonalizadas,
+            );
+
+            $this->service->criar($data);
 
             return redirect()->route('despesas.index')->with('sucesso', 'Despesa criada com sucesso.');
         } catch (\Throwable $e) {
@@ -76,7 +125,7 @@ class DespesaController extends Controller
     {
         try {
             $this->authorize('update', $despesa);
-            $this->service->atualizar($despesa, DespesaData::from($request->validated()));
+            $this->service->atualizar($despesa, $request->validated());
 
             return redirect()->route('despesas.index')->with('sucesso', 'Despesa atualizada com sucesso.');
         } catch (\Throwable $e) {
@@ -96,46 +145,80 @@ class DespesaController extends Controller
         }
     }
 
-    public function baixaForm(Despesa $despesa): View|RedirectResponse
+    public function baixaParcelaForm(ParcelaDespesa $parcela): View|RedirectResponse
     {
         try {
-            $this->authorize('view', $despesa);
-
-            if ($despesa->status->value !== 'pendente' || $despesa->saldoRestante() <= 0) {
-                return redirect()->route('despesas.index')->with('erro', 'Esta despesa não possui saldo a pagar.');
+            $parcela->load(['despesa.categoria']);
+            if ($parcela->saldoRestante() <= 0) {
+                return redirect()->route('despesas.index')->with('erro', 'Esta parcela já está quitada.');
             }
 
-            $despesa->load(['categoria', 'baixas']);
-
-            return view('despesa::baixa', compact('despesa'));
+            return view('despesa::baixa', compact('parcela'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de baixa');
         }
     }
 
-    public function baixa(Request $request, Despesa $despesa): RedirectResponse
+    public function baixaParcela(Request $request, ParcelaDespesa $parcela): RedirectResponse
     {
         try {
-            if (!$this->caixaService->caixaAberto()) {
-                return redirect()->back()->with('erro', 'É necessário abrir o caixa para registrar a baixa.');
-            }
-
             $request->validate([
                 'valor' => ['required', 'numeric', 'min:0.01'],
+                'multa' => ['nullable', 'numeric', 'min:0'],
+                'juros' => ['nullable', 'numeric', 'min:0'],
+                'desconto' => ['nullable', 'numeric', 'min:0'],
                 'forma_pagamento' => ['required', 'string'],
                 'observacao' => ['nullable', 'string'],
             ]);
 
-            $this->caixaService->darBaixaDespesa(
-                $despesa,
+            $this->caixaService->darBaixaParcelaDespesa(
+                $parcela,
                 (float) $request->valor,
-                $request->forma_pagamento,
+                FormaPagamento::from($request->forma_pagamento),
                 $request->observacao,
+                (float) ($request->multa ?? 0),
+                (float) ($request->juros ?? 0),
+                (float) ($request->desconto ?? 0),
             );
 
-            return redirect()->route('despesas.index')->with('sucesso', 'Baixa registrada com sucesso.');
+            return redirect()->route('despesas.index')->with('sucesso', 'Pagamento registrado com sucesso.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao registrar baixa');
+            return $this->tratarErro($e, 'Erro ao registrar pagamento');
+        }
+    }
+
+    public function renegociarParcela(Request $request, ParcelaDespesa $parcela): RedirectResponse
+    {
+        try {
+            $request->validate([
+                'data_vencimento' => ['required', 'date'],
+                'valor' => ['required', 'numeric', 'min:0.01'],
+                'observacao' => ['nullable', 'string'],
+            ]);
+
+            $this->service->renegociarParcela(
+                $parcela,
+                new RenegociarParcelaData(
+                    data_vencimento: Carbon::parse($request->data_vencimento),
+                    valor: (float) $request->valor,
+                    observacao: $request->observacao,
+                )
+            );
+
+            return redirect()->route('despesas.index')->with('sucesso', 'Parcela renegociada.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao renegociar parcela');
+        }
+    }
+
+    public function cancelarParcela(Request $request, ParcelaDespesa $parcela): RedirectResponse
+    {
+        try {
+            $this->service->cancelarParcela($parcela, $request->input('motivo'));
+
+            return redirect()->route('despesas.index')->with('sucesso', 'Parcela cancelada.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao cancelar parcela');
         }
     }
 
@@ -148,7 +231,7 @@ class DespesaController extends Controller
     {
         try {
             $this->authorize('view', $despesa);
-            $despesa->load(['categoria', 'baixas']);
+            $despesa->load(['categoria', 'parcelas.baixas']);
             $empresa = auth()->user()->empresa ?? null;
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('despesa::recibo', compact('despesa', 'empresa'));

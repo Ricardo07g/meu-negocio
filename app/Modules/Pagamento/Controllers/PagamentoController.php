@@ -2,13 +2,15 @@
 
 namespace App\Modules\Pagamento\Controllers;
 
+use App\Enums\FormaPagamento;
 use App\Http\Controllers\Controller;
-use App\Modules\Pagamento\DTOs\RegistrarPagamentoData;
-use App\Modules\Pagamento\Requests\RegistrarPagamentoRequest;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Services\PagamentoService;
 use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
+use App\Modules\Pagamento\Models\Pagamento;
+use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Services\PagamentoService;
 use App\Traits\TratamentoErros;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,7 +28,7 @@ class PagamentoController extends Controller
     {
         try {
             $this->authorize('viewAny', Pagamento::class);
-            $filtros = $request->only(['q', 'status', 'origem', 'situacao']);
+            $filtros = $request->only(['q', 'status', 'origem', 'situacao', 'mes_referencia']);
             $pagamentos = $this->service->listar($filtros);
 
             return view('pagamento::index', compact('pagamentos', 'filtros'));
@@ -35,72 +37,80 @@ class PagamentoController extends Controller
         }
     }
 
-    public function create(): View|RedirectResponse
+    public function baixaParcelaForm(ParcelaPagamento $parcela): View|RedirectResponse
     {
         try {
-            $this->authorize('create', Pagamento::class);
-
-            return view('pagamento::create');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao carregar formulário de pagamento');
-        }
-    }
-
-    public function store(RegistrarPagamentoRequest $request): RedirectResponse
-    {
-        try {
-            $this->service->registrar(RegistrarPagamentoData::from($request->validated()));
-
-            return redirect()->route('pagamentos.index')->with('sucesso', 'Pagamento registrado com sucesso.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao criar pagamento');
-        }
-    }
-
-    public function baixaForm(Pagamento $pagamento): View|RedirectResponse
-    {
-        try {
-            $this->authorize('view', $pagamento);
-
-            if ($pagamento->status->value !== 'pendente' || $pagamento->saldoRestante() <= 0) {
-                return redirect()->route('pagamentos.index')->with('erro', 'Este pagamento não possui saldo a receber.');
+            $parcela->load(['pagamento.cliente', 'baixas']);
+            if ($parcela->saldoRestante() <= 0) {
+                return redirect()->route('pagamentos.index')->with('erro', 'Esta parcela já está quitada.');
             }
 
-            $pagamento->load(['cliente', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens', 'baixas']);
-
-            return view('pagamento::baixa', compact('pagamento'));
+            return view('pagamento::baixa', compact('parcela'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de baixa');
         }
     }
 
-    public function baixa(Request $request, Pagamento $pagamento): RedirectResponse
+    public function baixaParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            if (!$this->caixaService->caixaAberto()) {
-                return redirect()->back()->with('erro', 'É necessário abrir o caixa para registrar pagamentos.');
-            }
-
             $request->validate([
                 'valor' => ['required', 'numeric', 'min:0.01'],
                 'multa' => ['nullable', 'numeric', 'min:0'],
                 'juros' => ['nullable', 'numeric', 'min:0'],
+                'desconto' => ['nullable', 'numeric', 'min:0'],
                 'forma_pagamento' => ['required', 'string'],
                 'observacao' => ['nullable', 'string'],
             ]);
 
-            $this->caixaService->darBaixaPagamento(
-                $pagamento,
+            $this->caixaService->darBaixaParcelaPagamento(
+                $parcela,
                 (float) $request->valor,
-                $request->forma_pagamento,
+                FormaPagamento::from($request->forma_pagamento),
                 $request->observacao,
                 (float) ($request->multa ?? 0),
                 (float) ($request->juros ?? 0),
+                (float) ($request->desconto ?? 0),
             );
 
-            return redirect()->route('pagamentos.index')->with('sucesso', 'Pagamento registrado com sucesso.');
+            return redirect()->route('pagamentos.index')->with('sucesso', 'Recebimento registrado.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao registrar baixa');
+            return $this->tratarErro($e, 'Erro ao registrar recebimento');
+        }
+    }
+
+    public function renegociarParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
+    {
+        try {
+            $request->validate([
+                'data_vencimento' => ['required', 'date'],
+                'valor' => ['required', 'numeric', 'min:0.01'],
+                'observacao' => ['nullable', 'string'],
+            ]);
+
+            $this->service->renegociarParcela(
+                $parcela,
+                new RenegociarParcelaData(
+                    data_vencimento: Carbon::parse($request->data_vencimento),
+                    valor: (float) $request->valor,
+                    observacao: $request->observacao,
+                )
+            );
+
+            return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela renegociada.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao renegociar parcela');
+        }
+    }
+
+    public function cancelarParcela(Request $request, ParcelaPagamento $parcela): RedirectResponse
+    {
+        try {
+            $this->service->cancelarParcela($parcela, $request->input('motivo'));
+
+            return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela cancelada.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao cancelar parcela');
         }
     }
 
@@ -113,7 +123,7 @@ class PagamentoController extends Controller
     {
         try {
             $this->authorize('view', $pagamento);
-            $pagamento->load(['cliente', 'baixas', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens']);
+            $pagamento->load(['cliente', 'parcelas.baixas', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens']);
             $empresa = auth()->user()->empresa ?? null;
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pagamento::recibo', compact('pagamento', 'empresa'));

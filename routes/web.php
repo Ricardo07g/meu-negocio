@@ -78,23 +78,35 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Financeiro (verificar plano)
         Route::middleware(['verificar.plano:financeiro'])->group(function () {
-            Route::resource('pagamentos', PagamentoController::class)->only(['index', 'create', 'store']);
-            Route::get('pagamentos/{pagamento}/baixa', [PagamentoController::class, 'baixaForm'])->name('pagamentos.baixa-form');
-            Route::post('pagamentos/{pagamento}/baixa', [PagamentoController::class, 'baixa'])->name('pagamentos.baixa');
+            // Contas a Receber
+            Route::get('pagamentos', [PagamentoController::class, 'index'])->name('pagamentos.index');
             Route::get('pagamentos/{pagamento}/recibo', [PagamentoController::class, 'recibo'])->name('pagamentos.recibo');
             Route::get('contas-a-receber', [PagamentoController::class, 'contasAReceber'])->name('pagamentos.contas-a-receber');
-            Route::get('despesas/{despesa}/baixa', [DespesaController::class, 'baixaForm'])->name('despesas.baixa-form');
-            Route::post('despesas/{despesa}/baixa', [DespesaController::class, 'baixa'])->name('despesas.baixa');
+
+            // Parcelas de contas a receber
+            Route::get('parcelas-pagamento/{parcela}/baixa', [PagamentoController::class, 'baixaParcelaForm'])->name('parcelas-pagamento.baixa-form');
+            Route::post('parcelas-pagamento/{parcela}/baixa', [PagamentoController::class, 'baixaParcela'])->name('parcelas-pagamento.baixa');
+            Route::patch('parcelas-pagamento/{parcela}/renegociar', [PagamentoController::class, 'renegociarParcela'])->name('parcelas-pagamento.renegociar');
+            Route::patch('parcelas-pagamento/{parcela}/cancelar', [PagamentoController::class, 'cancelarParcela'])->name('parcelas-pagamento.cancelar');
+
+            // Contas a Pagar
             Route::get('contas-a-pagar', [DespesaController::class, 'contasAPagar'])->name('despesas.contas-a-pagar');
             Route::get('despesas/{despesa}/recibo', [DespesaController::class, 'recibo'])->name('despesas.recibo');
             Route::resource('despesas', DespesaController::class)->except(['show']);
             Route::resource('categorias-despesa', CategoriaDespesaController::class)->except(['show']);
+
+            // Parcelas de contas a pagar
+            Route::get('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcelaForm'])->name('parcelas-despesa.baixa-form');
+            Route::post('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcela'])->name('parcelas-despesa.baixa');
+            Route::patch('parcelas-despesa/{parcela}/renegociar', [DespesaController::class, 'renegociarParcela'])->name('parcelas-despesa.renegociar');
+            Route::patch('parcelas-despesa/{parcela}/cancelar', [DespesaController::class, 'cancelarParcela'])->name('parcelas-despesa.cancelar');
 
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');
             Route::post('caixas', [CaixaController::class, 'store'])->name('caixas.store');
             Route::get('caixas/{caixa}', [CaixaController::class, 'show'])->name('caixas.show');
             Route::patch('caixas/{caixa}/fechar', [CaixaController::class, 'fechar'])->name('caixas.fechar');
+            Route::patch('caixas/{caixa}/reabrir', [CaixaController::class, 'reabrir'])->name('caixas.reabrir');
             Route::post('caixas/{caixa}/sangria', [CaixaController::class, 'sangria'])->name('caixas.sangria');
             Route::post('caixas/{caixa}/reforco', [CaixaController::class, 'reforco'])->name('caixas.reforco');
         });

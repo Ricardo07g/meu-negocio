@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Modules\Caixa\DTOs\AbrirCaixaData;
 use App\Modules\Caixa\DTOs\FecharCaixaData;
 use App\Modules\Caixa\DTOs\MovimentoCaixaData;
+use App\Modules\Caixa\DTOs\ReabrirCaixaData;
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Requests\AbrirCaixaRequest;
 use App\Modules\Caixa\Requests\FecharCaixaRequest;
 use App\Modules\Caixa\Requests\MovimentoCaixaRequest;
+use App\Modules\Caixa\Requests\ReabrirCaixaRequest;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
@@ -81,6 +83,20 @@ class CaixaController extends Controller
             return redirect()->route('caixas.index', ['data' => $data])->with('sucesso', 'Caixa fechado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao fechar caixa');
+        }
+    }
+
+    public function reabrir(ReabrirCaixaRequest $request, Caixa $caixa): RedirectResponse
+    {
+        try {
+            $this->authorize('update', $caixa);
+            $dados = ReabrirCaixaData::from($request->validated());
+            $this->service->reabrir($caixa, $dados->motivo);
+            $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;
+
+            return redirect()->route('caixas.index', ['data' => $data])->with('sucesso', 'Caixa reaberto com sucesso.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao reabrir caixa');
         }
     }
 

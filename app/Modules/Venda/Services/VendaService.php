@@ -2,27 +2,29 @@
 
 namespace App\Modules\Venda\Services;
 
-use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
-use App\Modules\Agenda\Actions\CriarAgendamentoAction;
-use App\Modules\Venda\Actions\VenderPacoteAction;
-use App\Modules\Agenda\DTOs\CriarAgendamentoData;
-use App\Modules\Venda\DTOs\VenderPacoteData;
-use App\Enums\StatusPagamento;
+use App\Enums\CondicaoPagamento;
+use App\Enums\FormaPagamento;
+use App\Enums\StatusParcela;
 use App\Enums\StatusVendaPacote;
 use App\Enums\StatusVendaProduto;
-use App\Enums\TipoMovimentoCaixa;
+use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
+use App\Modules\Agenda\Actions\CriarAgendamentoAction;
+use App\Modules\Agenda\DTOs\CriarAgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Caixa\Models\MovimentoCaixa;
-use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\Estoque\Models\MovimentoEstoque;
+use App\Modules\Pagamento\Actions\CriarPagamentoComParcelasAction;
+use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Venda\Actions\VenderPacoteAction;
+use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Venda\Models\VendaProdutoItem;
+use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class VendaService
@@ -32,6 +34,7 @@ class VendaService
         private VenderPacoteAction $venderPacote,
         private CancelarAgendamentoAction $cancelarAgendamento,
         private CaixaService $caixaService,
+        private CriarPagamentoComParcelasAction $criarPagamento,
     ) {}
 
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
@@ -44,7 +47,7 @@ class VendaService
         $produtos = collect();
 
         if ($tipo !== 'produto') {
-            $pacotesQuery = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.baixas'])
+            $pacotesQuery = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas'])
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($pacotesQuery, $filtros, $dataInicio, $dataFim, 'pacote');
             $this->aplicarBuscaPacote($pacotesQuery, $filtros['q'] ?? null);
@@ -63,7 +66,7 @@ class VendaService
                 'model' => $p,
             ]);
 
-            $avulsosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.baixas'])
+            $avulsosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas'])
                 ->whereNull('venda_pacote_id')
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($avulsosQuery, $filtros, $dataInicio, $dataFim, 'avulso');
@@ -86,7 +89,7 @@ class VendaService
         }
 
         if ($tipo !== 'servico') {
-            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.baixas'])
+            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.parcelas'])
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($produtosQuery, $filtros, $dataInicio, $dataFim, 'produto');
             $this->aplicarBuscaProduto($produtosQuery, $filtros['q'] ?? null);
@@ -140,10 +143,10 @@ class VendaService
         };
 
         if (!empty($filtros['data_inicio'])) {
-            $inicio = \Carbon\Carbon::parse($filtros['data_inicio'])->startOfDay();
+            $inicio = Carbon::parse($filtros['data_inicio'])->startOfDay();
         }
         if (!empty($filtros['data_fim'])) {
-            $fim = \Carbon\Carbon::parse($filtros['data_fim'])->endOfDay();
+            $fim = Carbon::parse($filtros['data_fim'])->endOfDay();
         }
 
         return [$inicio, $fim];
@@ -165,8 +168,12 @@ class VendaService
             $query->whereHas('pagamento', function ($q) use ($situacao, $hoje) {
                 match ($situacao) {
                     'pago' => $q->where('status', 'pago'),
-                    'pendente' => $q->where('status', 'pendente')->where(fn ($sub) => $sub->whereNull('data_vencimento')->orWhereDate('data_vencimento', '>=', $hoje)),
-                    'vencido' => $q->where('status', 'pendente')->whereDate('data_vencimento', '<', $hoje),
+                    'pendente' => $q->whereIn('status', ['pendente', 'parcial'])
+                        ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                            ->whereDate('data_vencimento', '>=', $hoje)),
+                    'vencido' => $q->whereIn('status', ['pendente', 'parcial'])
+                        ->whereHas('parcelas', fn ($p) => $p->where('status', StatusParcela::Pendente->value)
+                            ->whereDate('data_vencimento', '<', $hoje)),
                     'estornado' => $q->where('status', 'estornado'),
                     default => null,
                 };
@@ -176,10 +183,12 @@ class VendaService
         if (!empty($filtros['forma_pagamento'])) {
             $forma = $filtros['forma_pagamento'];
             $query->whereHas('pagamento', function ($q) use ($forma) {
-                if ($forma === 'fiado') {
-                    $q->whereNull('forma_pagamento');
+                if ($forma === 'a_prazo') {
+                    $q->where('condicao_pagamento', CondicaoPagamento::APrazo->value);
+                } elseif ($forma === 'a_vista') {
+                    $q->where('condicao_pagamento', CondicaoPagamento::AVista->value);
                 } else {
-                    $q->where('forma_pagamento', $forma);
+                    $q->whereHas('parcelas', fn ($p) => $p->where('forma_pagamento', $forma));
                 }
             });
         }
@@ -205,7 +214,6 @@ class VendaService
 
     private function aplicarValorAvulso($query, array $filtros): void
     {
-        // Avulso nao tem valor_total proprio — filtra pelo servico.valor
         if (!empty($filtros['valor_min'])) {
             $query->whereHas('servico', fn ($q) => $q->where('valor', '>=', (float) $filtros['valor_min']));
         }
@@ -269,126 +277,96 @@ class VendaService
         match ($status) {
             'em_andamento' => $query->where('status', 'ativa'),
             'cancelado' => $query->where('status', 'cancelada'),
-            // 'concluido' nao existe pra VendaProduto — retorna vazio
             'concluido' => $query->whereRaw('1 = 0'),
             default => null,
         };
     }
 
-    public function criarAvulso(CriarAgendamentoData $data, ?string $formaPagamento, string $statusPagamento, ?string $dataVencimento = null): Agendamento
-    {
-        $agendamento = $this->criarAgendamento->executar($data);
-        $servico = Servico::find($data->servico_id);
+    /**
+     * Cria venda avulsa + pagamento (título + parcelas).
+     */
+    public function criarAvulso(
+        CriarAgendamentoData $data,
+        CondicaoPagamento $condicao,
+        Carbon $mesReferencia,
+        ?FormaPagamento $formaAvista = null,
+        ?int $numeroParcelas = null,
+        ?Carbon $primeiroVencimento = null,
+        ?array $parcelasPersonalizadas = null,
+        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+    ): Agendamento {
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
+            $agendamento = $this->criarAgendamento->executar($data);
+            $servico = Servico::findOrFail($data->servico_id);
 
-        $pagamento = Pagamento::create([
-            'cliente_id' => $data->cliente_id,
-            'agendamento_id' => $agendamento->id,
-            'valor' => $servico->valor,
-            'valor_pago' => $statusPagamento === 'pago' ? $servico->valor : 0,
-            'data_vencimento' => $this->resolverVencimento($statusPagamento, $dataVencimento),
-            'forma_pagamento' => $formaPagamento,
-            'status' => $statusPagamento,
-        ]);
+            $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
+                valor_total: (float) $servico->valor,
+                condicao_pagamento: $condicao,
+                mes_referencia: $mesReferencia,
+                cliente_id: $data->cliente_id,
+                agendamento_id: $agendamento->id,
+                numero_parcelas: $numeroParcelas,
+                primeiro_vencimento: $primeiroVencimento ?? now(),
+                forma_pagamento_avista: $formaAvista,
+                forma_recebimento_prazo: $formaRecebimentoPrazo,
+                parcelas_personalizadas: $parcelasPersonalizadas,
+            ));
 
-        $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista);
 
-        return $agendamento;
-    }
-
-    public function criarPacote(VenderPacoteData $data, ?string $formaPagamento, string $statusPagamento, ?string $dataVencimento = null): VendaPacote
-    {
-        $pacote = $this->venderPacote->executar($data);
-
-        $pagamento = Pagamento::create([
-            'cliente_id' => $data->cliente_id,
-            'venda_pacote_id' => $pacote->id,
-            'valor' => $data->valor_total,
-            'valor_pago' => $statusPagamento === 'pago' ? $data->valor_total : 0,
-            'data_vencimento' => $this->resolverVencimento($statusPagamento, $dataVencimento),
-            'forma_pagamento' => $formaPagamento,
-            'status' => $statusPagamento,
-        ]);
-
-        $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
-
-        return $pacote;
-    }
-
-    public function cancelarAvulso(Agendamento $agendamento): Agendamento
-    {
-        return DB::transaction(function () use ($agendamento) {
-            $this->cancelarAgendamento->executar($agendamento);
-            $this->estornarPagamento($agendamento->pagamento);
-
-            return $agendamento->fresh();
+            return $agendamento;
         });
     }
 
-    public function cancelarPacote(VendaPacote $pacote): VendaPacote
-    {
-        return DB::transaction(function () use ($pacote) {
-            $pacote->agendamentos()
-                ->whereIn('status', ['agendado', 'confirmado'])
-                ->update(['status' => 'cancelado']);
+    /**
+     * Cria venda de pacote + pagamento.
+     */
+    public function criarPacote(
+        VenderPacoteData $data,
+        CondicaoPagamento $condicao,
+        Carbon $mesReferencia,
+        ?FormaPagamento $formaAvista = null,
+        ?int $numeroParcelas = null,
+        ?Carbon $primeiroVencimento = null,
+        ?array $parcelasPersonalizadas = null,
+        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+    ): VendaPacote {
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
+            $pacote = $this->venderPacote->executar($data);
 
-            $pacote->update(['status' => StatusVendaPacote::Cancelado]);
+            $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
+                valor_total: (float) $data->valor_total,
+                condicao_pagamento: $condicao,
+                mes_referencia: $mesReferencia,
+                cliente_id: $data->cliente_id,
+                venda_pacote_id: $pacote->id,
+                numero_parcelas: $numeroParcelas,
+                primeiro_vencimento: $primeiroVencimento ?? now(),
+                forma_pagamento_avista: $formaAvista,
+                forma_recebimento_prazo: $formaRecebimentoPrazo,
+                parcelas_personalizadas: $parcelasPersonalizadas,
+            ));
 
-            $pagamento = Pagamento::where('venda_pacote_id', $pacote->id)->first();
-            $this->estornarPagamento($pagamento);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista);
 
-            return $pacote->fresh();
+            return $pacote;
         });
     }
 
-    public function cancelarVendaProduto(VendaProduto $venda): VendaProduto
-    {
-        return DB::transaction(function () use ($venda) {
-            $venda->load('itens');
-
-            foreach ($venda->itens as $item) {
-                Produto::find($item->produto_id)?->increment('quantidade', $item->quantidade);
-
-                MovimentoEstoque::create([
-                    'produto_id' => $item->produto_id,
-                    'tipo' => 'entrada',
-                    'quantidade' => $item->quantidade,
-                ]);
-            }
-
-            $venda->update(['status' => StatusVendaProduto::Cancelada]);
-
-            $pagamento = Pagamento::where('venda_produto_id', $venda->id)->first();
-            $this->estornarPagamento($pagamento);
-
-            return $venda->fresh();
-        });
-    }
-
-    private function estornarPagamento(?Pagamento $pagamento): void
-    {
-        if (!$pagamento) {
-            return;
-        }
-
-        $estavaPago = $pagamento->status === StatusPagamento::Pago;
-        $pagamento->update(['status' => StatusPagamento::Estornado]);
-
-        if ($estavaPago && $pagamento->valor_pago > 0) {
-            $caixa = $this->caixaService->caixaAberto();
-            if ($caixa) {
-                MovimentoCaixa::create([
-                    'caixa_id' => $caixa->id,
-                    'tipo' => TipoMovimentoCaixa::Saida,
-                    'valor' => $pagamento->valor_pago,
-                    'descricao' => "Estorno pagamento #{$pagamento->id}",
-                ]);
-            }
-        }
-    }
-
-    public function criarVendaProduto(?int $cliente_id, array $itens, ?string $formaPagamento, string $statusPagamento, ?string $data = null, ?string $observacao = null, ?string $dataVencimento = null): VendaProduto
-    {
-        return DB::transaction(function () use ($cliente_id, $itens, $formaPagamento, $statusPagamento, $data, $observacao, $dataVencimento) {
+    public function criarVendaProduto(
+        ?int $cliente_id,
+        array $itens,
+        CondicaoPagamento $condicao,
+        Carbon $mesReferencia,
+        ?FormaPagamento $formaAvista = null,
+        ?int $numeroParcelas = null,
+        ?Carbon $primeiroVencimento = null,
+        ?string $data = null,
+        ?string $observacao = null,
+        ?array $parcelasPersonalizadas = null,
+        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+    ): VendaProduto {
+        return DB::transaction(function () use ($cliente_id, $itens, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $data, $observacao, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $subtotal = 0;
 
             foreach ($itens as &$item) {
@@ -433,48 +411,101 @@ class VendaService
                 ]);
             }
 
-            $pagamento = Pagamento::create([
-                'cliente_id' => $cliente_id ?: null,
-                'venda_produto_id' => $venda->id,
-                'valor' => $venda->valor_total,
-                'valor_pago' => $statusPagamento === 'pago' ? $venda->valor_total : 0,
-                'data_vencimento' => $this->resolverVencimento($statusPagamento, $dataVencimento),
-                'forma_pagamento' => $formaPagamento,
-                'status' => $statusPagamento,
-            ]);
+            $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
+                valor_total: (float) $venda->valor_total,
+                condicao_pagamento: $condicao,
+                mes_referencia: $mesReferencia,
+                cliente_id: $cliente_id,
+                venda_produto_id: $venda->id,
+                numero_parcelas: $numeroParcelas,
+                primeiro_vencimento: $primeiroVencimento ?? now(),
+                forma_pagamento_avista: $formaAvista,
+                forma_recebimento_prazo: $formaRecebimentoPrazo,
+                parcelas_personalizadas: $parcelasPersonalizadas,
+            ));
 
-            $this->registrarNoCaixaSeAberto($pagamento, $statusPagamento);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista);
 
             return $venda;
         });
     }
 
-    private function resolverVencimento(string $statusPagamento, ?string $dataVencimento): string
+    /**
+     * Se for venda à vista, aplica baixa automática na parcela única.
+     * Requer caixa aberto.
+     */
+    private function baixarAVistaSeAplicavel(Pagamento $pagamento, CondicaoPagamento $condicao, ?FormaPagamento $forma): void
     {
-        if ($statusPagamento === 'pago') {
-            return now()->toDateString();
+        if ($condicao !== CondicaoPagamento::AVista || !$forma) {
+            return;
         }
 
-        return $dataVencimento ?: now()->addDays(30)->toDateString();
+        $parcela = $pagamento->parcelas->first();
+        if (!$parcela) {
+            return;
+        }
+
+        $this->caixaService->darBaixaParcelaPagamento(
+            $parcela,
+            (float) $parcela->valor,
+            $forma,
+        );
     }
 
-    private function registrarNoCaixaSeAberto(Pagamento $pagamento, string $statusPagamento): void
+    public function cancelarAvulso(Agendamento $agendamento): Agendamento
     {
-        if ($statusPagamento !== 'pago') {
+        return DB::transaction(function () use ($agendamento) {
+            $this->cancelarAgendamento->executar($agendamento);
+            $this->estornarPagamentoSeExistir($agendamento->pagamento);
+
+            return $agendamento->fresh();
+        });
+    }
+
+    public function cancelarPacote(VendaPacote $pacote): VendaPacote
+    {
+        return DB::transaction(function () use ($pacote) {
+            $pacote->agendamentos()
+                ->whereIn('status', ['agendado', 'confirmado'])
+                ->update(['status' => 'cancelado']);
+
+            $pacote->update(['status' => StatusVendaPacote::Cancelado]);
+
+            $this->estornarPagamentoSeExistir($pacote->pagamento);
+
+            return $pacote->fresh();
+        });
+    }
+
+    public function cancelarVendaProduto(VendaProduto $venda): VendaProduto
+    {
+        return DB::transaction(function () use ($venda) {
+            $venda->load('itens');
+
+            foreach ($venda->itens as $item) {
+                Produto::find($item->produto_id)?->increment('quantidade', $item->quantidade);
+
+                MovimentoEstoque::create([
+                    'produto_id' => $item->produto_id,
+                    'tipo' => 'entrada',
+                    'quantidade' => $item->quantidade,
+                ]);
+            }
+
+            $venda->update(['status' => StatusVendaProduto::Cancelada]);
+
+            $this->estornarPagamentoSeExistir($venda->pagamento);
+
+            return $venda->fresh();
+        });
+    }
+
+    private function estornarPagamentoSeExistir(?Pagamento $pagamento): void
+    {
+        if (!$pagamento) {
             return;
         }
-
-        $caixa = $this->caixaService->caixaAberto();
-        if (!$caixa) {
-            return;
-        }
-
-        $this->caixaService->registrarEntrada(
-            $caixa,
-            $pagamento->valor,
-            "Venda - Pagamento #{$pagamento->id}",
-            $pagamento->forma_pagamento?->value,
-        );
+        $this->caixaService->estornarPagamento($pagamento);
     }
 
     public function podeEditar(?Pagamento $pagamento): bool
@@ -482,8 +513,7 @@ class VendaService
         if (!$pagamento) {
             return true;
         }
-
-        return (float) $pagamento->valor_pago === 0.0;
+        return $pagamento->valorPago() <= 0.0;
     }
 
     public function atualizarAvulso(Agendamento $agendamento, array $data): Agendamento
@@ -493,7 +523,7 @@ class VendaService
                 throw new \DomainException('Agendamento não pode ser editado nesse status.');
             }
             if (!$this->podeEditar($agendamento->pagamento)) {
-                throw new \DomainException('Venda já possui baixas; edição bloqueada.');
+                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
             $agendamento->update([
@@ -516,7 +546,7 @@ class VendaService
                 throw new \DomainException('Pacote não pode ser editado nesse status.');
             }
             if (!$this->podeEditar($pacote->pagamento)) {
-                throw new \DomainException('Venda já possui baixas; edição bloqueada.');
+                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
             $desconto = (float) ($data['desconto'] ?? $pacote->desconto);
@@ -533,11 +563,16 @@ class VendaService
             ]);
 
             if ($pacote->pagamento) {
-                $updates = ['valor' => $novoValorTotal];
+                $updates = ['valor_total' => $novoValorTotal];
                 if (isset($data['cliente_id'])) {
                     $updates['cliente_id'] = $data['cliente_id'];
                 }
                 $pacote->pagamento->update($updates);
+
+                // Se for parcela única (à vista) ou qualquer 1 parcela, propagar o novo valor
+                if ($pacote->pagamento->parcelas->count() === 1) {
+                    $pacote->pagamento->parcelas->first()->update(['valor' => $novoValorTotal]);
+                }
             }
 
             return $pacote->fresh();
@@ -551,7 +586,7 @@ class VendaService
                 throw new \DomainException('Venda não pode ser editada nesse status.');
             }
             if (!$this->podeEditar($venda->pagamento)) {
-                throw new \DomainException('Venda já possui baixas; edição bloqueada.');
+                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
             $venda->load('itens');
@@ -577,11 +612,15 @@ class VendaService
             ]);
 
             if ($venda->pagamento) {
-                $updates = ['valor' => $valorTotal];
+                $updates = ['valor_total' => $valorTotal];
                 if (isset($data['cliente_id'])) {
                     $updates['cliente_id'] = $data['cliente_id'];
                 }
                 $venda->pagamento->update($updates);
+
+                if ($venda->pagamento->parcelas->count() === 1) {
+                    $venda->pagamento->parcelas->first()->update(['valor' => $valorTotal]);
+                }
             }
 
             return $venda->fresh()->load('itens');

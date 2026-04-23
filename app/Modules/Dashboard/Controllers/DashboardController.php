@@ -2,12 +2,13 @@
 
 namespace App\Modules\Dashboard\Controllers;
 
+use App\Enums\StatusParcela;
 use App\Http\Controllers\Controller;
-use App\Enums\StatusPagamento;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Pagamento\Models\Pagamento;
+use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
@@ -22,14 +23,16 @@ class DashboardController extends Controller
         try {
             $agendamentosHoje = Agendamento::whereDate('inicio', today())->count();
             $totalClientes = Cliente::count();
-            $receitaMes = Pagamento::where('status', StatusPagamento::Pago)
-                ->whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->sum('valor_pago');
+
+            $receitaMes = (float) BaixaPagamento::whereMonth('data', now()->month)
+                ->whereYear('data', now()->year)
+                ->sum('valor');
+
             $servicosAtivos = Servico::count();
 
-            $contasReceber = Pagamento::where('status', StatusPagamento::Pendente)->count();
-            $totalContasReceber = Pagamento::where('status', StatusPagamento::Pendente)
+            $parcelasPendentes = ParcelaPagamento::where('status', StatusParcela::Pendente);
+            $contasReceber = (clone $parcelasPendentes)->count();
+            $totalContasReceber = (float) (clone $parcelasPendentes)
                 ->selectRaw('SUM(valor - valor_pago) as total')
                 ->value('total') ?? 0;
 
