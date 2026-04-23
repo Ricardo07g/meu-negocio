@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CondicaoPagamento;
 use App\Enums\FormaPagamento;
 use App\Enums\StatusAgendamento;
 use App\Enums\StatusCaixa;
 use App\Enums\StatusDespesa;
 use App\Enums\StatusPagamento;
+use App\Enums\StatusParcela;
 use App\Enums\StatusRede;
 use App\Enums\StatusVendaPacote;
 use App\Enums\StatusVendaProduto;
@@ -21,8 +23,10 @@ use App\Modules\Caixa\Models\MovimentoCaixa;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Despesa\Models\CategoriaDespesa;
 use App\Modules\Despesa\Models\Despesa;
+use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Pagamento\Models\Pagamento;
+use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
@@ -36,7 +40,6 @@ use Carbon\Carbon;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -46,17 +49,16 @@ use Spatie\Permission\Models\Role;
  */
 class DesenvolvimentoSeeder extends Seeder
 {
-    // Parâmetros de volume
     private const TOTAL_CLIENTES        = 500;
     private const TOTAL_SERVICOS        = 15;
     private const TOTAL_PRODUTOS        = 30;
     private const TOTAL_ATENDENTES      = 5;
-    private const TOTAL_AGENDAMENTOS    = 800;
-    private const TOTAL_VENDAS_PACOTE   = 80;
-    private const TOTAL_VENDAS_PRODUTO  = 120;
-    private const TOTAL_DESPESAS        = 200;
-    private const TOTAL_DESPESAS_PARCEL = 40; // além das simples
-    private const CAIXAS_DIAS           = 60;
+    private const TOTAL_AGENDAMENTOS    = 600;
+    private const TOTAL_VENDAS_PACOTE   = 60;
+    private const TOTAL_VENDAS_PRODUTO  = 100;
+    private const TOTAL_DESPESAS        = 150;
+    private const TOTAL_DESPESAS_PARCEL = 30;
+    private const CAIXAS_DIAS           = 45;
     private const DIAS_PASSADO          = 60;
     private const DIAS_FUTURO           = 30;
 
@@ -76,15 +78,14 @@ class DesenvolvimentoSeeder extends Seeder
     private array $servicos = [];
     /** @var Cliente[] */
     private array $clientes = [];
+    /** @var Caixa[] */
+    private array $caixasPorData = [];
 
     public function run(): void
     {
-        // Desabilita activity log para não poluir e ganhar velocidade
         config(['activitylog.enabled' => false]);
-
         $this->faker = FakerFactory::create('pt_BR');
 
-        // Garante que planos e permissões existem
         $this->call([
             PlanoSeeder::class,
             PermissaoSeeder::class,
@@ -96,11 +97,11 @@ class DesenvolvimentoSeeder extends Seeder
             $this->criarCategoriasEProdutos();
             $this->criarServicos();
             $this->criarClientes();
+            $this->criarCaixas();
             $this->criarAgendamentosEPagamentos();
             $this->criarVendasPacote();
             $this->criarVendasProduto();
             $this->criarDespesas();
-            $this->criarCaixasEMovimentos();
         });
 
         $this->command->info('');
@@ -149,13 +150,12 @@ class DesenvolvimentoSeeder extends Seeder
         $this->admin->syncRoles([$adminRole]);
 
         for ($i = 1; $i <= self::TOTAL_ATENDENTES; $i++) {
-            $nome = $this->faker->name();
             $atendente = Usuario::firstOrCreate(
                 ['email' => "atendente{$i}@teste.com"],
                 [
                     'rede_id'    => $this->rede->id,
                     'empresa_id' => $this->empresa->id,
-                    'nome'       => $nome,
+                    'nome'       => $this->faker->name(),
                     'password'   => 'password',
                     'ativo'      => true,
                     'atende'     => true,
@@ -170,16 +170,14 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarCategoriasEProdutos(): void
     {
-        $catProdNomes = ['Cabelo', 'Corpo', 'Rosto', 'Unhas', 'Consumíveis', 'Suplementos', 'Outros'];
-        foreach ($catProdNomes as $n) {
+        foreach (['Cabelo', 'Corpo', 'Rosto', 'Unhas', 'Consumíveis', 'Suplementos', 'Outros'] as $n) {
             $this->categoriasProduto[] = CategoriaProduto::firstOrCreate(
                 ['rede_id' => $this->rede->id, 'descricao' => $n],
                 ['ativo' => true],
             );
         }
 
-        $catDespNomes = ['Aluguel', 'Energia', 'Água', 'Internet', 'Salário', 'Fornecedor', 'Imposto', 'Marketing', 'Manutenção', 'Outros'];
-        foreach ($catDespNomes as $n) {
+        foreach (['Aluguel', 'Energia', 'Água', 'Internet', 'Salário', 'Fornecedor', 'Imposto', 'Marketing', 'Manutenção', 'Outros'] as $n) {
             $this->categoriasDespesa[] = CategoriaDespesa::firstOrCreate(
                 ['rede_id' => $this->rede->id, 'descricao' => $n],
                 ['ativo' => true],
@@ -219,21 +217,20 @@ class DesenvolvimentoSeeder extends Seeder
         ];
         foreach (array_slice($tiposAvulso, 0, self::TOTAL_SERVICOS - 4) as $s) {
             $this->servicos[] = Servico::create([
-                'rede_id'  => $this->rede->id,
-                'nome'     => $s[0],
-                'duracao'  => $s[1],
-                'valor'    => $s[2],
-                'tipo'     => TipoServico::Avulso,
+                'rede_id' => $this->rede->id,
+                'nome'    => $s[0],
+                'duracao' => $s[1],
+                'valor'   => $s[2],
+                'tipo'    => TipoServico::Avulso,
             ]);
         }
 
-        $pacotes = [
+        foreach ([
             ['Pacote Massagem 10 Sessões', 60, 1000, 10],
             ['Pacote Drenagem 8 Sessões', 60, 720, 8],
             ['Pacote Depilação Laser 6 Sessões', 30, 1200, 6],
             ['Pacote Limpeza de Pele 4 Sessões', 60, 520, 4],
-        ];
-        foreach ($pacotes as $p) {
+        ] as $p) {
             $this->servicos[] = Servico::create([
                 'rede_id'     => $this->rede->id,
                 'nome'        => $p[0],
@@ -244,7 +241,7 @@ class DesenvolvimentoSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Serviços: ' . count($this->servicos) . ' (mix avulso/pacote).');
+        $this->command->info('Serviços: ' . count($this->servicos) . '.');
     }
 
     private function criarClientes(): void
@@ -252,29 +249,55 @@ class DesenvolvimentoSeeder extends Seeder
         $this->command->info('Criando ' . self::TOTAL_CLIENTES . ' clientes…');
         for ($i = 0; $i < self::TOTAL_CLIENTES; $i++) {
             $this->clientes[] = Cliente::create([
-                'rede_id'             => $this->rede->id,
-                'nome'                => $this->faker->name(),
-                'telefone'            => $this->faker->cellphoneNumber(),
-                'telefone_whatsapp'   => $this->faker->boolean(70),
-                'email'               => $this->faker->boolean(60) ? $this->faker->safeEmail() : null,
-                'data_nascimento'     => $this->faker->boolean(80) ? $this->faker->dateTimeBetween('-70 years', '-18 years') : null,
-                'cpf'                 => $this->faker->boolean(60) ? $this->faker->cpf(false) : null,
-                'sexo'                => $this->faker->randomElement(['M', 'F', 'outro', null]),
-                'cep'                 => $this->faker->boolean(50) ? $this->faker->postcode() : null,
-                'estado'              => $this->faker->boolean(50) ? $this->faker->stateAbbr() : null,
-                'cidade'              => $this->faker->boolean(50) ? $this->faker->city() : null,
-                'bairro'              => $this->faker->boolean(50) ? $this->faker->streetName() : null,
-                'logradouro'          => $this->faker->boolean(50) ? $this->faker->streetAddress() : null,
-                'numero'              => $this->faker->boolean(50) ? (string) $this->faker->numberBetween(1, 9999) : null,
-                'complemento'         => $this->faker->boolean(25) ? $this->faker->secondaryAddress() : null,
-                'observacoes'         => $this->faker->boolean(15) ? $this->faker->sentence() : null,
+                'rede_id'           => $this->rede->id,
+                'nome'              => $this->faker->name(),
+                'telefone'          => $this->faker->cellphoneNumber(),
+                'telefone_whatsapp' => $this->faker->boolean(70),
+                'email'             => $this->faker->boolean(60) ? $this->faker->safeEmail() : null,
+                'data_nascimento'   => $this->faker->boolean(80) ? $this->faker->dateTimeBetween('-70 years', '-18 years') : null,
+                'cpf'               => $this->faker->boolean(60) ? $this->faker->cpf(false) : null,
+                'sexo'              => $this->faker->randomElement(['M', 'F', 'outro', null]),
             ]);
         }
     }
 
+    private function criarCaixas(): void
+    {
+        $this->command->info('Criando caixas dos últimos ' . self::CAIXAS_DIAS . ' dias…');
+        for ($i = self::CAIXAS_DIAS; $i >= 1; $i--) {
+            $data = Carbon::today()->subDays($i);
+            $caixa = Caixa::create([
+                'rede_id'        => $this->rede->id,
+                'empresa_id'     => $this->empresa->id,
+                'usuario_id'     => $this->admin->id,
+                'data'           => $data->toDateString(),
+                'saldo_abertura' => $this->faker->randomFloat(2, 50, 300),
+                'status'         => StatusCaixa::Fechado,
+                'fechado_em'     => $data->copy()->endOfDay(),
+                'fechado_por'    => $this->admin->id,
+            ]);
+            $this->caixasPorData[$data->toDateString()] = $caixa;
+        }
+        $hoje = Carbon::today();
+        $caixaHoje = Caixa::create([
+            'rede_id'        => $this->rede->id,
+            'empresa_id'     => $this->empresa->id,
+            'usuario_id'     => $this->admin->id,
+            'data'           => $hoje->toDateString(),
+            'saldo_abertura' => 200.00,
+            'status'         => StatusCaixa::Aberto,
+        ]);
+        $this->caixasPorData[$hoje->toDateString()] = $caixaHoje;
+    }
+
+    private function caixaParaData(Carbon $data): ?Caixa
+    {
+        return $this->caixasPorData[$data->toDateString()] ?? null;
+    }
+
     private function criarAgendamentosEPagamentos(): void
     {
-        $this->command->info('Criando ' . self::TOTAL_AGENDAMENTOS . ' agendamentos + pagamentos…');
+        $this->command->info('Criando ' . self::TOTAL_AGENDAMENTOS . ' agendamentos…');
         $avulsos = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Avulso));
 
         for ($i = 0; $i < self::TOTAL_AGENDAMENTOS; $i++) {
@@ -299,11 +322,10 @@ class DesenvolvimentoSeeder extends Seeder
                 'inicio'      => $inicio,
                 'fim'         => $fim,
                 'status'      => $status,
-                'observacoes' => $this->faker->boolean(15) ? $this->faker->sentence() : null,
             ]);
 
             if ($status === StatusAgendamento::Finalizado) {
-                $this->criarPagamentoParaAgendamento($ag);
+                $this->criarPagamentoAvulso($ag);
             }
         }
     }
@@ -313,54 +335,43 @@ class DesenvolvimentoSeeder extends Seeder
         if ($diasOffset < -1) {
             return $this->faker->randomElement([
                 StatusAgendamento::Finalizado, StatusAgendamento::Finalizado, StatusAgendamento::Finalizado,
-                StatusAgendamento::Cancelado, StatusAgendamento::Cancelado,
+                StatusAgendamento::Cancelado,
             ]);
         }
         if ($diasOffset <= 1) {
             return $this->faker->randomElement([
-                StatusAgendamento::Confirmado, StatusAgendamento::Confirmado, StatusAgendamento::Confirmado,
-                StatusAgendamento::Finalizado,
-                StatusAgendamento::Cancelado,
+                StatusAgendamento::Confirmado, StatusAgendamento::Finalizado, StatusAgendamento::Cancelado,
             ]);
         }
         return $this->faker->randomElement([
-            StatusAgendamento::Agendado, StatusAgendamento::Agendado,
-            StatusAgendamento::Confirmado,
-            StatusAgendamento::Cancelado,
+            StatusAgendamento::Agendado, StatusAgendamento::Agendado, StatusAgendamento::Confirmado, StatusAgendamento::Cancelado,
         ]);
     }
 
-    private function criarPagamentoParaAgendamento(Agendamento $ag): Pagamento
+    private function criarPagamentoAvulso(Agendamento $ag): void
     {
-        $valor = $ag->servico->valor;
-        [$status, $valorPago, $forma] = $this->rollStatusPagamento($valor);
+        $valor = (float) $ag->servico->valor;
+        $dataVenda = Carbon::parse($ag->inicio);
 
-        return Pagamento::create([
-            'rede_id'          => $this->rede->id,
-            'empresa_id'       => $this->empresa->id,
-            'cliente_id'       => $ag->cliente_id,
-            'agendamento_id'   => $ag->id,
-            'valor'            => $valor,
-            'valor_pago'       => $valorPago,
-            'data_vencimento'  => $ag->inicio->copy()->addDays($this->faker->numberBetween(0, 10)),
-            'forma_pagamento'  => $forma,
-            'status'           => $status,
-        ]);
-    }
-
-    /**
-     * @return array{0: StatusPagamento, 1: float, 2: ?FormaPagamento}
-     */
-    private function rollStatusPagamento(float $valor): array
-    {
-        $r = $this->faker->numberBetween(1, 100);
-        $forma = $this->faker->randomElement(FormaPagamento::cases());
-
-        if ($r <= 55) return [StatusPagamento::Pago,     $valor,                                                   $forma];
-        if ($r <= 75) return [StatusPagamento::Pendente, 0,                                                        null];
-        if ($r <= 85) return [StatusPagamento::Pendente, round($valor * $this->faker->randomFloat(2, 0.1, 0.8), 2), $forma];
-        if ($r <= 92) return [StatusPagamento::Estornado, $valor,                                                  $forma];
-        return [StatusPagamento::Cancelado, 0, null];
+        // 70% à vista, 30% a prazo (2-4 parcelas)
+        if ($this->faker->boolean(70)) {
+            $this->criarPagamentoAVista(
+                valorTotal: $valor,
+                mesReferencia: $dataVenda,
+                dataVenda: $dataVenda,
+                clienteId: $ag->cliente_id,
+                agendamentoId: $ag->id,
+            );
+        } else {
+            $this->criarPagamentoAPrazo(
+                valorTotal: $valor,
+                numParcelas: $this->faker->numberBetween(2, 4),
+                mesReferencia: $dataVenda,
+                primeiroVencimento: $dataVenda->copy()->addDays(30),
+                clienteId: $ag->cliente_id,
+                agendamentoId: $ag->id,
+            );
+        }
     }
 
     private function criarVendasPacote(): void
@@ -375,12 +386,6 @@ class DesenvolvimentoSeeder extends Seeder
             $atendente = $this->faker->randomElement($this->atendentes);
             $dataVenda = Carbon::now()->subDays($this->faker->numberBetween(1, self::DIAS_PASSADO));
 
-            $status = $this->faker->randomElement([
-                StatusVendaPacote::Ativo, StatusVendaPacote::Ativo, StatusVendaPacote::Ativo,
-                StatusVendaPacote::Concluido,
-                StatusVendaPacote::Cancelado,
-            ]);
-
             $vp = VendaPacote::create([
                 'rede_id'      => $this->rede->id,
                 'empresa_id'   => $this->empresa->id,
@@ -390,22 +395,28 @@ class DesenvolvimentoSeeder extends Seeder
                 'data'         => $dataVenda,
                 'valor_total'  => $pacote->valor,
                 'qtd_sessoes'  => $pacote->qtd_sessoes,
-                'status'       => $status,
+                'status'       => StatusVendaPacote::Ativo,
             ]);
 
-            // Pagamento do pacote
-            [$statusPg, $valorPago, $forma] = $this->rollStatusPagamento($pacote->valor);
-            Pagamento::create([
-                'rede_id'         => $this->rede->id,
-                'empresa_id'      => $this->empresa->id,
-                'cliente_id'      => $cliente->id,
-                'venda_pacote_id' => $vp->id,
-                'valor'           => $pacote->valor,
-                'valor_pago'      => $valorPago,
-                'data_vencimento' => $dataVenda->copy()->addDays($this->faker->numberBetween(0, 30)),
-                'forma_pagamento' => $forma,
-                'status'          => $statusPg,
-            ]);
+            // Pacote: 40% à vista, 60% a prazo (3-12 parcelas)
+            if ($this->faker->boolean(40)) {
+                $this->criarPagamentoAVista(
+                    valorTotal: (float) $pacote->valor,
+                    mesReferencia: $dataVenda,
+                    dataVenda: $dataVenda,
+                    clienteId: $cliente->id,
+                    vendaPacoteId: $vp->id,
+                );
+            } else {
+                $this->criarPagamentoAPrazo(
+                    valorTotal: (float) $pacote->valor,
+                    numParcelas: $this->faker->numberBetween(3, 12),
+                    mesReferencia: $dataVenda,
+                    primeiroVencimento: $dataVenda->copy()->addDays(30),
+                    clienteId: $cliente->id,
+                    vendaPacoteId: $vp->id,
+                );
+            }
         }
     }
 
@@ -417,12 +428,7 @@ class DesenvolvimentoSeeder extends Seeder
             $usuario = $this->faker->randomElement($this->atendentes);
             $dataVenda = Carbon::now()->subDays($this->faker->numberBetween(0, self::DIAS_PASSADO));
 
-            $status = $this->faker->randomElement([
-                StatusVendaProduto::Ativa, StatusVendaProduto::Ativa, StatusVendaProduto::Ativa, StatusVendaProduto::Ativa,
-                StatusVendaProduto::Cancelada,
-            ]);
-
-            $itensQtd = $this->faker->numberBetween(1, 5);
+            $itensQtd = $this->faker->numberBetween(1, 4);
             $subtotal = 0;
 
             $vp = VendaProduto::create([
@@ -432,10 +438,8 @@ class DesenvolvimentoSeeder extends Seeder
                 'usuario_id'  => $usuario->id,
                 'data'        => $dataVenda,
                 'subtotal'    => 0,
-                'desconto'    => 0,
-                'acrescimo'   => 0,
                 'valor_total' => 0,
-                'status'      => $status,
+                'status'      => StatusVendaProduto::Ativa,
             ]);
 
             for ($j = 0; $j < $itensQtd; $j++) {
@@ -458,32 +462,182 @@ class DesenvolvimentoSeeder extends Seeder
                     'updated_at'       => now(),
                 ]);
 
-                if ($status === StatusVendaProduto::Ativa) {
-                    MovimentoEstoque::create([
-                        'rede_id'    => $this->rede->id,
-                        'empresa_id' => $this->empresa->id,
-                        'produto_id' => $produto->id,
-                        'tipo'       => TipoMovimentoEstoque::Saida,
-                        'quantidade' => $qtd,
-                    ]);
-                    $produto->decrement('quantidade', $qtd);
-                }
+                MovimentoEstoque::create([
+                    'rede_id'    => $this->rede->id,
+                    'empresa_id' => $this->empresa->id,
+                    'produto_id' => $produto->id,
+                    'tipo'       => TipoMovimentoEstoque::Saida,
+                    'quantidade' => $qtd,
+                ]);
+                $produto->decrement('quantidade', $qtd);
             }
 
             $vp->update(['subtotal' => $subtotal, 'valor_total' => $subtotal]);
 
-            [$statusPg, $valorPago, $forma] = $this->rollStatusPagamento($subtotal);
-            Pagamento::create([
-                'rede_id'          => $this->rede->id,
-                'empresa_id'       => $this->empresa->id,
-                'cliente_id'       => $cliente->id,
-                'venda_produto_id' => $vp->id,
-                'valor'            => $subtotal,
-                'valor_pago'       => $valorPago,
-                'data_vencimento'  => $dataVenda->copy()->addDays($this->faker->numberBetween(0, 30)),
-                'forma_pagamento'  => $forma,
-                'status'           => $statusPg,
+            // Produto: 80% à vista, 20% a prazo (2-3 parcelas)
+            if ($this->faker->boolean(80)) {
+                $this->criarPagamentoAVista(
+                    valorTotal: $subtotal,
+                    mesReferencia: $dataVenda,
+                    dataVenda: $dataVenda,
+                    clienteId: $cliente->id,
+                    vendaProdutoId: $vp->id,
+                );
+            } else {
+                $this->criarPagamentoAPrazo(
+                    valorTotal: $subtotal,
+                    numParcelas: $this->faker->numberBetween(2, 3),
+                    mesReferencia: $dataVenda,
+                    primeiroVencimento: $dataVenda->copy()->addDays(30),
+                    clienteId: $cliente->id,
+                    vendaProdutoId: $vp->id,
+                );
+            }
+        }
+    }
+
+    private function criarPagamentoAVista(
+        float $valorTotal,
+        Carbon $mesReferencia,
+        Carbon $dataVenda,
+        ?int $clienteId = null,
+        ?int $agendamentoId = null,
+        ?int $vendaPacoteId = null,
+        ?int $vendaProdutoId = null,
+    ): void {
+        $forma = $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Cartao]);
+
+        $pagamento = Pagamento::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'cliente_id' => $clienteId,
+            'agendamento_id' => $agendamentoId,
+            'venda_pacote_id' => $vendaPacoteId,
+            'venda_produto_id' => $vendaProdutoId,
+            'valor_total' => $valorTotal,
+            'condicao_pagamento' => CondicaoPagamento::AVista,
+            'mes_referencia' => $mesReferencia->copy()->startOfMonth(),
+            'status' => StatusPagamento::Pago,
+        ]);
+
+        $parcela = ParcelaPagamento::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'pagamento_id' => $pagamento->id,
+            'numero' => 1,
+            'total' => 1,
+            'valor' => $valorTotal,
+            'valor_pago' => $valorTotal,
+            'data_vencimento' => $dataVenda,
+            'forma_pagamento' => $forma,
+            'status' => StatusParcela::Pago,
+        ]);
+
+        $caixa = $this->caixaParaData($dataVenda);
+        if ($caixa) {
+            $baixa = BaixaPagamento::create([
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'parcela_pagamento_id' => $parcela->id,
+                'caixa_id' => $caixa->id,
+                'valor' => $valorTotal,
+                'forma_pagamento' => $forma,
+                'data' => $dataVenda,
             ]);
+
+            MovimentoCaixa::create([
+                'caixa_id' => $caixa->id,
+                'tipo' => TipoMovimentoCaixa::Entrada,
+                'valor' => $valorTotal,
+                'descricao' => "Recebimento venda #{$pagamento->id}",
+                'forma_pagamento' => $forma,
+                'baixa_pagamento_id' => $baixa->id,
+            ]);
+        }
+    }
+
+    private function criarPagamentoAPrazo(
+        float $valorTotal,
+        int $numParcelas,
+        Carbon $mesReferencia,
+        Carbon $primeiroVencimento,
+        ?int $clienteId = null,
+        ?int $agendamentoId = null,
+        ?int $vendaPacoteId = null,
+        ?int $vendaProdutoId = null,
+    ): void {
+        $pagamento = Pagamento::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'cliente_id' => $clienteId,
+            'agendamento_id' => $agendamentoId,
+            'venda_pacote_id' => $vendaPacoteId,
+            'venda_produto_id' => $vendaProdutoId,
+            'valor_total' => $valorTotal,
+            'condicao_pagamento' => CondicaoPagamento::APrazo,
+            'mes_referencia' => $mesReferencia->copy()->startOfMonth(),
+            'status' => StatusPagamento::Pendente,
+        ]);
+
+        $valorParcela = round($valorTotal / $numParcelas, 2);
+        $valorUltima = round($valorTotal - $valorParcela * ($numParcelas - 1), 2);
+
+        $pagas = 0;
+        for ($i = 1; $i <= $numParcelas; $i++) {
+            $venc = $primeiroVencimento->copy()->addMonths($i - 1);
+            $valor = $i === $numParcelas ? $valorUltima : $valorParcela;
+
+            // Primeiras parcelas com mais chance de já estarem pagas
+            $chance = max(10, 75 - ($i - 1) * 20);
+            $foiPaga = $venc->isPast() && $this->faker->boolean($chance);
+
+            $status = $foiPaga ? StatusParcela::Pago : StatusParcela::Pendente;
+            $formaBaixa = $foiPaga
+                ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Cartao])
+                : null;
+
+            $parcela = ParcelaPagamento::create([
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'pagamento_id' => $pagamento->id,
+                'numero' => $i,
+                'total' => $numParcelas,
+                'valor' => $valor,
+                'valor_pago' => $foiPaga ? $valor : 0,
+                'data_vencimento' => $venc,
+                'forma_pagamento' => $formaBaixa,
+                'status' => $status,
+            ]);
+
+            if ($foiPaga) {
+                $pagas++;
+                $caixa = $this->caixaParaData($venc);
+                if ($caixa) {
+                    $baixa = BaixaPagamento::create([
+                        'rede_id' => $this->rede->id,
+                        'empresa_id' => $this->empresa->id,
+                        'parcela_pagamento_id' => $parcela->id,
+                        'caixa_id' => $caixa->id,
+                        'valor' => $valor,
+                        'forma_pagamento' => $formaBaixa,
+                        'data' => $venc,
+                    ]);
+                    MovimentoCaixa::create([
+                        'caixa_id' => $caixa->id,
+                        'tipo' => TipoMovimentoCaixa::Entrada,
+                        'valor' => $valor,
+                        'descricao' => "Parcela {$i}/{$numParcelas} do pagamento #{$pagamento->id}",
+                        'forma_pagamento' => $formaBaixa,
+                        'baixa_pagamento_id' => $baixa->id,
+                    ]);
+                }
+            }
+        }
+
+        if ($pagas === $numParcelas) {
+            $pagamento->update(['status' => StatusPagamento::Pago]);
+        } elseif ($pagas > 0) {
+            $pagamento->update(['status' => StatusPagamento::Parcial]);
         }
     }
 
@@ -491,188 +645,191 @@ class DesenvolvimentoSeeder extends Seeder
     {
         $this->command->info('Criando ' . (self::TOTAL_DESPESAS + self::TOTAL_DESPESAS_PARCEL) . ' despesas…');
 
-        // Despesas simples
+        // Despesas simples (à vista)
         for ($i = 0; $i < self::TOTAL_DESPESAS; $i++) {
             $categoria = $this->faker->randomElement($this->categoriasDespesa);
             $valor = $this->faker->randomFloat(2, 50, 3000);
             $emissao = Carbon::now()->subDays($this->faker->numberBetween(0, self::DIAS_PASSADO));
-            $vencDias = $this->faker->numberBetween(-30, 30);
-            $vencimento = Carbon::now()->addDays($vencDias)->startOfDay();
+            $vencimento = $emissao->copy()->addDays($this->faker->numberBetween(0, 30));
 
-            $statusRoll = $this->faker->numberBetween(1, 100);
-            [$status, $valorPago, $forma] = $this->decideStatusDespesa($statusRoll, $valor, $vencimento);
-
-            $despesa = Despesa::create([
-                'rede_id'              => $this->rede->id,
-                'empresa_id'           => $this->empresa->id,
-                'categoria_despesa_id' => $categoria->id,
-                'nome'                 => $categoria->descricao . ' — ' . $this->faker->words(2, true),
-                'fornecedor_nome'      => $this->faker->boolean(75) ? $this->faker->company() : null,
-                'documento'            => $this->faker->boolean(60) ? 'DOC-' . $this->faker->numerify('######') : null,
-                'observacoes'          => $this->faker->boolean(25) ? $this->faker->sentence() : null,
-                'valor'                => $valor,
-                'valor_pago'           => $valorPago,
-                'forma_pagamento'      => $forma,
-                'data_emissao'         => $emissao,
-                'data_vencimento'      => $vencimento,
-                'competencia'          => $vencimento->copy()->startOfMonth(),
-                'status'               => $status,
-            ]);
-
-            // Gera baixa(s) parciais quando há valor pago sem ser total
-            if ($valorPago > 0 && $valorPago < $valor) {
-                $this->criarBaixaDespesa($despesa, $valorPago, $forma ?? FormaPagamento::Pix);
-            } elseif ($status === StatusDespesa::Paga && $valorPago > 0) {
-                $this->criarBaixaDespesa($despesa, $valor, $forma ?? FormaPagamento::Pix);
-            }
+            $this->criarDespesaAVista(
+                categoriaId: $categoria->id,
+                nome: $categoria->descricao . ' — ' . $this->faker->words(2, true),
+                valor: $valor,
+                dataEmissao: $emissao,
+                vencimento: $vencimento,
+                mesReferencia: $emissao,
+                fornecedor: $this->faker->boolean(75) ? $this->faker->company() : null,
+                documento: $this->faker->boolean(60) ? 'DOC-' . $this->faker->numerify('######') : null,
+            );
         }
 
-        // Despesas parceladas (cada uma gera 3-12 registros)
+        // Despesas parceladas
         for ($i = 0; $i < self::TOTAL_DESPESAS_PARCEL; $i++) {
             $categoria = $this->faker->randomElement($this->categoriasDespesa);
             $n = $this->faker->numberBetween(3, 12);
             $valorTotal = $this->faker->randomFloat(2, 600, 6000);
-            $valorParcela = round($valorTotal / $n, 2);
-            $valorUltima = round($valorTotal - $valorParcela * ($n - 1), 2);
-            $grupo = (string) Str::uuid();
-            $nome = $categoria->descricao . ' — ' . $this->faker->words(2, true);
-            $fornecedor = $this->faker->company();
-            $documento = 'DOC-' . $this->faker->numerify('######');
             $emissao = Carbon::now()->subDays($this->faker->numberBetween(0, 15));
-            $primeiroVenc = $emissao->copy()->addDays($this->faker->numberBetween(-20, 15));
+            $primeiroVenc = $emissao->copy()->addDays($this->faker->numberBetween(0, 20));
 
-            for ($j = 1; $j <= $n; $j++) {
-                $vencimento = $primeiroVenc->copy()->addMonths($j - 1);
-                $valor = $j === $n ? $valorUltima : $valorParcela;
+            $this->criarDespesaAPrazo(
+                categoriaId: $categoria->id,
+                nome: $categoria->descricao . ' — ' . $this->faker->words(2, true),
+                valorTotal: $valorTotal,
+                numParcelas: $n,
+                dataEmissao: $emissao,
+                primeiroVencimento: $primeiroVenc,
+                mesReferencia: $emissao,
+                fornecedor: $this->faker->company(),
+                documento: 'DOC-' . $this->faker->numerify('######'),
+            );
+        }
+    }
 
-                // Primeiras parcelas com maior chance de estar pagas
-                $chancesPagar = max(20, 85 - ($j - 1) * 20);
-                $pago = $this->faker->numberBetween(1, 100) <= $chancesPagar && $vencimento->isPast();
+    private function criarDespesaAVista(
+        int $categoriaId,
+        string $nome,
+        float $valor,
+        Carbon $dataEmissao,
+        Carbon $vencimento,
+        Carbon $mesReferencia,
+        ?string $fornecedor = null,
+        ?string $documento = null,
+    ): void {
+        $paga = $vencimento->isPast() && $this->faker->boolean(60);
+        $status = $paga ? StatusDespesa::Paga : StatusDespesa::Pendente;
+        $forma = $paga ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Boleto]) : null;
 
-                $despesa = Despesa::create([
-                    'rede_id'               => $this->rede->id,
-                    'empresa_id'            => $this->empresa->id,
-                    'categoria_despesa_id'  => $categoria->id,
-                    'nome'                  => "{$nome} ({$j}/{$n})",
-                    'fornecedor_nome'       => $fornecedor,
-                    'documento'             => $documento,
-                    'valor'                 => $valor,
-                    'valor_pago'            => $pago ? $valor : 0,
-                    'forma_pagamento'       => $pago ? $this->faker->randomElement(FormaPagamento::cases()) : null,
-                    'data_emissao'          => $emissao,
-                    'data_vencimento'       => $vencimento,
-                    'competencia'           => $vencimento->copy()->startOfMonth(),
-                    'status'                => $pago ? StatusDespesa::Paga : StatusDespesa::Pendente,
-                    'grupo_parcelamento_id' => $grupo,
-                    'parcela_numero'        => $j,
-                    'parcela_total'         => $n,
+        $despesa = Despesa::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'categoria_despesa_id' => $categoriaId,
+            'nome' => $nome,
+            'fornecedor_nome' => $fornecedor,
+            'documento' => $documento,
+            'valor_total' => $valor,
+            'condicao_pagamento' => CondicaoPagamento::AVista,
+            'mes_referencia' => $mesReferencia->copy()->startOfMonth(),
+            'data_emissao' => $dataEmissao,
+            'status' => $status,
+        ]);
+
+        $parcela = ParcelaDespesa::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'despesa_id' => $despesa->id,
+            'numero' => 1,
+            'total' => 1,
+            'valor' => $valor,
+            'valor_pago' => $paga ? $valor : 0,
+            'data_vencimento' => $vencimento,
+            'forma_pagamento' => $forma,
+            'status' => $paga ? StatusParcela::Pago : StatusParcela::Pendente,
+        ]);
+
+        if ($paga) {
+            $caixa = $this->caixaParaData($vencimento);
+            if ($caixa) {
+                $baixa = BaixaDespesa::create([
+                    'rede_id' => $this->rede->id,
+                    'empresa_id' => $this->empresa->id,
+                    'parcela_despesa_id' => $parcela->id,
+                    'caixa_id' => $caixa->id,
+                    'valor' => $valor,
+                    'forma_pagamento' => $forma,
+                    'data' => $vencimento,
                 ]);
-
-                if ($pago) {
-                    $this->criarBaixaDespesa($despesa, $valor, $despesa->forma_pagamento);
-                }
+                MovimentoCaixa::create([
+                    'caixa_id' => $caixa->id,
+                    'tipo' => TipoMovimentoCaixa::Saida,
+                    'valor' => $valor,
+                    'descricao' => "Pagamento despesa #{$despesa->id}",
+                    'forma_pagamento' => $forma,
+                    'baixa_despesa_id' => $baixa->id,
+                ]);
             }
         }
     }
 
-    /**
-     * @return array{0: StatusDespesa, 1: float, 2: ?FormaPagamento}
-     */
-    private function decideStatusDespesa(int $roll, float $valor, Carbon $vencimento): array
-    {
-        $forma = $this->faker->randomElement(FormaPagamento::cases());
-
-        if ($roll <= 40) return [StatusDespesa::Paga,     $valor,                                                    $forma];
-        if ($roll <= 60) return [StatusDespesa::Pendente, 0,                                                         null];
-        if ($roll <= 75) return [StatusDespesa::Pendente, round($valor * $this->faker->randomFloat(2, 0.2, 0.7), 2), $forma];
-        // 20% pendentes com vencimento passado = vencidas (derivado de data)
-        if ($roll <= 92 && $vencimento->isPast()) return [StatusDespesa::Pendente, 0, null];
-        return [StatusDespesa::Cancelada, 0, null];
-    }
-
-    private function criarBaixaDespesa(Despesa $despesa, float $valor, ?FormaPagamento $forma): void
-    {
-        BaixaDespesa::create([
-            'rede_id'         => $this->rede->id,
-            'empresa_id'      => $this->empresa->id,
-            'despesa_id'      => $despesa->id,
-            'caixa_id'        => null,
-            'valor'           => $valor,
-            'forma_pagamento' => ($forma ?? FormaPagamento::Pix)->value,
-            'data'            => $despesa->data_emissao ?? now(),
-            'observacao'      => $this->faker->boolean(20) ? $this->faker->sentence() : null,
-        ]);
-    }
-
-    private function criarCaixasEMovimentos(): void
-    {
-        $this->command->info('Criando caixas e movimentos dos últimos ' . self::CAIXAS_DIAS . ' dias…');
-        for ($i = self::CAIXAS_DIAS; $i >= 1; $i--) {
-            $data = Carbon::today()->subDays($i);
-            $this->criarCaixaDia($data, StatusCaixa::Fechado);
-        }
-        // Caixa de hoje aberto
-        $this->criarCaixaDia(Carbon::today(), StatusCaixa::Aberto);
-    }
-
-    private function criarCaixaDia(Carbon $data, StatusCaixa $status): void
-    {
-        $caixa = Caixa::create([
-            'rede_id'         => $this->rede->id,
-            'empresa_id'      => $this->empresa->id,
-            'usuario_id'      => $this->admin->id,
-            'data'            => $data->toDateString(),
-            'saldo_abertura'  => $this->faker->randomFloat(2, 50, 300),
-            'saldo_fechamento'=> null,
-            'status'          => $status,
-            'observacao'      => null,
+    private function criarDespesaAPrazo(
+        int $categoriaId,
+        string $nome,
+        float $valorTotal,
+        int $numParcelas,
+        Carbon $dataEmissao,
+        Carbon $primeiroVencimento,
+        Carbon $mesReferencia,
+        ?string $fornecedor = null,
+        ?string $documento = null,
+    ): void {
+        $despesa = Despesa::create([
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'categoria_despesa_id' => $categoriaId,
+            'nome' => $nome,
+            'fornecedor_nome' => $fornecedor,
+            'documento' => $documento,
+            'valor_total' => $valorTotal,
+            'condicao_pagamento' => CondicaoPagamento::APrazo,
+            'mes_referencia' => $mesReferencia->copy()->startOfMonth(),
+            'data_emissao' => $dataEmissao,
+            'status' => StatusDespesa::Pendente,
         ]);
 
-        $qtdMov = $this->faker->numberBetween(4, 18);
-        for ($m = 0; $m < $qtdMov; $m++) {
-            $tipo = $this->faker->randomElement([
-                TipoMovimentoCaixa::Entrada, TipoMovimentoCaixa::Entrada, TipoMovimentoCaixa::Entrada,
-                TipoMovimentoCaixa::Saida, TipoMovimentoCaixa::Saida,
-                TipoMovimentoCaixa::Sangria,
-                TipoMovimentoCaixa::Reforco,
+        $valorParcela = round($valorTotal / $numParcelas, 2);
+        $valorUltima = round($valorTotal - $valorParcela * ($numParcelas - 1), 2);
+
+        $pagas = 0;
+        for ($i = 1; $i <= $numParcelas; $i++) {
+            $venc = $primeiroVencimento->copy()->addMonths($i - 1);
+            $valor = $i === $numParcelas ? $valorUltima : $valorParcela;
+            $chance = max(15, 70 - ($i - 1) * 20);
+            $foiPaga = $venc->isPast() && $this->faker->boolean($chance);
+            $status = $foiPaga ? StatusParcela::Pago : StatusParcela::Pendente;
+            $forma = $foiPaga ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Boleto, FormaPagamento::Dinheiro]) : null;
+
+            $parcela = ParcelaDespesa::create([
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'despesa_id' => $despesa->id,
+                'numero' => $i,
+                'total' => $numParcelas,
+                'valor' => $valor,
+                'valor_pago' => $foiPaga ? $valor : 0,
+                'data_vencimento' => $venc,
+                'forma_pagamento' => $forma,
+                'status' => $status,
             ]);
-            $valor = match ($tipo) {
-                TipoMovimentoCaixa::Entrada => $this->faker->randomFloat(2, 30, 500),
-                TipoMovimentoCaixa::Saida   => $this->faker->randomFloat(2, 20, 300),
-                TipoMovimentoCaixa::Sangria => $this->faker->randomFloat(2, 50, 400),
-                TipoMovimentoCaixa::Reforco => $this->faker->randomFloat(2, 50, 400),
-            };
-            MovimentoCaixa::create([
-                'caixa_id'        => $caixa->id,
-                'tipo'            => $tipo,
-                'valor'           => $valor,
-                'descricao'       => $this->descricaoMovimento($tipo),
-                'forma_pagamento' => $tipo === TipoMovimentoCaixa::Entrada
-                    ? $this->faker->randomElement(FormaPagamento::cases())->value
-                    : null,
-            ]);
+
+            if ($foiPaga) {
+                $pagas++;
+                $caixa = $this->caixaParaData($venc);
+                if ($caixa) {
+                    $baixa = BaixaDespesa::create([
+                        'rede_id' => $this->rede->id,
+                        'empresa_id' => $this->empresa->id,
+                        'parcela_despesa_id' => $parcela->id,
+                        'caixa_id' => $caixa->id,
+                        'valor' => $valor,
+                        'forma_pagamento' => $forma,
+                        'data' => $venc,
+                    ]);
+                    MovimentoCaixa::create([
+                        'caixa_id' => $caixa->id,
+                        'tipo' => TipoMovimentoCaixa::Saida,
+                        'valor' => $valor,
+                        'descricao' => "Parcela {$i}/{$numParcelas} da despesa #{$despesa->id}",
+                        'forma_pagamento' => $forma,
+                        'baixa_despesa_id' => $baixa->id,
+                    ]);
+                }
+            }
         }
 
-        if ($status === StatusCaixa::Fechado) {
-            $entradas = MovimentoCaixa::where('caixa_id', $caixa->id)
-                ->whereIn('tipo', [TipoMovimentoCaixa::Entrada, TipoMovimentoCaixa::Reforco])->sum('valor');
-            $saidas = MovimentoCaixa::where('caixa_id', $caixa->id)
-                ->whereIn('tipo', [TipoMovimentoCaixa::Saida, TipoMovimentoCaixa::Sangria])->sum('valor');
-            $caixa->update([
-                'saldo_fechamento' => (float) $caixa->saldo_abertura + (float) $entradas - (float) $saidas,
-                'fechado_em'       => $data->copy()->endOfDay(),
-                'fechado_por'      => $this->admin->id,
-            ]);
+        if ($pagas === $numParcelas) {
+            $despesa->update(['status' => StatusDespesa::Paga]);
+        } elseif ($pagas > 0) {
+            $despesa->update(['status' => StatusDespesa::Parcial]);
         }
-    }
-
-    private function descricaoMovimento(TipoMovimentoCaixa $tipo): string
-    {
-        return match ($tipo) {
-            TipoMovimentoCaixa::Entrada => 'Recebimento ' . $this->faker->randomElement(['atendimento', 'venda', 'pacote']),
-            TipoMovimentoCaixa::Saida   => 'Pagamento ' . $this->faker->randomElement(['fornecedor', 'taxa', 'despesa']),
-            TipoMovimentoCaixa::Sangria => 'Sangria para cofre',
-            TipoMovimentoCaixa::Reforco => 'Reforço de troco',
-        };
     }
 }
