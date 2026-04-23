@@ -18,11 +18,12 @@ use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Venda\Actions\CriarVendaProdutoAction;
+use App\Modules\Venda\Actions\SincronizarItensVendaProdutoAction;
 use App\Modules\Venda\Actions\VenderPacoteAction;
 use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Venda\Models\VendaProdutoItem;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,8 @@ class VendaService
         private CancelarAgendamentoAction $cancelarAgendamento,
         private CaixaService $caixaService,
         private CriarPagamentoComParcelasAction $criarPagamento,
+        private CriarVendaProdutoAction $criarVendaProdutoAction,
+        private SincronizarItensVendaProdutoAction $sincronizarItens,
     ) {}
 
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
@@ -367,62 +370,19 @@ class VendaService
         ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
     ): VendaProduto {
         return DB::transaction(function () use ($cliente_id, $itens, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $data, $observacao, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
-            $subtotal = 0;
-
-            foreach ($itens as &$item) {
-                $produto = Produto::findOrFail($item['produto_id']);
-                $item['descricao'] = $produto->nome;
-                $item['valor_unitario'] = $item['valor_unitario'] ?? $produto->valor_venda;
-                $item['desconto'] = $item['desconto'] ?? 0;
-                $item['acrescimo'] = $item['acrescimo'] ?? 0;
-                $item['subtotal'] = ($item['valor_unitario'] * $item['quantidade']) - $item['desconto'] + $item['acrescimo'];
-                $subtotal += $item['subtotal'];
-            }
-            unset($item);
-
-            $venda = VendaProduto::create([
-                'cliente_id' => $cliente_id ?: null,
-                'usuario_id' => auth()->id(),
-                'data' => $data ?? now()->toDateString(),
-                'subtotal' => $subtotal,
-                'valor_total' => $subtotal,
-                'status' => StatusVendaProduto::Ativa,
-                'observacao' => $observacao,
-            ]);
-
-            foreach ($itens as $item) {
-                VendaProdutoItem::create([
-                    'venda_produto_id' => $venda->id,
-                    'produto_id' => $item['produto_id'],
-                    'descricao' => $item['descricao'],
-                    'quantidade' => $item['quantidade'],
-                    'valor_unitario' => $item['valor_unitario'],
-                    'desconto' => $item['desconto'],
-                    'acrescimo' => $item['acrescimo'],
-                    'subtotal' => $item['subtotal'],
-                ]);
-
-                Produto::find($item['produto_id'])->decrement('quantidade', $item['quantidade']);
-
-                MovimentoEstoque::create([
-                    'produto_id' => $item['produto_id'],
-                    'tipo' => 'saida',
-                    'quantidade' => $item['quantidade'],
-                ]);
-            }
-
-            $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
-                valor_total: (float) $venda->valor_total,
-                condicao_pagamento: $condicao,
-                mes_referencia: $mesReferencia,
+            ['venda' => $venda, 'pagamento' => $pagamento] = $this->criarVendaProdutoAction->executar(
                 cliente_id: $cliente_id,
-                venda_produto_id: $venda->id,
-                numero_parcelas: $numeroParcelas,
-                primeiro_vencimento: $primeiroVencimento ?? now(),
-                forma_pagamento_avista: $formaAvista,
-                forma_recebimento_prazo: $formaRecebimentoPrazo,
-                parcelas_personalizadas: $parcelasPersonalizadas,
-            ));
+                itens: $itens,
+                condicao: $condicao,
+                mesReferencia: $mesReferencia,
+                formaAvista: $formaAvista,
+                numeroParcelas: $numeroParcelas,
+                primeiroVencimento: $primeiroVencimento,
+                data: $data,
+                observacao: $observacao,
+                parcelasPersonalizadas: $parcelasPersonalizadas,
+                formaRecebimentoPrazo: $formaRecebimentoPrazo,
+            );
 
             $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista);
 
@@ -592,7 +552,7 @@ class VendaService
             $venda->load('itens');
 
             if (isset($data['itens']) && is_array($data['itens'])) {
-                $this->sincronizarItensVendaProduto($venda, $data['itens']);
+                $this->sincronizarItens->executar($venda, $data['itens']);
                 $venda->refresh();
                 $venda->load('itens');
             }
@@ -627,79 +587,4 @@ class VendaService
         });
     }
 
-    private function sincronizarItensVendaProduto(VendaProduto $venda, array $novoItens): void
-    {
-        $antigosPorId = $venda->itens->keyBy('id');
-        $idsManipulados = [];
-
-        foreach ($novoItens as $entrada) {
-            $produtoId = (int) ($entrada['produto_id'] ?? 0);
-            $quantidade = (int) ($entrada['quantidade'] ?? 0);
-            if ($produtoId <= 0 || $quantidade <= 0) {
-                continue;
-            }
-
-            $produto = Produto::findOrFail($produtoId);
-            $valorUnitario = (float) ($entrada['valor_unitario'] ?? $produto->valor_venda);
-            $descontoItem = (float) ($entrada['desconto'] ?? 0);
-            $acrescimoItem = (float) ($entrada['acrescimo'] ?? 0);
-            $subtotalItem = ($valorUnitario * $quantidade) - $descontoItem + $acrescimoItem;
-
-            $itemAntigoId = isset($entrada['id']) ? (int) $entrada['id'] : null;
-            $itemAntigo = $itemAntigoId ? ($antigosPorId[$itemAntigoId] ?? null) : null;
-
-            if ($itemAntigo) {
-                $idsManipulados[] = $itemAntigo->id;
-                $diff = $quantidade - $itemAntigo->quantidade;
-                if ($diff !== 0) {
-                    $produto->decrement('quantidade', $diff);
-                    MovimentoEstoque::create([
-                        'produto_id' => $produto->id,
-                        'tipo' => $diff > 0 ? 'saida' : 'entrada',
-                        'quantidade' => abs($diff),
-                    ]);
-                }
-                $itemAntigo->update([
-                    'produto_id' => $produto->id,
-                    'descricao' => $produto->nome,
-                    'quantidade' => $quantidade,
-                    'valor_unitario' => $valorUnitario,
-                    'desconto' => $descontoItem,
-                    'acrescimo' => $acrescimoItem,
-                    'subtotal' => $subtotalItem,
-                ]);
-            } else {
-                $produto->decrement('quantidade', $quantidade);
-                MovimentoEstoque::create([
-                    'produto_id' => $produto->id,
-                    'tipo' => 'saida',
-                    'quantidade' => $quantidade,
-                ]);
-                $novo = VendaProdutoItem::create([
-                    'venda_produto_id' => $venda->id,
-                    'produto_id' => $produto->id,
-                    'descricao' => $produto->nome,
-                    'quantidade' => $quantidade,
-                    'valor_unitario' => $valorUnitario,
-                    'desconto' => $descontoItem,
-                    'acrescimo' => $acrescimoItem,
-                    'subtotal' => $subtotalItem,
-                ]);
-                $idsManipulados[] = $novo->id;
-            }
-        }
-
-        foreach ($antigosPorId as $id => $itemAntigo) {
-            if (in_array($id, $idsManipulados, true)) {
-                continue;
-            }
-            Produto::find($itemAntigo->produto_id)?->increment('quantidade', $itemAntigo->quantidade);
-            MovimentoEstoque::create([
-                'produto_id' => $itemAntigo->produto_id,
-                'tipo' => 'entrada',
-                'quantidade' => $itemAntigo->quantidade,
-            ]);
-            $itemAntigo->delete();
-        }
-    }
 }
