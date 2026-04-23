@@ -61,6 +61,42 @@
 
         /* Alinha btn-sm no carrinho com form-control-sm (~47px: padding 24 + 14*1.5 + 2) */
         #tabelaCarrinho .btn-sm { min-height: calc(2.8125rem + 2px); }
+
+        /* ── Ícone de ajuda nos filtros (x-label-info) ───────────── */
+        .label-info-icon {
+            font-size: 16px;
+            color: #8a94a6;
+            cursor: help;
+            vertical-align: -2px;
+            transition: color .15s ease;
+        }
+        .label-info-icon:hover { color: #3454d1; }
+
+        /* ── Tooltip customizado para explicações de filtros ─────── */
+        .tooltip.tooltip-label-info { --bs-tooltip-max-width: 320px; }
+        .tooltip.tooltip-label-info .tooltip-inner {
+            max-width: 320px;
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            text-align: left;
+            color: #f8f9fb;
+            background-color: #1f2a3d;
+            border-radius: 8px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+            letter-spacing: .1px;
+        }
+        .tooltip.tooltip-label-info .tooltip-inner b,
+        .tooltip.tooltip-label-info .tooltip-inner strong {
+            color: #8ab4ff;
+            font-weight: 600;
+        }
+        .tooltip.tooltip-label-info .tooltip-inner br + b,
+        .tooltip.tooltip-label-info .tooltip-inner br + strong { display: inline-block; margin-top: 4px; }
+        .tooltip.tooltip-label-info .tooltip-arrow::before { border-top-color: #1f2a3d; }
+        .tooltip.tooltip-label-info.bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: #1f2a3d; }
+        .tooltip.tooltip-label-info.bs-tooltip-start .tooltip-arrow::before { border-left-color: #1f2a3d; }
+        .tooltip.tooltip-label-info.bs-tooltip-end .tooltip-arrow::before { border-right-color: #1f2a3d; }
     </style>
 </head>
 
@@ -105,15 +141,6 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Categorias de Produto --}}
-                    @can('produto.ver')
-                    <li class="nxl-item">
-                        <a href="{{ route('categorias-produto.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-grid"></i></span>
-                            <span class="nxl-mtext">Categorias</span>
-                        </a>
-                    </li>
-                    @endcan
                     {{-- Servicos --}}
                     @can('servico.ver')
                     <li class="nxl-item">
@@ -132,7 +159,6 @@
                         </a>
                     </li>
                     @endcan
-
                     {{-- Agendamentos --}}
                     <li class="nxl-item nxl-caption">
                         <label>Agendamentos</label>
@@ -192,6 +218,32 @@
                         </a>
                     </li>
                     @endcan
+                    @endif
+
+                    {{-- Cadastros auxiliares (submenu) --}}
+                    @if(auth()->user()->can('produto.ver') || auth()->user()->can('categoria_despesa.ver'))
+                    @php
+                        $rotaAtiva = request()->routeIs('categorias-produto.*') || request()->routeIs('categorias-despesa.*');
+                    @endphp
+                    <li class="nxl-item nxl-hasmenu {{ $rotaAtiva ? 'active nxl-trigger' : '' }}">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-folder"></i></span>
+                            <span class="nxl-mtext">Cadastros</span>
+                            <span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu" @if($rotaAtiva) style="display:block;" @endif>
+                            @can('produto.ver')
+                            <li class="nxl-item {{ request()->routeIs('categorias-produto.*') ? 'active' : '' }}">
+                                <a class="nxl-link" href="{{ route('categorias-produto.index') }}">Categorias de Produto</a>
+                            </li>
+                            @endcan
+                            @can('categoria_despesa.ver')
+                            <li class="nxl-item {{ request()->routeIs('categorias-despesa.*') ? 'active' : '' }}">
+                                <a class="nxl-link" href="{{ route('categorias-despesa.index') }}">Categorias de Despesa</a>
+                            </li>
+                            @endcan
+                        </ul>
+                    </li>
                     @endif
 
                     <li class="nxl-item nxl-caption">
@@ -396,6 +448,57 @@
             window.swalAlerta = function(msg) {
                 Swal.fire({ icon: 'warning', title: 'Atenção', text: msg, confirmButtonColor: '#3085d6' });
             };
+
+            // Renegociação de parcela via SweetAlert2
+            document.querySelectorAll('.js-renegociar-parcela').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    var action = this.dataset.action;
+                    var valor = this.dataset.valor;
+                    var vencimento = this.dataset.vencimento;
+                    var csrf = document.querySelector('meta[name="csrf-token"]')?.content
+                        || document.querySelector('input[name="_token"]')?.value || '';
+
+                    Swal.fire({
+                        title: 'Renegociar parcela',
+                        html:
+                            '<div class="text-start">' +
+                            '<label class="form-label mb-1">Novo vencimento</label>' +
+                            '<input id="swalVenc" type="date" class="form-control mb-3" value="' + vencimento + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
+                            '<label class="form-label mb-1">Novo valor (R$)</label>' +
+                            '<input id="swalValor" type="number" step="0.01" min="0.01" class="form-control mb-3" value="' + parseFloat(valor).toFixed(2) + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
+                            '<label class="form-label mb-1">Motivo / observação</label>' +
+                            '<textarea id="swalObs" rows="3" class="form-control" style="width:100%;max-width:100%;box-sizing:border-box;"></textarea>' +
+                            '</div>',
+                        showCancelButton: true,
+                        confirmButtonText: 'Salvar renegociação',
+                        cancelButtonText: 'Cancelar',
+                        confirmButtonColor: '#3454d1',
+                        focusConfirm: false,
+                        preConfirm: function () {
+                            var v = document.getElementById('swalVenc').value;
+                            var vl = document.getElementById('swalValor').value;
+                            if (!v || !vl) {
+                                Swal.showValidationMessage('Preencha vencimento e valor.');
+                                return false;
+                            }
+                            return { vencimento: v, valor: vl, obs: document.getElementById('swalObs').value };
+                        }
+                    }).then(function (res) {
+                        if (!res.isConfirmed) return;
+                        var form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = action;
+                        form.innerHTML =
+                            '<input type="hidden" name="_token" value="' + csrf + '">' +
+                            '<input type="hidden" name="_method" value="PATCH">' +
+                            '<input type="hidden" name="data_vencimento" value="' + res.value.vencimento + '">' +
+                            '<input type="hidden" name="valor" value="' + res.value.valor + '">' +
+                            '<input type="hidden" name="observacao" value="' + (res.value.obs || '').replace(/"/g, '&quot;') + '">';
+                        document.body.appendChild(form);
+                        form.submit();
+                    });
+                });
+            });
         });
     </script>
 

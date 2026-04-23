@@ -29,7 +29,10 @@
                     </div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Situação financeira</label>
+                        <label class="form-label">
+                            Situação financeira
+                            <x-label-info content="<b>Em dia</b>: cliente não tem contas em aberto ou só tem parcelas com vencimento futuro.<br><b>Pendente</b>: tem parcelas em aberto, mas nenhuma vencida.<br><b>Vencido</b>: tem ao menos uma parcela com vencimento no passado sem ter sido paga." />
+                        </label>
                         <select name="situacao_financeira" class="form-select">
                             <option value="">Todas</option>
                             <option value="em_dia" @selected(request('situacao_financeira') === 'em_dia')>Em dia</option>
@@ -38,7 +41,10 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Atividade</label>
+                        <label class="form-label">
+                            Atividade
+                            <x-label-info content="Classifica o cliente pela data do último atendimento ou venda.<br><b>Ativo</b>: teve movimento nos últimos 30 dias.<br><b>Sumido 30+/60+/90+/180+ dias</b>: último contato foi há mais tempo — útil para campanhas de reengajamento.<br><b>Novo</b>: cadastrado nos últimos 30 dias." />
+                        </label>
                         <select name="atividade" class="form-select">
                             <option value="">Todas</option>
                             <option value="ativo" @selected(request('atividade') === 'ativo')>Ativo (últimos 30 dias)</option>

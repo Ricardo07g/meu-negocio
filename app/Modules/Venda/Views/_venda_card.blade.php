@@ -24,9 +24,14 @@
         'pacote' => route('vendas.edit-pacote', $venda->id),
         'produto' => route('vendas.edit-produto', $venda->id),
     };
+    $valorPagoAtual = $pagamento ? (float) $pagamento->valorPago() : 0.0;
+    $totalRecebidoLiquido = $pagamento ? (float) $pagamento->totalRecebidoLiquido() : 0.0;
     $statusEditavel = in_array($venda->status, ['ativo', 'ativa', 'agendado', 'confirmado']);
-    $semBaixas = !$pagamento || (float) $pagamento->valor_pago === 0.0;
+    $semBaixas = !$pagamento || $valorPagoAtual === 0.0;
     $podeEditar = $statusEditavel && $semBaixas;
+
+    $vendaCancelada = in_array($venda->status, ['cancelado', 'cancelada']);
+    $podeImprimirRecibo = !$vendaCancelada && $pagamento && $valorPagoAtual > 0.0;
 @endphp
 
 <div class="d-flex align-items-center">
@@ -54,16 +59,13 @@
                     <i class="feather-more-vertical"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                        <a href="javascript:void(0);" class="dropdown-item" data-open-payments="#{{ $collapseId }}" data-target-tab="#{{ $tabPagamentosId }}">
-                            <i class="feather-dollar-sign me-2"></i>Ver pagamentos
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('vendas.recibo', [$venda->tipo, $venda->id]) }}" target="_blank" class="dropdown-item">
-                            <i class="feather-printer me-2"></i>Imprimir recibo
-                        </a>
-                    </li>
+                    @if($podeImprimirRecibo)
+                        <li>
+                            <a href="{{ route('vendas.recibo', [$venda->tipo, $venda->id]) }}" target="_blank" class="dropdown-item">
+                                <i class="feather-printer me-2"></i>Imprimir recibo
+                            </a>
+                        </li>
+                    @endif
                     @if($podeEditar)
                         @can('agendamento.editar')
                             <li>
@@ -141,19 +143,22 @@
                         </div>
                         @if($pagamento)
                             <div class="col-md-3">
-                                <div class="fs-12 text-muted">Forma pagamento</div>
-                                <div class="fw-semibold">{{ $pagamento->forma_pagamento?->value ? ucfirst($pagamento->forma_pagamento->value) : '—' }}</div>
+                                <div class="fs-12 text-muted">Condição</div>
+                                <div class="fw-semibold">{{ $pagamento->condicao_pagamento->label() }}</div>
                             </div>
                             <div class="col-md-3">
                                 <div class="fs-12 text-muted">Status pagamento</div>
-                                <span class="badge bg-soft-secondary text-secondary">{{ ucfirst($pagamento->status->value) }}</span>
+                                <span class="badge bg-soft-{{ $pagamento->status->cor() }} text-{{ $pagamento->status->cor() }}">{{ $pagamento->status->label() }}</span>
                             </div>
                             <div class="col-md-3">
-                                <div class="fs-12 text-muted">Pago / Total</div>
+                                <div class="fs-12 text-muted">Recebido (líquido) / Total</div>
                                 <div class="fw-semibold">
-                                    R$ {{ number_format($pagamento->valor_pago, 2, ',', '.') }}
-                                    / R$ {{ number_format($pagamento->valor, 2, ',', '.') }}
+                                    R$ {{ number_format($totalRecebidoLiquido, 2, ',', '.') }}
+                                    / R$ {{ number_format($pagamento->valor_total, 2, ',', '.') }}
                                 </div>
+                                @if(abs($totalRecebidoLiquido - $valorPagoAtual) > 0.009)
+                                    <div class="fs-11 text-muted">Principal quitado: R$ {{ number_format($valorPagoAtual, 2, ',', '.') }}</div>
+                                @endif
                             </div>
                         @endif
 
@@ -309,55 +314,36 @@
                     </div>
                 @endif
 
-                {{-- Aba Pagamentos --}}
+                {{-- Aba Pagamentos (parcelas) --}}
                 <div class="tab-pane fade p-0" id="{{ $tabPagamentosId }}" role="tabpanel">
-                    @if($pagamento)
+                    @if($pagamento && $pagamento->parcelas->count())
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Data</th>
-                                        <th>Forma</th>
+                                        <th>#</th>
+                                        <th>Vencimento</th>
                                         <th>Status</th>
+                                        <th>Forma</th>
                                         <th class="text-end">Valor</th>
                                         <th class="text-end">Pago</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr>
-                                        <td>{{ $pagamento->created_at->format('d/m/Y H:i') }}</td>
-                                        <td>{{ $pagamento->forma_pagamento?->value ? ucfirst($pagamento->forma_pagamento->value) : '—' }}</td>
-                                        <td><span class="badge bg-soft-secondary text-secondary">{{ ucfirst($pagamento->status->value) }}</span></td>
-                                        <td class="text-end">R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
-                                        <td class="text-end fw-semibold">R$ {{ number_format($pagamento->valor_pago, 2, ',', '.') }}</td>
-                                    </tr>
+                                    @foreach($pagamento->parcelas as $parcela)
+                                        @php $statusEfetivoP = $parcela->statusEfetivo(); @endphp
+                                        <tr>
+                                            <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
+                                            <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
+                                            <td><span class="badge bg-soft-{{ $statusEfetivoP->cor() }} text-{{ $statusEfetivoP->cor() }}">{{ $statusEfetivoP->label() }}</span></td>
+                                            <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                                            <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
+                                            <td class="text-end fw-semibold">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>
-
-                        @if($pagamento->baixas->count())
-                            <div class="px-3 pt-3 pb-1 fs-12 text-muted fw-semibold">Baixas / Recebimentos</div>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Data</th>
-                                            <th>Forma</th>
-                                            <th class="text-end">Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($pagamento->baixas as $baixa)
-                                            <tr>
-                                                <td>{{ $baixa->created_at->format('d/m/Y H:i') }}</td>
-                                                <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>
-                                                <td class="text-end fw-semibold">R$ {{ number_format($baixa->valor, 2, ',', '.') }}</td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @endif
                     @else
                         <div class="text-center text-muted py-4">Nenhum pagamento registrado.</div>
                     @endif

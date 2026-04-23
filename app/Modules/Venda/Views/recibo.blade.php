@@ -175,25 +175,31 @@
 </table>
 
 @if($pagamento)
+    @php
+        $valorPagoRec = $pagamento->totalRecebidoLiquido();
+    @endphp
     <div class="pagamento-block">
         <strong>Pagamento</strong><br>
-        Forma: {{ $pagamento->forma_pagamento?->value ? ucfirst($pagamento->forma_pagamento->value) : 'Fiado (a prazo)' }}<br>
-        Status: {{ ucfirst($pagamento->status->value) }}<br>
-        Pago: R$ {{ number_format($pagamento->valor_pago, 2, ',', '.') }} de R$ {{ number_format($pagamento->valor, 2, ',', '.') }}
-        @if($pagamento->data_vencimento) <br>Vencimento: {{ $pagamento->data_vencimento->format('d/m/Y') }}@endif
+        Condição: {{ $pagamento->condicao_pagamento->label() }}<br>
+        Status: {{ $pagamento->status->label() }}<br>
+        Recebido (líquido): R$ {{ number_format($valorPagoRec, 2, ',', '.') }} de R$ {{ number_format($pagamento->valor_total, 2, ',', '.') }}<br>
+        Mês de referência: {{ $pagamento->mes_referencia->format('m/Y') }}
 
-        @if($pagamento->baixas->count())
-            <div style="margin-top:8px;"><strong>Histórico de baixas:</strong></div>
+        @if($pagamento->parcelas->count())
+            <div style="margin-top:8px;"><strong>Parcelas:</strong></div>
             <table class="baixas">
                 <thead>
-                    <tr><th>Data</th><th>Forma</th><th class="text-end">Valor</th></tr>
+                    <tr><th>#</th><th>Vencimento</th><th>Status</th><th>Forma</th><th class="text-end">Valor</th><th class="text-end">Pago</th></tr>
                 </thead>
                 <tbody>
-                    @foreach($pagamento->baixas as $baixa)
+                    @foreach($pagamento->parcelas as $parcela)
                         <tr>
-                            <td>{{ $baixa->created_at->format('d/m/Y H:i') }}</td>
-                            <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>
-                            <td class="text-end">R$ {{ number_format($baixa->valor, 2, ',', '.') }}</td>
+                            <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
+                            <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
+                            <td>{{ $parcela->statusEfetivo()->label() }}</td>
+                            <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                            <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
+                            <td class="text-end">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
                         </tr>
                     @endforeach
                 </tbody>

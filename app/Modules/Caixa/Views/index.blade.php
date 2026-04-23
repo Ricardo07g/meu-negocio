@@ -6,6 +6,33 @@
     <li class="breadcrumb-item active">Caixa</li>
 @endsection
 
+@push('css')
+<style>
+    /* Modais do Caixa — SweetAlert2 customizado */
+    .swal-caixa .swal2-html-container { text-align: left; padding: 0 1.5rem !important; margin: 1rem 0 0 !important; }
+    .swal-caixa .swal-field { margin-bottom: 1rem; }
+    .swal-caixa .swal-field label { display: block; font-size: 0.8rem; font-weight: 600; color: #495057; margin-bottom: 0.35rem; letter-spacing: 0.02em; }
+    .swal-caixa .swal-field input.form-control,
+    .swal-caixa .swal-field textarea.form-control { border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.95rem; width: 100%; transition: border-color .15s, box-shadow .15s; box-sizing: border-box; }
+    .swal-caixa .swal-field input.form-control:focus,
+    .swal-caixa .swal-field textarea.form-control:focus { border-color: #3454d1; box-shadow: 0 0 0 0.2rem rgba(52,84,209,.15); outline: 0; }
+    .swal-caixa .swal-field .swal-prefix-input { position: relative; width: 100%; }
+    .swal-caixa .swal-field .swal-prefix-input .swal-prefix { position: absolute; top: 50%; left: 0.85rem; transform: translateY(-50%); font-weight: 600; color: #6c757d; font-size: 0.95rem; pointer-events: none; z-index: 2; }
+    .swal-caixa .swal-field .swal-prefix-input input.form-control { padding-left: 2.5rem; }
+    .swal-caixa .swal-resumo { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 0.5rem; padding: 0.85rem 1rem; margin-bottom: 1rem; }
+    .swal-caixa .swal-resumo .row-line { display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; font-size: 0.9rem; }
+    .swal-caixa .swal-resumo .row-line.total { border-top: 1px dashed #ced4da; margin-top: 0.4rem; padding-top: 0.55rem; font-weight: 700; font-size: 1rem; }
+    .swal-caixa .swal-resumo .label { color: #6c757d; }
+    .swal-caixa .swal-resumo .valor { font-weight: 600; color: #212529; font-variant-numeric: tabular-nums; }
+    .swal-caixa .swal-resumo .valor.entrada { color: #198754; }
+    .swal-caixa .swal-resumo .valor.saida { color: #dc3545; }
+    .swal-caixa #swal-diferenca.diff-positivo { color: #198754; }
+    .swal-caixa #swal-diferenca.diff-negativo { color: #dc3545; }
+    .swal-caixa #swal-diferenca.diff-zero { color: #6c757d; }
+    .swal-caixa .swal-hint { font-size: 0.8rem; color: #6c757d; margin-top: 0.35rem; }
+</style>
+@endpush
+
 @section('content')
     {{-- Navegacao por data --}}
     @php
@@ -137,6 +164,24 @@
 
         {{-- Info fechamento (caixa fechado) --}}
         @if($caixa->status->value === 'fechado')
+        @can('financeiro.editar')
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="hstack gap-2">
+                    <button type="button" class="btn btn-success ms-auto" id="btn-reabrir">
+                        <i class="feather-unlock me-2"></i>Reabrir Caixa
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <form id="form-reabrir" action="{{ route('caixas.reabrir', $caixa) }}" method="POST" style="display:none;">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="motivo" id="reabrir-motivo">
+        </form>
+        @endcan
+
         <div class="card stretch stretch-full mb-4">
             <div class="card-header">
                 <h5 class="card-title">Informações do Fechamento</h5>
@@ -165,7 +210,7 @@
                     @if($caixa->observacao)
                     <div class="col-12">
                         <strong>Observação:</strong><br>
-                        {{ $caixa->observacao }}
+                        <span style="white-space: pre-line;">{{ $caixa->observacao }}</span>
                     </div>
                     @endif
                 </div>
@@ -239,27 +284,46 @@
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const formatBRL = function(v) {
+        return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
     @if(!$caixa && !$ehFuturo)
-    // Abrir Caixa
+    // ABRIR
     var btnAbrir = document.getElementById('btn-abrir');
     if (btnAbrir) {
         btnAbrir.addEventListener('click', function() {
             Swal.fire({
                 title: 'Abrir Caixa',
-                html: '<input id="swal-saldo" class="swal2-input" type="number" step="0.01" min="0" placeholder="Saldo de abertura (R$)" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                      '<textarea id="swal-obs" class="swal2-input" rows="3" placeholder="Observação (opcional)" style="width:100%;max-width:100%;height:auto;box-sizing:border-box;"></textarea>',
+                iconHtml: '<i class="feather-unlock" style="font-size:28px;color:#3454d1;"></i>',
+                customClass: { popup: 'swal-caixa' },
+                width: 480,
+                html: `
+                    <div class="swal-field">
+                        <label>Saldo de abertura</label>
+                        <div class="swal-prefix-input">
+                            <span class="swal-prefix">R$</span>
+                            <input id="swal-saldo" class="form-control" type="number" step="0.01" min="0" placeholder="0,00" autofocus>
+                        </div>
+                        <div class="swal-hint">Valor em dinheiro disponível no caixa ao abrir.</div>
+                    </div>
+                    <div class="swal-field">
+                        <label>Observação (opcional)</label>
+                        <textarea id="swal-obs" class="form-control" rows="5" placeholder="Ex: Troco inicial deixado pela gerência..."></textarea>
+                    </div>
+                `,
                 showCancelButton: true,
-                confirmButtonText: 'Abrir',
+                confirmButtonText: '<i class="feather-check me-1"></i> Abrir Caixa',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#3454d1',
+                focusConfirm: false,
                 preConfirm: function() {
                     var saldo = document.getElementById('swal-saldo').value;
                     if (saldo === '' || saldo === null || parseFloat(saldo) < 0) {
                         Swal.showValidationMessage('Informe o saldo de abertura');
                         return false;
                     }
-                    var obs = document.getElementById('swal-obs').value;
-                    return { saldo: saldo, obs: obs };
+                    return { saldo: saldo, obs: document.getElementById('swal-obs').value };
                 }
             }).then(function(result) {
                 if (result.value) {
@@ -273,16 +337,32 @@ document.addEventListener('DOMContentLoaded', function() {
     @endif
 
     @if($caixa && $caixa->status->value === 'aberto')
-    // Sangria
+    // SANGRIA
     document.getElementById('btn-sangria').addEventListener('click', function() {
         Swal.fire({
-            title: 'Sangria',
-            html: '<input id="swal-valor" class="swal2-input" type="number" step="0.01" min="0.01" placeholder="Valor (R$)" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                  '<textarea id="swal-descricao" class="swal2-input" rows="3" placeholder="Descrição" style="width:100%;max-width:100%;height:auto;box-sizing:border-box;"></textarea>',
+            title: 'Registrar Sangria',
+            iconHtml: '<i class="feather-minus-circle" style="font-size:28px;color:#ffc107;"></i>',
+            customClass: { popup: 'swal-caixa' },
+            width: 480,
+            html: `
+                <div class="swal-hint mb-3" style="margin-top:-0.25rem;">Retirada de dinheiro do caixa (ex: depósito bancário, pagamento).</div>
+                <div class="swal-field">
+                    <label>Valor da sangria</label>
+                    <div class="swal-prefix-input">
+                        <span class="swal-prefix">R$</span>
+                        <input id="swal-valor" class="form-control" type="number" step="0.01" min="0.01" placeholder="0,00" autofocus>
+                    </div>
+                </div>
+                <div class="swal-field">
+                    <label>Descrição</label>
+                    <textarea id="swal-descricao" class="form-control" rows="5" placeholder="Ex: Depósito bancário..."></textarea>
+                </div>
+            `,
             showCancelButton: true,
-            confirmButtonText: 'Registrar',
+            confirmButtonText: '<i class="feather-check me-1"></i> Registrar',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#3454d1',
+            focusConfirm: false,
             preConfirm: function() {
                 var valor = document.getElementById('swal-valor').value;
                 var descricao = document.getElementById('swal-descricao').value;
@@ -305,16 +385,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Reforço
+    // REFORÇO
     document.getElementById('btn-reforco').addEventListener('click', function() {
         Swal.fire({
-            title: 'Reforço',
-            html: '<input id="swal-valor" class="swal2-input" type="number" step="0.01" min="0.01" placeholder="Valor (R$)" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                  '<textarea id="swal-descricao" class="swal2-input" rows="3" placeholder="Descrição" style="width:100%;max-width:100%;height:auto;box-sizing:border-box;"></textarea>',
+            title: 'Registrar Reforço',
+            iconHtml: '<i class="feather-plus-circle" style="font-size:28px;color:#0dcaf0;"></i>',
+            customClass: { popup: 'swal-caixa' },
+            width: 480,
+            html: `
+                <div class="swal-hint mb-3" style="margin-top:-0.25rem;">Entrada de dinheiro no caixa (ex: aporte, troco trazido).</div>
+                <div class="swal-field">
+                    <label>Valor do reforço</label>
+                    <div class="swal-prefix-input">
+                        <span class="swal-prefix">R$</span>
+                        <input id="swal-valor" class="form-control" type="number" step="0.01" min="0.01" placeholder="0,00" autofocus>
+                    </div>
+                </div>
+                <div class="swal-field">
+                    <label>Descrição</label>
+                    <textarea id="swal-descricao" class="form-control" rows="5" placeholder="Ex: Aporte do proprietário..."></textarea>
+                </div>
+            `,
             showCancelButton: true,
-            confirmButtonText: 'Registrar',
+            confirmButtonText: '<i class="feather-check me-1"></i> Registrar',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#3454d1',
+            focusConfirm: false,
             preConfirm: function() {
                 var valor = document.getElementById('swal-valor').value;
                 var descricao = document.getElementById('swal-descricao').value;
@@ -337,25 +433,66 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Fechar Caixa
+    // FECHAR (com resumo e diferença em tempo real)
+    const saldoEsperado = {{ number_format($saldoAtual, 2, '.', '') }};
+    const totalEntradas = {{ number_format($totalEntradas + $totalReforcos, 2, '.', '') }};
+    const totalSaidas = {{ number_format($totalSaidas, 2, '.', '') }};
+    const saldoAbertura = {{ number_format($caixa->saldo_abertura ?? 0, 2, '.', '') }};
+
     document.getElementById('btn-fechar').addEventListener('click', function() {
         Swal.fire({
             title: 'Fechar Caixa',
-            html: '<label class="swal2-input-label">Saldo contado (R$)</label>' +
-                  '<input id="swal-saldo" class="swal2-input" type="number" step="0.01" min="0" value="{{ number_format($saldoAtual, 2, '.', '') }}" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                  '<textarea id="swal-obs" class="swal2-input" rows="3" placeholder="Observação (opcional)" style="width:100%;max-width:100%;height:auto;box-sizing:border-box;"></textarea>',
+            iconHtml: '<i class="feather-lock" style="font-size:28px;color:#dc3545;"></i>',
+            customClass: { popup: 'swal-caixa' },
+            width: 520,
+            html: `
+                <div class="swal-resumo">
+                    <div class="row-line"><span class="label">Saldo de abertura</span><span class="valor">${formatBRL(saldoAbertura)}</span></div>
+                    <div class="row-line"><span class="label">Total entradas</span><span class="valor entrada">+ ${formatBRL(totalEntradas)}</span></div>
+                    <div class="row-line"><span class="label">Total saídas</span><span class="valor saida">− ${formatBRL(totalSaidas)}</span></div>
+                    <div class="row-line total"><span class="label">Saldo esperado</span><span class="valor">${formatBRL(saldoEsperado)}</span></div>
+                </div>
+                <div class="swal-field">
+                    <label>Saldo contado (dinheiro em caixa)</label>
+                    <div class="swal-prefix-input">
+                        <span class="swal-prefix">R$</span>
+                        <input id="swal-saldo" class="form-control" type="number" step="0.01" min="0" value="${saldoEsperado.toFixed(2)}" autofocus>
+                    </div>
+                    <div class="swal-hint">Diferença: <strong id="swal-diferenca" class="diff-zero">R$ 0,00</strong></div>
+                </div>
+                <div class="swal-field">
+                    <label>Observação (opcional)</label>
+                    <textarea id="swal-obs" class="form-control" rows="5" placeholder="Ex: Sobra de troco, ajuste manual..."></textarea>
+                </div>
+            `,
             showCancelButton: true,
-            confirmButtonText: 'Fechar Caixa',
+            confirmButtonText: '<i class="feather-lock me-1"></i> Fechar Caixa',
             cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#3454d1',
+            confirmButtonColor: '#dc3545',
+            focusConfirm: false,
+            didOpen: function() {
+                const inp = document.getElementById('swal-saldo');
+                const dif = document.getElementById('swal-diferenca');
+                const atualizar = function() {
+                    const contado = parseFloat(inp.value || 0);
+                    const delta = contado - saldoEsperado;
+                    dif.textContent = (delta >= 0 ? '+ ' : '− ') + formatBRL(Math.abs(delta));
+                    dif.classList.remove('diff-positivo', 'diff-negativo', 'diff-zero');
+                    if (Math.abs(delta) < 0.005) dif.classList.add('diff-zero');
+                    else if (delta > 0) dif.classList.add('diff-positivo');
+                    else dif.classList.add('diff-negativo');
+                };
+                inp.addEventListener('input', atualizar);
+                atualizar();
+                inp.select();
+            },
             preConfirm: function() {
                 var saldo = document.getElementById('swal-saldo').value;
                 if (saldo === '' || saldo === null || parseFloat(saldo) < 0) {
                     Swal.showValidationMessage('Informe o saldo contado');
                     return false;
                 }
-                var obs = document.getElementById('swal-obs').value;
-                return { saldo: saldo, obs: obs };
+                return { saldo: saldo, obs: document.getElementById('swal-obs').value };
             }
         }).then(function(result) {
             if (result.value) {
@@ -365,6 +502,52 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    @endif
+
+    @if($caixa && $caixa->status->value === 'fechado')
+    @can('financeiro.editar')
+    // REABRIR
+    var btnReabrir = document.getElementById('btn-reabrir');
+    if (btnReabrir) {
+        btnReabrir.addEventListener('click', function() {
+            Swal.fire({
+                title: 'Reabrir Caixa',
+                iconHtml: '<i class="feather-unlock" style="font-size:28px;color:#198754;"></i>',
+                customClass: { popup: 'swal-caixa' },
+                width: 500,
+                html: `
+                    <div class="swal-hint mb-3" style="margin-top:-0.25rem;">
+                        Esta ação reverte o fechamento do caixa e registra um log de auditoria.
+                        Informe o motivo para que fique salvo no histórico.
+                    </div>
+                    <div class="swal-field">
+                        <label>Motivo da reabertura <span style="color:#dc3545;">*</span></label>
+                        <textarea id="swal-motivo" class="form-control" rows="5" placeholder="Ex: Baixa de pagamento esquecida, ajuste de valor contado..." autofocus></textarea>
+                        <div class="swal-hint">Mínimo 5 caracteres. Ficará registrado na observação do caixa.</div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: '<i class="feather-unlock me-1"></i> Reabrir',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#198754',
+                focusConfirm: false,
+                preConfirm: function() {
+                    var motivo = document.getElementById('swal-motivo').value.trim();
+                    if (motivo.length < 5) {
+                        Swal.showValidationMessage('Informe um motivo com ao menos 5 caracteres');
+                        return false;
+                    }
+                    return { motivo: motivo };
+                }
+            }).then(function(result) {
+                if (result.value) {
+                    document.getElementById('reabrir-motivo').value = result.value.motivo;
+                    document.getElementById('form-reabrir').submit();
+                }
+            });
+        });
+    }
+    @endcan
     @endif
 });
 </script>

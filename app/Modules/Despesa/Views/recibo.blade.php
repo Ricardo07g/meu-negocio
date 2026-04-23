@@ -34,7 +34,9 @@
 <body>
 
 @php
-    $saldo = (float) $despesa->valor - (float) $despesa->valor_pago;
+    $valorPago = $despesa->valorPago();
+    $totalPago = $despesa->totalPagoLiquido();
+    $saldo = $despesa->saldoRestante();
     $status = $despesa->status->value;
 @endphp
 
@@ -62,14 +64,12 @@
     </tr>
     <tr>
         <td class="label">Emissão:</td><td>{{ $despesa->data_emissao?->format('d/m/Y') ?? '—' }}</td>
-        <td class="label">Vencimento:</td><td>{{ $despesa->data_vencimento?->format('d/m/Y') ?? '—' }}</td>
+        <td class="label">Condição:</td><td>{{ $despesa->condicao_pagamento->label() }}</td>
     </tr>
-    @if($despesa->parcela_total)
     <tr>
-        <td class="label">Parcela:</td><td>{{ $despesa->parcela_numero }}/{{ $despesa->parcela_total }}</td>
-        <td class="label">Competência:</td><td>{{ $despesa->competencia?->format('m/Y') ?? '—' }}</td>
+        <td class="label">Mês de referência:</td><td>{{ $despesa->mes_referencia?->format('m/Y') ?? '—' }}</td>
+        <td class="label">Parcelas:</td><td>{{ $despesa->parcelas->count() }}</td>
     </tr>
-    @endif
 </table>
 
 <div class="section-title">Fornecedor</div>
@@ -81,26 +81,47 @@
 
 <div class="section-title">Valores</div>
 <table class="valores">
-    <tr><td class="label">Valor total:</td><td class="valor">R$ {{ number_format((float) $despesa->valor, 2, ',', '.') }}</td></tr>
-    <tr><td class="label">Valor pago:</td><td class="valor pago">R$ {{ number_format((float) $despesa->valor_pago, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Valor total:</td><td class="valor">R$ {{ number_format((float) $despesa->valor_total, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Principal quitado:</td><td class="valor">R$ {{ number_format($valorPago, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Pago líquido (c/ multa, juros, desconto):</td><td class="valor pago">R$ {{ number_format($totalPago, 2, ',', '.') }}</td></tr>
     @if($saldo > 0)
         <tr class="total"><td class="label">Saldo devedor:</td><td class="valor pendente">R$ {{ number_format($saldo, 2, ',', '.') }}</td></tr>
     @else
-        <tr class="total"><td class="label">TOTAL PAGO:</td><td class="valor pago">R$ {{ number_format((float) $despesa->valor_pago, 2, ',', '.') }}</td></tr>
+        <tr class="total"><td class="label">TOTAL PAGO:</td><td class="valor pago">R$ {{ number_format($totalPago, 2, ',', '.') }}</td></tr>
     @endif
 </table>
 
-@if($despesa->baixas->count())
+<div class="section-title">Parcelas</div>
+<table class="baixas">
+    <thead>
+        <tr><th>#</th><th>Vencimento</th><th>Status</th><th>Forma</th><th class="text-end">Valor</th><th class="text-end">Pago</th></tr>
+    </thead>
+    <tbody>
+        @foreach($despesa->parcelas as $parcela)
+            <tr>
+                <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
+                <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
+                <td>{{ $parcela->statusEfetivo()->label() }}</td>
+                <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
+                <td class="text-end">R$ {{ number_format($parcela->valor_pago, 2, ',', '.') }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
+@php $baixasDesp = $despesa->parcelas->flatMap->baixas->sortBy('data'); @endphp
+@if($baixasDesp->count())
     <div class="section-title">Histórico de pagamentos</div>
     <table class="baixas">
         <thead>
             <tr><th>Data</th><th>Forma</th><th>Observação</th><th class="text-end">Valor</th></tr>
         </thead>
         <tbody>
-            @foreach($despesa->baixas->sortBy('data') as $baixa)
+            @foreach($baixasDesp as $baixa)
                 <tr>
                     <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
-                    <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>
+                    <td>{{ $baixa->forma_pagamento?->label() ?? '—' }}</td>
                     <td>{{ $baixa->observacao ?? '—' }}</td>
                     <td class="text-end">R$ {{ number_format((float) $baixa->valor, 2, ',', '.') }}</td>
                 </tr>

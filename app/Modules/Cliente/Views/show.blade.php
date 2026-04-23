@@ -226,9 +226,9 @@
                             <table class="table table-hover mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Servico</th>
-                                        <th>Valor</th>
-                                        <th>Forma</th>
+                                        <th>Origem</th>
+                                        <th>Valor total</th>
+                                        <th>Condição</th>
                                         <th>Status</th>
                                         <th>Data</th>
                                     </tr>
@@ -236,16 +236,11 @@
                                 <tbody>
                                     @forelse($cliente->pagamentos->sortByDesc('created_at') as $pagamento)
                                     <tr>
-                                        <td>{{ $pagamento->agendamento->servico->nome ?? '-' }}</td>
-                                        <td>R$ {{ number_format($pagamento->valor, 2, ',', '.') }}</td>
-                                        <td>{{ $pagamento->forma_pagamento ? ucfirst($pagamento->forma_pagamento->value) : '—' }}</td>
+                                        <td>{{ $pagamento->agendamento->servico->nome ?? $pagamento->vendaPacote->servico->nome ?? ($pagamento->vendaProduto ? 'Venda de produto' : '-') }}</td>
+                                        <td>R$ {{ number_format($pagamento->valor_total, 2, ',', '.') }}</td>
+                                        <td>{{ $pagamento->condicao_pagamento->label() }}</td>
                                         <td>
-                                            @switch($pagamento->status->value)
-                                                @case('pago') <span class="badge bg-success">Pago</span> @break
-                                                @case('pendente') <span class="badge bg-warning">Pendente</span> @break
-                                                @case('cancelado') <span class="badge bg-danger">Cancelado</span> @break
-                                                @case('estornado') <span class="badge bg-secondary">Estornado</span> @break
-                                            @endswitch
+                                            <span class="badge bg-soft-{{ $pagamento->status->cor() }} text-{{ $pagamento->status->cor() }}">{{ $pagamento->status->label() }}</span>
                                         </td>
                                         <td>{{ $pagamento->created_at->format('d/m/Y') }}</td>
                                     </tr>

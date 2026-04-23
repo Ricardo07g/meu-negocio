@@ -228,63 +228,98 @@
         <div id="carrinhoHiddenInputs"></div>
 
         {{-- Pagamento --}}
-        <div class="card stretch stretch-full mt-4">
-            <div class="card-header">
-                <h5 class="card-title">Pagamento</h5>
+        <div class="card stretch stretch-full mt-4" id="cardPagamento">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Pagamento</h5>
+                <span id="pagamentoAvisoInline" class="badge bg-soft-warning text-warning" style="display:none;">
+                    <i class="feather-alert-circle me-1"></i><span id="pagamentoAvisoTexto"></span>
+                </span>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-5">
+                <div class="row g-3">
+                    @php $condAtual = old('condicao_pagamento', 'a_vista'); @endphp
+                    <div class="col-md-4">
                         <label class="form-label">Condição de Pagamento <span class="text-danger">*</span></label>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="condicao_pagamento" id="condAVista" value="a_vista" {{ old('condicao_pagamento', 'a_vista') === 'a_vista' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-success" for="condAVista"><i class="feather-check-circle me-1"></i> À Vista</label>
-                            <input type="radio" class="btn-check" name="condicao_pagamento" id="condAPrazo" value="a_prazo" {{ old('condicao_pagamento') === 'a_prazo' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-warning" for="condAPrazo"><i class="feather-clock me-1"></i> A Prazo (fiado)</label>
-                        </div>
-                        @error('condicao_pagamento') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
+                        <select name="condicao_pagamento" id="condicaoPagamentoSelect" class="form-select @error('condicao_pagamento') is-invalid @enderror">
+                            <option value="a_vista" @selected($condAtual === 'a_vista')>À Vista</option>
+                            <option value="a_prazo" @selected($condAtual === 'a_prazo')>A Prazo</option>
+                        </select>
+                        @error('condicao_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
+
                     <div class="col-md-4" id="formaPagamentoWrapper">
-                        <label class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
+                        <label class="form-label" id="formaPagamentoLabel">Forma de Pagamento <span class="text-danger">*</span></label>
                         <select name="forma_pagamento" id="formaPagamentoSelect" class="form-select @error('forma_pagamento') is-invalid @enderror">
                             <option value="">Selecione...</option>
-                            @foreach(['pix' => 'Pix', 'dinheiro' => 'Dinheiro', 'cartao' => 'Cartão'] as $val => $label)
-                            <option value="{{ $val }}" {{ old('forma_pagamento') === $val ? 'selected' : '' }}>{{ $label }}</option>
-                            @endforeach
+                            <option value="pix" {{ old('forma_pagamento') === 'pix' ? 'selected' : '' }}>Pix</option>
+                            <option value="dinheiro" {{ old('forma_pagamento') === 'dinheiro' ? 'selected' : '' }}>Dinheiro</option>
+                            <option value="cartao" {{ old('forma_pagamento') === 'cartao' ? 'selected' : '' }}>Cartão</option>
                         </select>
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
-                </div>
-                <div class="row mt-3" id="vencimentoWrapper" style="display:none;">
-                    <div class="col-md-4">
-                        <label class="form-label" for="dataVencimento">Data de Vencimento <span class="text-danger">*</span></label>
-                        <input type="date" name="data_vencimento" id="dataVencimento" class="form-control @error('data_vencimento') is-invalid @enderror"
-                               value="{{ old('data_vencimento', now()->addDays(30)->format('Y-m-d')) }}"
-                               min="{{ now()->format('Y-m-d') }}">
-                        @error('data_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+                    <div class="col-md-4" id="formaRecebimentoPrazoWrapper" style="display:none;">
+                        <label class="form-label" for="formaRecebimentoPrazoSelect">
+                            Forma de Recebimento <span class="text-danger">*</span>
+                            <x-label-info content="Como as parcelas serão cobradas do cliente.<br><b>Carnê</b>: controle manual — cada parcela é recebida e baixada aqui no sistema.<br><br>Novas formas (boleto registrado, Pix parcelado) serão adicionadas no futuro." />
+                        </label>
+                        <select name="forma_recebimento_prazo" id="formaRecebimentoPrazoSelect"
+                                class="form-select @error('forma_recebimento_prazo') is-invalid @enderror">
+                            @foreach(\App\Enums\FormaRecebimentoPrazo::cases() as $f)
+                                <option value="{{ $f->value }}" {{ old('forma_recebimento_prazo', 'carne') === $f->value ? 'selected' : '' }}>{{ $f->label() }}</option>
+                            @endforeach
+                        </select>
+                        @error('forma_recebimento_prazo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
-                </div>
-                <div class="row mt-2" id="fiadoAviso" style="display:none;">
-                    <div class="col-12">
+
+                    <div class="col-md-4" id="parcelasWrapper" style="display:none;">
+                        <label class="form-label" for="numeroParcelas">Número de Parcelas <span class="text-danger">*</span></label>
+                        <input type="number" min="2" max="24" step="1" name="numero_parcelas" id="numeroParcelas"
+                               class="form-control @error('numero_parcelas') is-invalid @enderror"
+                               value="{{ old('numero_parcelas', 2) }}">
+                        <div class="form-text" id="valorPorParcelaHint"></div>
+                        @error('numero_parcelas') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-4" id="primeiroVencimentoWrapper" style="display:none;">
+                        <label class="form-label" for="primeiroVencimento">Primeiro Vencimento <span class="text-danger">*</span></label>
+                        <input type="date" name="primeiro_vencimento" id="primeiroVencimento"
+                               class="form-control @error('primeiro_vencimento') is-invalid @enderror"
+                               value="{{ old('primeiro_vencimento', now()->addDays(30)->format('Y-m-d')) }}"
+                               min="{{ now()->format('Y-m-d') }}">
+                        @error('primeiro_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label" for="mesReferencia">Mês de Referência <span class="text-danger">*</span></label>
+                        <input type="month" name="mes_referencia" id="mesReferencia"
+                               class="form-control @error('mes_referencia') is-invalid @enderror"
+                               value="{{ old('mes_referencia', now()->format('Y-m')) }}" required>
+                        <div class="form-text">Competência contábil da venda.</div>
+                        @error('mes_referencia') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-12" id="parceladoAviso" style="display:none;">
                         <small class="text-muted">
                             <i class="feather-info me-1"></i>
-                            A venda ficará em Contas a Receber. A forma de pagamento será registrada no momento do recebimento.
+                            A venda entra em <strong>Contas a Receber</strong> com as parcelas listadas abaixo.
+                            Cada parcela é recebida e baixada individualmente.
                         </small>
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- Preview das sessoes (pacote) --}}
+        {{-- Preview das sessoes (pacote) — acima do preview das parcelas --}}
         <div class="card stretch stretch-full mt-4" id="previewCard" style="display:none;">
             <div class="card-header">
                 <h5 class="card-title">Preview das Sessões <span id="qtdSessoesBadge" class="badge bg-primary ms-2"></span></h5>
             </div>
             <div class="card-body">
                 <p class="text-muted fs-13 mb-3">Você pode editar as datas individualmente antes de salvar.</p>
-                <div class="table-responsive">
+                <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
                     <table class="table table-hover" id="tabelaSessoes">
-                        <thead>
+                        <thead class="position-sticky top-0 bg-white" style="z-index:1;">
                             <tr>
                                 <th>#</th>
                                 <th>Dia da Semana</th>
@@ -295,7 +330,40 @@
                         <tbody id="sessoesTbody"></tbody>
                     </table>
                 </div>
-                {{-- botões no final do form --}}
+            </div>
+        </div>
+
+        {{-- Preview das parcelas (só quando condicao=a_prazo) --}}
+        <div class="card stretch stretch-full mt-4" id="previewCarneCard" style="display:none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Preview das Parcelas <span id="previewCarneBadge" class="badge bg-warning ms-2"></span></h5>
+                <span id="carneDiferencaBadge" class="badge bg-soft-danger text-danger" style="display:none;">
+                    <i class="feather-alert-circle me-1"></i><span id="carneDiferencaTexto"></span>
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted fs-13 mb-3" id="previewCarneInfo">
+                    Ajuste valor, vencimento e competência de cada parcela se necessário. A soma precisa bater com o total da venda.
+                </p>
+                <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                    <table class="table table-hover mb-0 align-middle" id="tabelaCarne">
+                        <thead class="position-sticky top-0 bg-white" style="z-index:1;">
+                            <tr>
+                                <th style="width:60px;">#</th>
+                                <th>Vencimento</th>
+                                <th>Competência</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="carneTbody"></tbody>
+                        <tfoot>
+                            <tr class="fw-semibold">
+                                <td colspan="3" class="text-end">Total:</td>
+                                <td class="text-end" id="carneTotalFoot">R$ 0,00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -349,6 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 habilitarContainer(cardCarrinho, true);
                 previewCard.style.display = 'none';
             }
+            if (typeof atualizarHabilitacaoPagamento === 'function') atualizarHabilitacaoPagamento();
         });
     });
 
@@ -655,33 +724,291 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
     @endif
 
-    // Toggle Condicao de Pagamento (a vista / a prazo)
+    // Toggle Forma/Condição de Pagamento (à vista, a prazo, boleto, pix parcelado)
     const formaPagamentoWrapper = document.getElementById('formaPagamentoWrapper');
     const formaPagamentoSelect = document.getElementById('formaPagamentoSelect');
-    const fiadoAviso = document.getElementById('fiadoAviso');
-    const vencimentoWrapper = document.getElementById('vencimentoWrapper');
-    const dataVencimento = document.getElementById('dataVencimento');
+    const parcelasWrapper = document.getElementById('parcelasWrapper');
+    const numeroParcelasInput = document.getElementById('numeroParcelas');
+    const primeiroVencimentoWrapper = document.getElementById('primeiroVencimentoWrapper');
+    const primeiroVencimento = document.getElementById('primeiroVencimento');
+    const mesReferencia = document.getElementById('mesReferencia');
+    const parceladoAviso = document.getElementById('parceladoAviso');
+    const valorPorParcelaHint = document.getElementById('valorPorParcelaHint');
+
+    const condicaoSelect = document.getElementById('condicaoPagamentoSelect');
+
+    function condicaoSelecionada() {
+        return condicaoSelect ? condicaoSelect.value : 'a_vista';
+    }
+
+    const previewCarneCard = document.getElementById('previewCarneCard');
+    const previewCarneBadge = document.getElementById('previewCarneBadge');
+    const previewCarneInfo = document.getElementById('previewCarneInfo');
+    const carneTbody = document.getElementById('carneTbody');
+    const carneTotalFoot = document.getElementById('carneTotalFoot');
 
     function aplicarCondicaoPagamento() {
-        const aVista = document.getElementById('condAVista').checked;
-        if (aVista) {
-            formaPagamentoWrapper.style.display = '';
-            formaPagamentoSelect.disabled = false;
-            fiadoAviso.style.display = 'none';
-            vencimentoWrapper.style.display = 'none';
-            dataVencimento.disabled = true;
-        } else {
-            formaPagamentoWrapper.style.display = 'none';
-            formaPagamentoSelect.value = '';
-            formaPagamentoSelect.disabled = true;
-            fiadoAviso.style.display = '';
-            vencimentoWrapper.style.display = '';
-            dataVencimento.disabled = false;
+        const c = condicaoSelecionada();
+        const aVista = c === 'a_vista';
+        const aPrazo = c === 'a_prazo';
+        const parcelado = aPrazo;
+        const exigeForma = aVista || aPrazo;
+
+        formaPagamentoWrapper.style.display = exigeForma ? '' : 'none';
+        formaPagamentoSelect.disabled = !exigeForma;
+        if (!exigeForma) formaPagamentoSelect.value = '';
+
+        const formaLabel = document.getElementById('formaPagamentoLabel');
+        if (formaLabel) {
+            formaLabel.innerHTML = aVista
+                ? 'Recebimento à vista em <span class="text-danger">*</span>'
+                : 'Forma de recebimento prevista <span class="text-danger">*</span>';
+        }
+
+        parcelasWrapper.style.display = parcelado ? '' : 'none';
+        numeroParcelasInput.disabled = !parcelado;
+        primeiroVencimentoWrapper.style.display = parcelado ? '' : 'none';
+        primeiroVencimento.disabled = !parcelado;
+        parceladoAviso.style.display = parcelado ? '' : 'none';
+        previewCarneCard.style.display = parcelado ? '' : 'none';
+
+        atualizarPreviewCarne();
+    }
+
+    function obterTotalVenda() {
+        const valorTotalEl = document.getElementById('valorTotal');
+        const carrinhoTotalEl = document.getElementById('carrinhoTotal');
+        if (valorTotalEl && valorTotalEl.value && parseFloat(valorTotalEl.value) > 0) {
+            return parseFloat(valorTotalEl.value);
+        }
+        if (tipoVendaInput.value === 'produto' && carrinhoTotalEl) {
+            const raw = carrinhoTotalEl.textContent.replace(/[^0-9,.-]/g, '').replace('.', '').replace(',', '.');
+            return parseFloat(raw) || 0;
+        }
+        if (servicoSelecionado && servicoSelecionado.valor) {
+            return parseFloat(servicoSelecionado.valor);
+        }
+        return 0;
+    }
+
+    function formatarBR(v) { return v.toFixed(2).replace('.', ','); }
+
+    function formatarDataBR(dateObj) {
+        const d = String(dateObj.getDate()).padStart(2, '0');
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        return d + '/' + m + '/' + dateObj.getFullYear();
+    }
+
+    function adicionarMeses(base, meses) {
+        const d = new Date(base.getFullYear(), base.getMonth() + meses, base.getDate());
+        return d;
+    }
+
+    function dataIsoToMonth(iso) { return iso.substring(0, 7); }
+
+    function recalcularSomaCarne() {
+        const inputs = carneTbody.querySelectorAll('input[data-parcela-valor]');
+        let soma = 0;
+        inputs.forEach(function (el) { soma += parseFloat(el.value) || 0; });
+
+        carneTotalFoot.textContent = 'R$ ' + formatarBR(soma);
+
+        const total = obterTotalVenda();
+        const diff = Math.round((soma - total) * 100) / 100;
+        const badge = document.getElementById('carneDiferencaBadge');
+        const badgeTxt = document.getElementById('carneDiferencaTexto');
+        if (badge) {
+            if (Math.abs(diff) < 0.01 || total <= 0) {
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = '';
+                badgeTxt.textContent = (diff > 0 ? 'Excedendo' : 'Faltando') + ' R$ ' + formatarBR(Math.abs(diff));
+            }
         }
     }
-    document.getElementById('condAVista').addEventListener('change', aplicarCondicaoPagamento);
-    document.getElementById('condAPrazo').addEventListener('change', aplicarCondicaoPagamento);
+
+    function atualizarPreviewCarne() {
+        if (condicaoSelecionada() === 'a_vista') {
+            valorPorParcelaHint.textContent = '';
+            previewCarneBadge.textContent = '';
+            carneTbody.innerHTML = '';
+            carneTotalFoot.textContent = 'R$ 0,00';
+            return;
+        }
+
+        const n = parseInt(numeroParcelasInput.value) || 0;
+        const total = obterTotalVenda();
+
+        if (n < 2 || n > 24) {
+            valorPorParcelaHint.textContent = 'Informe entre 2 e 24 parcelas.';
+            carneTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Informe 2 a 24 parcelas.</td></tr>';
+            previewCarneBadge.textContent = '';
+            carneTotalFoot.textContent = 'R$ 0,00';
+            return;
+        }
+        if (total <= 0) {
+            valorPorParcelaHint.textContent = '';
+            carneTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Informe o valor da venda para simular as parcelas.</td></tr>';
+            previewCarneBadge.textContent = n + 'x';
+            carneTotalFoot.textContent = 'R$ 0,00';
+            return;
+        }
+
+        const vencRaw = primeiroVencimento.value;
+        if (!vencRaw) {
+            carneTbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Informe o primeiro vencimento.</td></tr>';
+            return;
+        }
+
+        const porParcela = Math.round((total / n) * 100) / 100;
+        const ultima = Math.round((total - porParcela * (n - 1)) * 100) / 100;
+
+        valorPorParcelaHint.textContent = n + 'x de R$ ' + formatarBR(porParcela);
+        previewCarneBadge.textContent = n + ' parcelas';
+        previewCarneInfo.textContent =
+            'Ajuste valor, vencimento e competência de cada parcela se necessário. A soma precisa bater com o total da venda.';
+
+        const baseVenc = new Date(vencRaw + 'T12:00:00');
+        const mesRefDefault = mesReferencia.value || vencRaw.substring(0, 7);
+        const linhas = [];
+        for (let i = 1; i <= n; i++) {
+            const venc = adicionarMeses(baseVenc, i - 1);
+            const vencIso = venc.getFullYear() + '-' +
+                String(venc.getMonth() + 1).padStart(2, '0') + '-' +
+                String(venc.getDate()).padStart(2, '0');
+            const val = i === n ? ultima : porParcela;
+            const idx = i - 1;
+            linhas.push(
+                '<tr>' +
+                '<td><span class="fw-semibold">' + i + '/' + n + '</span>' +
+                '<input type="hidden" name="parcelas[' + idx + '][numero]" value="' + i + '">' +
+                '<input type="hidden" name="parcelas[' + idx + '][total]" value="' + n + '">' +
+                '</td>' +
+                '<td><input type="date" name="parcelas[' + idx + '][data_vencimento]" ' +
+                '       class="form-control form-control-sm" value="' + vencIso + '" required></td>' +
+                '<td><input type="month" name="parcelas[' + idx + '][mes_referencia]" ' +
+                '       class="form-control form-control-sm" value="' + mesRefDefault + '" required></td>' +
+                '<td class="text-end"><input type="number" step="0.01" min="0.01" data-parcela-valor ' +
+                '       name="parcelas[' + idx + '][valor]" ' +
+                '       class="form-control form-control-sm text-end" value="' + val.toFixed(2) + '" required></td>' +
+                '</tr>'
+            );
+        }
+        carneTbody.innerHTML = linhas.join('');
+
+        carneTbody.querySelectorAll('input[data-parcela-valor]').forEach(function (el) {
+            el.addEventListener('input', recalcularSomaCarne);
+        });
+
+        recalcularSomaCarne();
+    }
+
+    if (condicaoSelect) condicaoSelect.addEventListener('change', function() { atualizarHabilitacaoPagamento(); });
+    numeroParcelasInput.addEventListener('input', atualizarPreviewCarne);
+    primeiroVencimento.addEventListener('change', atualizarPreviewCarne);
+    mesReferencia.addEventListener('change', atualizarPreviewCarne);
+    const valorTotalEl = document.getElementById('valorTotal');
+    if (valorTotalEl) valorTotalEl.addEventListener('input', function() { atualizarHabilitacaoPagamento(); });
+    const carrinhoTotalObs = document.getElementById('carrinhoTotal');
+    if (carrinhoTotalObs) {
+        new MutationObserver(function() { atualizarHabilitacaoPagamento(); }).observe(carrinhoTotalObs, { childList: true, characterData: true, subtree: true });
+    }
+
+    // ── Habilitação do card de Pagamento conforme estado da venda ──
+    const cardPagamento = document.getElementById('cardPagamento');
+    const pagamentoAvisoInline = document.getElementById('pagamentoAvisoInline');
+    const pagamentoAvisoTexto = document.getElementById('pagamentoAvisoTexto');
+
+    function obterEstadoVenda() {
+        const tipo = tipoVendaInput.value;
+        if (tipo === 'produto') {
+            if (carrinhoItens.length === 0) {
+                return { pronto: false, motivo: 'Adicione ao menos 1 produto ao carrinho.' };
+            }
+            return { pronto: true, motivo: '' };
+        }
+        if (!servicoSelecionado) {
+            return { pronto: false, motivo: 'Selecione um serviço para a venda.' };
+        }
+        const tipoServ = (typeof servicoSelecionado.tipo === 'object' && servicoSelecionado.tipo !== null)
+            ? (servicoSelecionado.tipo.value || servicoSelecionado.tipo)
+            : servicoSelecionado.tipo;
+        if (tipoServ === 'pacote') {
+            const vt = parseFloat(document.getElementById('valorTotal').value) || 0;
+            if (vt <= 0) return { pronto: false, motivo: 'Informe o valor total do pacote.' };
+        }
+        return { pronto: true, motivo: '' };
+    }
+
+    const PAGAMENTO_DEFAULTS = {
+        condicao: 'a_vista',
+        forma: '',
+        numeroParcelas: '2',
+        primeiroVencimento: @json(now()->addDays(30)->format('Y-m-d')),
+        mesReferencia: @json(now()->format('Y-m')),
+    };
+
+    function resetarPagamentoDefault() {
+        condicaoSelect.value = PAGAMENTO_DEFAULTS.condicao;
+        formaPagamentoSelect.value = PAGAMENTO_DEFAULTS.forma;
+        numeroParcelasInput.value = PAGAMENTO_DEFAULTS.numeroParcelas;
+        primeiroVencimento.value = PAGAMENTO_DEFAULTS.primeiroVencimento;
+        mesReferencia.value = PAGAMENTO_DEFAULTS.mesReferencia;
+        valorPorParcelaHint.textContent = '';
+        previewCarneBadge.textContent = '';
+        previewCarneInfo.textContent = 'Simulação das parcelas que serão geradas ao salvar.';
+        carneTbody.innerHTML = '';
+        carneTotalFoot.textContent = 'R$ 0,00';
+    }
+
+    let ultimoEstadoPronto = null;
+
+    function atualizarHabilitacaoPagamento() {
+        const { pronto, motivo } = obterEstadoVenda();
+
+        // Reset dos campos só na transição pronto → não pronto, pra não apagar old() após erro de validação
+        if (ultimoEstadoPronto === true && !pronto) {
+            resetarPagamentoDefault();
+        }
+        ultimoEstadoPronto = pronto;
+
+        cardPagamento.classList.toggle('opacity-50', !pronto);
+        cardPagamento.querySelectorAll('input, select, textarea').forEach(function(el) {
+            el.disabled = !pronto;
+        });
+
+        if (pronto) {
+            pagamentoAvisoInline.style.display = 'none';
+            aplicarCondicaoPagamento();
+        } else {
+            pagamentoAvisoTexto.textContent = motivo;
+            pagamentoAvisoInline.style.display = '';
+            previewCarneCard.style.display = 'none';
+        }
+    }
+
+    // Recalcular habilitação quando o carrinho é alterado
+    const origRenderCarrinho = renderCarrinho;
+    renderCarrinho = function() {
+        origRenderCarrinho.apply(this, arguments);
+        atualizarHabilitacaoPagamento();
+    };
+
     aplicarCondicaoPagamento();
+    atualizarHabilitacaoPagamento();
+
+    // Bloqueia submit se a venda não estiver pronta
+    document.getElementById('formNovaVenda').addEventListener('submit', function(e) {
+        const { pronto, motivo } = obterEstadoVenda();
+        if (!pronto) {
+            e.preventDefault();
+            if (typeof swalAlerta === 'function') {
+                swalAlerta(motivo);
+            } else {
+                alert(motivo);
+            }
+        }
+    });
 
     // AJAX Search — Serviço
     initAjaxSearch({
@@ -698,10 +1025,12 @@ document.addEventListener('DOMContentLoaded', function() {
         onSelect: function(item) {
             servicoSelecionado = item;
             aplicarTipoServico(item);
+            atualizarHabilitacaoPagamento();
         },
         onClear: function() {
             servicoSelecionado = null;
             aplicarTipoServico(null);
+            atualizarHabilitacaoPagamento();
         },
     });
 

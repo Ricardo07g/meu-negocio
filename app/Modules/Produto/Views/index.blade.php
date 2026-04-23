@@ -40,7 +40,10 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">
+                            Status
+                            <x-label-info content="<b>Ativo</b>: produto disponível para venda e busca.<br><b>Inativo</b>: produto oculto no catálogo — não aparece em novas vendas, mas o histórico é mantido." />
+                        </label>
                         <select name="ativo" class="form-select">
                             <option value="">Todos</option>
                             <option value="1" @selected(request('ativo') === '1')>Ativo</option>
@@ -48,7 +51,10 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Estoque</label>
+                        <label class="form-label">
+                            Estoque
+                            <x-label-info content="<b>Disponível</b>: quantidade em estoque maior que zero.<br><b>Estoque baixo</b>: quantidade atingiu ou ficou abaixo do estoque mínimo definido.<br><b>Zerado</b>: sem unidades em estoque." />
+                        </label>
                         <select name="estoque" class="form-select">
                             <option value="">Todos</option>
                             <option value="disponivel" @selected(request('estoque') === 'disponivel')>Disponível (&gt; 0)</option>

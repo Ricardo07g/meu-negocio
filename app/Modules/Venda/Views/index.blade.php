@@ -51,7 +51,10 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Situação do pagamento</label>
+                        <label class="form-label">
+                            Situação do pagamento
+                            <x-label-info content="<b>Pago</b>: todas as parcelas foram recebidas.<br><b>Pendente</b>: há parcelas em aberto com vencimento futuro.<br><b>Vencido</b>: há parcelas em aberto com vencimento no passado.<br><b>Estornado</b>: venda foi cancelada e o pagamento foi revertido." />
+                        </label>
                         <select name="situacao_pagamento" class="form-select">
                             <option value="">Todas</option>
                             <option value="pago" @selected(request('situacao_pagamento') === 'pago')>Pago</option>
@@ -61,7 +64,10 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Status da venda</label>
+                        <label class="form-label">
+                            Status da venda
+                            <x-label-info content="<b>Em andamento</b>: venda ativa (agendada, confirmada ou com parcelas em aberto).<br><b>Concluído</b>: venda finalizada ou com todas as sessões realizadas.<br><b>Cancelado</b>: venda cancelada — estoque devolvido e pagamento estornado." />
+                        </label>
                         <select name="status_venda" class="form-select">
                             <option value="">Todos</option>
                             <option value="em_andamento" @selected(request('status_venda') === 'em_andamento')>Em andamento</option>
@@ -86,7 +92,8 @@
                             <option value="pix" @selected(request('forma_pagamento') === 'pix')>Pix</option>
                             <option value="dinheiro" @selected(request('forma_pagamento') === 'dinheiro')>Dinheiro</option>
                             <option value="cartao" @selected(request('forma_pagamento') === 'cartao')>Cartão</option>
-                            <option value="fiado" @selected(request('forma_pagamento') === 'fiado')>Fiado (sem forma)</option>
+                            <option value="a_vista" @selected(request('forma_pagamento') === 'a_vista')>À Vista</option>
+                            <option value="a_prazo" @selected(request('forma_pagamento') === 'a_prazo')>A Prazo</option>
                         </select>
                     </div>
                     <div class="col-md-3">

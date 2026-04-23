@@ -30,7 +30,10 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">
+                            Status
+                            <x-label-info content="<b>Ativa</b>: categoria disponível para seleção em novos produtos.<br><b>Inativa</b>: categoria oculta no cadastro — produtos existentes mantêm o vínculo, mas a categoria não aparece para novas atribuições." />
+                        </label>
                         <select name="ativo" class="form-select">
                             <option value="">Todos</option>
                             <option value="1" @selected(request('ativo') === '1')>Ativa</option>
@@ -38,7 +41,10 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Produtos vinculados</label>
+                        <label class="form-label">
+                            Produtos vinculados
+                            <x-label-info content="<b>Com produtos</b>: categorias que já têm ao menos um produto cadastrado.<br><b>Sem produtos</b>: categorias vazias (útil para identificar cadastros que podem ser removidos ou reorganizados)." />
+                        </label>
                         <select name="com_produtos" class="form-select">
                             <option value="">Todas</option>
                             <option value="com" @selected(request('com_produtos') === 'com')>Com produtos</option>

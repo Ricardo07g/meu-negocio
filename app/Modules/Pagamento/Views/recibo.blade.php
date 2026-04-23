@@ -34,7 +34,9 @@
 <body>
 
 @php
-    $saldo = (float) $pagamento->valor - (float) $pagamento->valor_pago;
+    $valorPago = $pagamento->valorPago();
+    $totalRecebido = $pagamento->totalRecebidoLiquido();
+    $saldo = $pagamento->saldoRestante();
     $status = $pagamento->status->value;
     $origem = $pagamento->agendamento ? 'Agendamento avulso' : ($pagamento->vendaPacote ? 'Pacote de sessões' : ($pagamento->vendaProduto ? 'Venda de produto' : 'Outro'));
     $origemDesc = $pagamento->agendamento?->servico?->nome
@@ -64,12 +66,10 @@
         <td class="label">Status:</td><td class="{{ $status === 'pago' ? 'pago' : 'pendente' }}">{{ ucfirst($status) }}</td>
         <td class="label">Origem:</td><td>{{ $origem }}</td>
     </tr>
-    @if($pagamento->data_vencimento)
     <tr>
-        <td class="label">Vencimento:</td><td>{{ $pagamento->data_vencimento->format('d/m/Y') }}</td>
-        <td class="label">Forma:</td><td>{{ $pagamento->forma_pagamento?->value ? ucfirst($pagamento->forma_pagamento->value) : 'A prazo' }}</td>
+        <td class="label">Condição:</td><td>{{ $pagamento->condicao_pagamento->label() }}</td>
+        <td class="label">Mês de referência:</td><td>{{ $pagamento->mes_referencia->format('m/Y') }}</td>
     </tr>
-    @endif
     <tr>
         <td class="label">Descrição:</td><td colspan="3">{{ $origemDesc }}</td>
     </tr>
@@ -89,23 +89,44 @@
 
 <div class="section-title">Valores</div>
 <table class="valores">
-    <tr><td class="label">Valor total:</td><td class="valor">R$ {{ number_format((float) $pagamento->valor, 2, ',', '.') }}</td></tr>
-    <tr><td class="label">Valor recebido:</td><td class="valor pago">R$ {{ number_format((float) $pagamento->valor_pago, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Valor total:</td><td class="valor">R$ {{ number_format((float) $pagamento->valor_total, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Principal quitado:</td><td class="valor">R$ {{ number_format($valorPago, 2, ',', '.') }}</td></tr>
+    <tr><td class="label">Recebido líquido (c/ multa, juros, desconto):</td><td class="valor pago">R$ {{ number_format($totalRecebido, 2, ',', '.') }}</td></tr>
     @if($saldo > 0)
         <tr class="total"><td class="label">Saldo devedor:</td><td class="valor pendente">R$ {{ number_format($saldo, 2, ',', '.') }}</td></tr>
     @else
-        <tr class="total"><td class="label">TOTAL RECEBIDO:</td><td class="valor pago">R$ {{ number_format((float) $pagamento->valor_pago, 2, ',', '.') }}</td></tr>
+        <tr class="total"><td class="label">TOTAL RECEBIDO:</td><td class="valor pago">R$ {{ number_format($totalRecebido, 2, ',', '.') }}</td></tr>
     @endif
 </table>
 
-@if($pagamento->baixas->count())
+<div class="section-title">Parcelas</div>
+<table class="baixas">
+    <thead>
+        <tr><th>#</th><th>Vencimento</th><th>Status</th><th>Forma</th><th class="text-end">Valor</th><th class="text-end">Pago</th></tr>
+    </thead>
+    <tbody>
+        @foreach($pagamento->parcelas as $parcela)
+            <tr>
+                <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
+                <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
+                <td>{{ $parcela->statusEfetivo()->label() }}</td>
+                <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
+                <td class="text-end">R$ {{ number_format($parcela->valor_pago, 2, ',', '.') }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
+@php $baixasRec = $pagamento->parcelas->flatMap->baixas->sortBy('data'); @endphp
+@if($baixasRec->count())
     <div class="section-title">Histórico de recebimentos</div>
     <table class="baixas">
         <thead>
             <tr><th>Data</th><th>Forma</th><th>Observação</th><th class="text-end">Valor</th></tr>
         </thead>
         <tbody>
-            @foreach($pagamento->baixas->sortBy('data') as $baixa)
+            @foreach($baixasRec as $baixa)
                 <tr>
                     <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
                     <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>

@@ -14,13 +14,6 @@
                 <i class="feather-plus me-2"></i>Nova Despesa
             </a>
         </div>
-        @can('categoria_despesa.ver')
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('categorias-despesa.index') }}" class="btn btn-outline-primary w-100">
-                <i class="feather-folder me-2"></i>Categorias
-            </a>
-        </div>
-        @endcan
     </div>
     @endcan
 
@@ -34,17 +27,21 @@
                         <input type="text" name="q" class="form-control" placeholder="Nome, fornecedor, documento ou ID..." value="{{ request('q') }}">
                     </div>
 
-                    <div class="col-md-4">
-                        <label class="form-label">Status</label>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            Status
+                            <x-label-info content="<b>Pendente</b>: nenhuma parcela foi paga ainda.<br><b>Parcial</b>: pelo menos uma parcela foi paga, mas ainda resta saldo.<br><b>Paga</b>: todas as parcelas foram quitadas.<br><b>Vencidas</b>: despesas em aberto com pelo menos uma parcela no passado.<br><b>Cancelada</b>: despesa cancelada (todas as parcelas foram canceladas)." />
+                        </label>
                         <select name="status" class="form-select">
                             <option value="">Todos</option>
                             <option value="pendente" @selected(request('status') === 'pendente')>Pendente</option>
+                            <option value="parcial" @selected(request('status') === 'parcial')>Parcial</option>
                             <option value="paga" @selected(request('status') === 'paga')>Paga</option>
                             <option value="vencidas" @selected(request('status') === 'vencidas')>Vencidas</option>
                             <option value="cancelada" @selected(request('status') === 'cancelada')>Cancelada</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Categoria</label>
                         <select name="categoria_id" class="form-select">
                             <option value="">Todas</option>
@@ -53,13 +50,20 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Situação</label>
+                    <div class="col-md-3">
+                        <label class="form-label">
+                            Situação
+                            <x-label-info content="Olha o vencimento das parcelas em aberto.<br><b>Em dia</b>: há parcelas a vencer nos próximos dias.<br><b>Vencida</b>: há pelo menos uma parcela com vencimento no passado sem ter sido quitada." />
+                        </label>
                         <select name="situacao" class="form-select">
                             <option value="">Todas</option>
                             <option value="em_dia" @selected(request('situacao') === 'em_dia')>Em dia</option>
                             <option value="vencida" @selected(request('situacao') === 'vencida')>Vencida</option>
                         </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Mês de referência</label>
+                        <input type="month" name="mes_referencia" class="form-control" value="{{ request('mes_referencia') }}">
                     </div>
 
                     <div class="col-12 d-flex justify-content-end gap-2">
