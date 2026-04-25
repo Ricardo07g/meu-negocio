@@ -14,5 +14,7 @@ class UsuarioData extends Data
         public ?string $papel = null,
         public ?bool $ativo = null,
         public ?bool $atende = null,
+        /** @var array<int>|null IDs das empresas que o usuario pode acessar (pivot empresa_usuario). */
+        public ?array $empresas = null,
     ) {}
 }
