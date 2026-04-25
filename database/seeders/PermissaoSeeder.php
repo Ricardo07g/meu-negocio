@@ -5,15 +5,16 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissaoSeeder extends Seeder
 {
     public function run(): void
     {
         // Reset cache
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Criar todas as permissoes
+        // Catalogo completo de permissoes do sistema
         $permissoes = [
             // Rede
             'rede.ver', 'rede.editar', 'rede.configurar', 'rede.cobranca',
@@ -41,7 +42,7 @@ class PermissaoSeeder extends Seeder
             'produto.ver', 'produto.criar', 'produto.editar', 'produto.excluir',
             // Movimento estoque
             'movimento_estoque.ver', 'movimento_estoque.criar',
-            // Papel
+            // Perfil de Acesso (slug "papel" mantido por compatibilidade com codigo legado)
             'papel.ver', 'papel.criar', 'papel.editar', 'papel.excluir',
             // Plano
             'plano.ver', 'plano.alterar',
@@ -51,18 +52,14 @@ class PermissaoSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permissao, 'guard_name' => 'web']);
         }
 
-        // Criar papeis e atribuir permissoes
-
-        // Admin - todas as permissoes
+        // Apenas o perfil Admin master e seedado, com todas as permissoes.
+        // Demais perfis sao criados pelo Admin via /perfis-acesso na UI.
         $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
         $admin->syncPermissions($permissoes);
 
-        // Profissional
-        $profissional = Role::firstOrCreate(['name' => 'Profissional', 'guard_name' => 'web']);
-        $profissional->syncPermissions([
-            'agendamento.ver', 'agendamento.criar',
-            'cliente.ver',
-            'servico.ver',
-        ]);
+        // Limpar cache para que mudancas em Permissions/Roles sejam refletidas
+        // imediatamente em chamadas subsequentes (evita o tipico "cache stale"
+        // do Spatie ao seedar e usar can() na mesma request).
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }
