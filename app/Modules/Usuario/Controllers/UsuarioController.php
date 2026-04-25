@@ -3,6 +3,7 @@
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\SalvarUsuarioRequest;
@@ -37,8 +38,9 @@ class UsuarioController extends Controller
         try {
             $this->authorize('create', Usuario::class);
             $papeis = Role::orderBy('name')->pluck('name');
+            $empresas = Empresa::orderBy('nome')->get(['id', 'nome']);
 
-            return view('usuario::create', compact('papeis'));
+            return view('usuario::create', compact('papeis', 'empresas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de usuário');
         }
@@ -72,8 +74,10 @@ class UsuarioController extends Controller
         try {
             $this->authorize('update', $usuario);
             $papeis = Role::orderBy('name')->pluck('name');
+            $empresas = Empresa::orderBy('nome')->get(['id', 'nome']);
+            $empresasSelecionadas = $usuario->empresas()->pluck('empresas.id')->all();
 
-            return view('usuario::edit', compact('usuario', 'papeis'));
+            return view('usuario::edit', compact('usuario', 'papeis', 'empresas', 'empresasSelecionadas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar edição de usuário');
         }
