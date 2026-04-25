@@ -19,7 +19,7 @@
 
 - **Vite** ^8.0 (build tool)
 - **Tailwind CSS** ^4.0
-- **FullCalendar** ^6.1 (calendario de agendamentos)
+- **@toast-ui/calendar** ^2.1.3 (calendario de agendamentos)
 - **Axios** ^1.11 (HTTP client)
 - **Bootstrap 5** (via template Duralux)
 - **SweetAlert2** (confirmacoes)

@@ -1,6 +1,6 @@
 # Modulo: Agenda
 
-Gerencia agendamentos de servicos. Integrado com FullCalendar no frontend.
+Gerencia agendamentos de servicos. Integrado com Toast UI Calendar no frontend.
 
 ## Localizacao
 
@@ -57,7 +57,7 @@ Agendado → Cancelado
 ## AgendaController (frontend)
 
 ### json()
-Retorna eventos para o FullCalendar em JSON:
+Retorna eventos para o Toast UI Calendar em JSON:
 - Mapeia atendentes para cores (paleta fixa)
 - Cada agendamento vira evento com titulo, datas, cor, URL
 
