@@ -16,7 +16,6 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 2,
                 'tem_estoque' => true,
                 'tem_financeiro' => true,
-                'tem_relatorios' => true,
             ],
             [
                 'nome' => 'basic',
@@ -24,7 +23,6 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 5,
                 'tem_estoque' => true,
                 'tem_financeiro' => false,
-                'tem_relatorios' => false,
             ],
             [
                 'nome' => 'pro',
@@ -32,7 +30,6 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 10,
                 'tem_estoque' => true,
                 'tem_financeiro' => true,
-                'tem_relatorios' => false,
             ],
             [
                 'nome' => 'business',
@@ -40,7 +37,6 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 0, // ilimitado
                 'tem_estoque' => true,
                 'tem_financeiro' => true,
-                'tem_relatorios' => true,
             ],
         ];
 

@@ -27,7 +27,6 @@ class PlanoService
             'usuario' => $plano->max_usuarios === 0 || $rede->usuarios()->count() < $plano->max_usuarios,
             'estoque' => $plano->tem_estoque,
             'financeiro' => $plano->tem_financeiro,
-            'relatorios' => $plano->tem_relatorios,
             default => true,
         };
     }

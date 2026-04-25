@@ -2,12 +2,12 @@
 
 ## Tabela de planos
 
-| Plano | max_empresas | max_usuarios | tem_estoque | tem_financeiro | tem_relatorios |
-|-------|-------------|-------------|-------------|----------------|----------------|
-| free | 1 | 2 | false | false | false |
-| basic | 2 | 5 | true | true | false |
-| pro | 5 | 10 | true | true | true |
-| business | 0 (ilimitado) | 0 (ilimitado) | true | true | true |
+| Plano | max_empresas | max_usuarios | tem_estoque | tem_financeiro |
+|-------|-------------|-------------|-------------|----------------|
+| free | 1 | 2 | false | false |
+| basic | 2 | 5 | true | true |
+| pro | 5 | 10 | true | true |
+| business | 0 (ilimitado) | 0 (ilimitado) | true | true |
 
 Nota: `0` em max_empresas/max_usuarios = ilimitado.
 
@@ -21,13 +21,13 @@ Para recursos contaveis (empresa, usuario):
 - Se max = 0 → ilimitado, passa
 - Se count atual >= max → lanca `PlanoLimiteException`
 
-Para feature flags (estoque, financeiro, relatorios):
+Para feature flags (estoque, financeiro):
 - Se flag = false → lanca `PlanoLimiteException`
 
 ### Middleware verificar.plano
 
 Rota: `verificar.plano:{recurso}` (ex: `verificar.plano:financeiro`)
-Verifica flags booleanas do plano: `tem_estoque`, `tem_financeiro`, `tem_relatorios`.
+Verifica flags booleanas do plano: `tem_estoque`, `tem_financeiro`.
 
 ### Onde a validacao acontece
 
@@ -37,7 +37,6 @@ Verifica flags booleanas do plano: `tem_estoque`, `tem_financeiro`, `tem_relator
 | Criar usuario | CriarUsuarioAction chama ValidarPlanoAction('usuario') |
 | Acessar financeiro | Middleware verificar.plano:financeiro |
 | Acessar estoque | Middleware verificar.plano:estoque |
-| Acessar relatorios | Middleware verificar.plano:relatorios |
 
 ## Plano da rede
 
@@ -50,3 +49,4 @@ Relacao: `Rede.plano_id → Plano.id`
 
 - Cobranca ainda nao implementada
 - Sistema preparado para integrar gateway de pagamento
+- Modulo de Relatorios documentado como roadmap no README (fora de escopo do portfolio)
