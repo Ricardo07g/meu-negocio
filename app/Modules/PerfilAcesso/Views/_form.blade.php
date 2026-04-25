@@ -1,19 +1,19 @@
 @php
-    $papel = $papel ?? null;
-    $papelPermissoes = $papelPermissoes ?? [];
-    $isAdmin = $papel && $papel->name === 'Admin';
+    $perfilAcesso = $perfilAcesso ?? null;
+    $perfilPermissoes = $perfilPermissoes ?? [];
+    $isAdmin = $perfilAcesso && $perfilAcesso->name === 'Admin';
 @endphp
 
 <div class="card stretch stretch-full">
     <div class="card-header">
-        <h5 class="card-title">{{ $papel ? 'Editar Papel' : 'Cadastrar Papel' }}</h5>
+        <h5 class="card-title">{{ $perfilAcesso ? 'Editar Perfil de Acesso' : 'Cadastrar Perfil de Acesso' }}</h5>
     </div>
     <div class="card-body">
         <div class="row mb-4">
             <div class="col-md-4">
-                <label class="form-label">Nome do Papel <span class="text-danger">*</span></label>
+                <label class="form-label">Nome do Perfil <span class="text-danger">*</span></label>
                 <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                    value="{{ old('name', $papel->name ?? '') }}" required {{ $isAdmin ? 'readonly' : '' }}>
+                    value="{{ old('name', $perfilAcesso->name ?? '') }}" required {{ $isAdmin ? 'readonly' : '' }}>
                 @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
@@ -28,7 +28,7 @@
                         <div class="form-check">
                             <input type="checkbox" name="permissoes[]" value="{{ $perm->name }}" class="form-check-input"
                                 id="perm_{{ $perm->id }}"
-                                {{ in_array($perm->name, old('permissoes', $papelPermissoes)) ? 'checked' : '' }}>
+                                {{ in_array($perm->name, old('permissoes', $perfilPermissoes)) ? 'checked' : '' }}>
                             <label class="form-check-label" for="perm_{{ $perm->id }}">{{ explode('.', $perm->name)[1] ?? $perm->name }}</label>
                         </div>
                     @endforeach
@@ -38,4 +38,4 @@
     </div>
 </div>
 
-<x-form-botoes :voltar="route('papeis.index')" />
+<x-form-botoes :voltar="route('perfis-acesso.index')" />

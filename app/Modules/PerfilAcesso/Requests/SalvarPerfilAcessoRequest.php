@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Modules\Papel\Requests;
+namespace App\Modules\PerfilAcesso\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class SalvarPapelRequest extends FormRequest
+class SalvarPerfilAcessoRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +17,7 @@ class SalvarPapelRequest extends FormRequest
     public function rules(): array
     {
         $criando = $this->isMethod('post');
-        $papelId = $this->route('papel')?->id ?? null;
+        $perfilId = $this->route('perfil_acesso')?->id ?? null;
 
         return [
             'name' => [
@@ -26,7 +26,7 @@ class SalvarPapelRequest extends FormRequest
                 'max:50',
                 $criando
                     ? Rule::unique('roles', 'name')
-                    : Rule::unique('roles', 'name')->ignore($papelId),
+                    : Rule::unique('roles', 'name')->ignore($perfilId),
             ],
             'permissoes' => ['nullable', 'array'],
             'permissoes.*' => ['string', 'exists:permissions,name'],

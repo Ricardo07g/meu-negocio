@@ -267,12 +267,12 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Papeis --}}
+                    {{-- Perfis de Acesso --}}
                     @can('papel.ver')
                     <li class="nxl-item">
-                        <a href="{{ route('papeis.index') }}" class="nxl-link">
+                        <a href="{{ route('perfis-acesso.index') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-shield"></i></span>
-                            <span class="nxl-mtext">Papéis</span>
+                            <span class="nxl-mtext">Perfis de Acesso</span>
                         </a>
                     </li>
                     @endcan
