@@ -2,7 +2,6 @@
 
 namespace App\Modules\Usuario\Requests;
 
-use App\Enums\PapelEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +30,7 @@ class SalvarUsuarioRequest extends FormRequest
             ],
             'password' => [$criando ? 'required' : 'nullable', 'string', 'min:8'],
             'empresa_id' => ['nullable', 'exists:empresas,id'],
-            'papel' => [$criando ? 'required' : 'nullable', Rule::enum(PapelEnum::class)],
+            'papel' => [$criando ? 'required' : 'nullable', 'string', 'exists:roles,name'],
             'ativo' => ['nullable', 'boolean'],
             'atende' => ['nullable', 'boolean'],
         ];
