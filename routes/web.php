@@ -1,7 +1,9 @@
 <?php
 
 use App\Modules\Agenda\Controllers\AgendaController;
+use App\Modules\Auth\Controllers\EsqueciSenhaController;
 use App\Modules\Auth\Controllers\LoginController;
+use App\Modules\Auth\Controllers\RedefinirSenhaController;
 use App\Modules\Auth\Controllers\RegistrarController;
 use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\ClienteController;
@@ -28,6 +30,14 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [LoginController::class, 'login']);
     Route::get('registrar', [RegistrarController::class, 'showRegistrationForm'])->name('registrar');
     Route::post('registrar', [RegistrarController::class, 'register']);
+
+    // Recuperacao de senha
+    Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
+    Route::post('esqueci-senha', [EsqueciSenhaController::class, 'sendResetLinkEmail'])
+        ->middleware('throttle:5,1')
+        ->name('senha.solicitar.enviar');
+    Route::get('redefinir-senha/{token}', [RedefinirSenhaController::class, 'showResetForm'])->name('senha.redefinir.form');
+    Route::post('redefinir-senha', [RedefinirSenhaController::class, 'reset'])->name('senha.redefinir');
 });
 
 Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
