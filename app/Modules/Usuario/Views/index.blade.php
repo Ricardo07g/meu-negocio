@@ -28,7 +28,7 @@
                             <th>Nome</th>
                             <th>Email</th>
                             <th>Status</th>
-                            <th>Papel</th>
+                            <th>Perfil de Acesso</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>

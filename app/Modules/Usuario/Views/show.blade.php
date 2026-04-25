@@ -16,7 +16,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3"><strong>Nome:</strong> {{ $usuario->nome }}</div>
                 <div class="col-md-6 mb-3"><strong>Email:</strong> {{ $usuario->email }}</div>
-                <div class="col-md-6 mb-3"><strong>Papel:</strong> {{ ucfirst($usuario->papel) }}</div>
+                <div class="col-md-6 mb-3"><strong>Perfil de Acesso:</strong> {{ ucfirst($usuario->papel) }}</div>
                 <div class="col-md-6 mb-3">
                     <strong>Ativo:</strong>
                     @if($usuario->ativo)

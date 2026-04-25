@@ -17,7 +17,7 @@ class CriarUsuarioAction
     {
         $this->validarPlano->executar($rede, 'usuario');
 
-        $papel = $data->papel ?? 'Visualizador';
+        $papel = $data->papel;
 
         $usuario = Usuario::create([
             'rede_id' => $rede->id,
