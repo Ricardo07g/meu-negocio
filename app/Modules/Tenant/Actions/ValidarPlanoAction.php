@@ -24,7 +24,6 @@ class ValidarPlanoAction
             ),
             'estoque' => $this->validarFeature($plano->tem_estoque, 'estoque'),
             'financeiro' => $this->validarFeature($plano->tem_financeiro, 'financeiro'),
-            'relatorios' => $this->validarFeature($plano->tem_relatorios, 'relatórios'),
             default => null,
         };
     }
@@ -39,7 +38,7 @@ class ValidarPlanoAction
 
     private function validarFeature(bool $habilitado, string $recurso): void
     {
-        if (!$habilitado) {
+        if (! $habilitado) {
             throw new PlanoLimiteException($recurso);
         }
     }

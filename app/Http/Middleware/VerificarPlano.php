@@ -17,11 +17,10 @@ class VerificarPlano
         $habilitado = match ($feature) {
             'estoque' => $plano->tem_estoque,
             'financeiro' => $plano->tem_financeiro,
-            'relatorios' => $plano->tem_relatorios,
             default => true,
         };
 
-        if (!$habilitado) {
+        if (! $habilitado) {
             throw new PlanoLimiteException($feature);
         }
 

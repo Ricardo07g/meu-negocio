@@ -15,7 +15,6 @@ class Plano extends Model
         'max_usuarios',
         'tem_estoque',
         'tem_financeiro',
-        'tem_relatorios',
     ];
 
     protected function casts(): array
@@ -23,7 +22,6 @@ class Plano extends Model
         return [
             'tem_estoque' => 'boolean',
             'tem_financeiro' => 'boolean',
-            'tem_relatorios' => 'boolean',
         ];
     }
 
