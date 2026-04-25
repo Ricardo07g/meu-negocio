@@ -58,6 +58,10 @@ class UsuarioService
             $usuario->syncRoles([$data->papel]);
         }
 
+        if ($data->empresas !== null) {
+            $usuario->empresas()->sync($data->empresas);
+        }
+
         return $usuario->fresh();
     }
 

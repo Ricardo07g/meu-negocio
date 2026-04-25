@@ -31,6 +31,10 @@ class CriarUsuarioAction
 
         $usuario->assignRole($papel);
 
+        if ($data->empresas !== null) {
+            $usuario->empresas()->sync($data->empresas);
+        }
+
         return $usuario;
     }
 }
