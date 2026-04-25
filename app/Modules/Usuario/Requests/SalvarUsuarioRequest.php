@@ -18,6 +18,8 @@ class SalvarUsuarioRequest extends FormRequest
     {
         $criando = $this->isMethod('post');
         $usuarioId = $this->route('usuario');
+        $ehAdmin = $this->input('papel') === 'Admin';
+        $redeId = $this->user()?->rede_id;
 
         return [
             'nome' => ['required', 'string', 'max:200'],
@@ -33,6 +35,21 @@ class SalvarUsuarioRequest extends FormRequest
             'papel' => [$criando ? 'required' : 'nullable', 'string', 'exists:roles,name'],
             'ativo' => ['nullable', 'boolean'],
             'atende' => ['nullable', 'boolean'],
+            // Admin nao precisa de pivot (acessa tudo). Nao-admin: array obrigatorio com >= 1 empresa da propria rede.
+            'empresas' => [$ehAdmin ? 'nullable' : 'required', 'array', $ehAdmin ? 'nullable' : 'min:1'],
+            'empresas.*' => [
+                'integer',
+                Rule::exists('empresas', 'id')->where(fn ($q) => $redeId ? $q->where('rede_id', $redeId) : $q),
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'empresas.required' => 'Selecione ao menos uma empresa para o usuario.',
+            'empresas.min' => 'Selecione ao menos uma empresa para o usuario.',
+            'empresas.*.exists' => 'Empresa invalida ou fora da sua rede.',
         ];
     }
 }
