@@ -14,7 +14,7 @@ class UsuarioPolicy
     public function view(Usuario $usuario, Usuario $alvo): bool
     {
         return $usuario->rede_id === $alvo->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $alvo->empresa_id)
+            && $usuario->podeAcessarEmpresa($alvo->empresa_id)
             && $usuario->can('usuario.ver');
     }
 
@@ -26,7 +26,7 @@ class UsuarioPolicy
     public function update(Usuario $usuario, Usuario $alvo): bool
     {
         return $usuario->rede_id === $alvo->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $alvo->empresa_id)
+            && $usuario->podeAcessarEmpresa($alvo->empresa_id)
             && $usuario->can('usuario.editar');
     }
 

@@ -15,7 +15,7 @@ class PagamentoPolicy
     public function view(Usuario $usuario, Pagamento $pagamento): bool
     {
         return $usuario->rede_id === $pagamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $pagamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($pagamento->empresa_id)
             && $usuario->can('pagamento.ver');
     }
 
@@ -27,14 +27,14 @@ class PagamentoPolicy
     public function update(Usuario $usuario, Pagamento $pagamento): bool
     {
         return $usuario->rede_id === $pagamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $pagamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($pagamento->empresa_id)
             && $usuario->can('pagamento.editar');
     }
 
     public function delete(Usuario $usuario, Pagamento $pagamento): bool
     {
         return $usuario->rede_id === $pagamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $pagamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($pagamento->empresa_id)
             && $usuario->can('pagamento.excluir');
     }
 }

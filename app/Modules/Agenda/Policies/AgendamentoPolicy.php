@@ -15,7 +15,7 @@ class AgendamentoPolicy
     public function view(Usuario $usuario, Agendamento $agendamento): bool
     {
         return $usuario->rede_id === $agendamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $agendamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($agendamento->empresa_id)
             && $usuario->can('agendamento.ver');
     }
 
@@ -27,21 +27,21 @@ class AgendamentoPolicy
     public function update(Usuario $usuario, Agendamento $agendamento): bool
     {
         return $usuario->rede_id === $agendamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $agendamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($agendamento->empresa_id)
             && $usuario->can('agendamento.editar');
     }
 
     public function cancel(Usuario $usuario, Agendamento $agendamento): bool
     {
         return $usuario->rede_id === $agendamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $agendamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($agendamento->empresa_id)
             && $usuario->can('agendamento.cancelar');
     }
 
     public function delete(Usuario $usuario, Agendamento $agendamento): bool
     {
         return $usuario->rede_id === $agendamento->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $agendamento->empresa_id)
+            && $usuario->podeAcessarEmpresa($agendamento->empresa_id)
             && $usuario->can('agendamento.excluir');
     }
 }
