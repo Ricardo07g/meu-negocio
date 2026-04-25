@@ -7,7 +7,7 @@ Estado em: 2026-04-14
 - [x] Docker Compose (app, nginx, mysql, redis)
 - [x] Laravel ^13.0 com PHP ^8.3
 - [x] Spatie Permission, Data, ActivityLog instalados
-- [x] Vite + Tailwind + FullCalendar configurados
+- [x] Vite + Tailwind + Toast UI Calendar configurados
 - [x] Template Duralux Admin integrado no layout
 - [x] ModuleServiceProvider (auto-load de modulos)
 
@@ -55,7 +55,7 @@ Estado em: 2026-04-14
 - [x] CRUD completo de clientes (com endereco e dados pessoais)
 - [x] CRUD de servicos (avulso e pacote)
 - [x] CRUD de produtos com categorias
-- [x] Calendario de agendamentos (FullCalendar)
+- [x] Calendario de agendamentos (Toast UI Calendar)
 - [x] Criacao de agendamentos com verificacao de conflito
 - [x] Ciclo de vida: agendar → confirmar → finalizar/cancelar
 - [x] Vendas: avulso, pacote (multiplas sessoes), produto

@@ -8,7 +8,7 @@ Projeto de portfolio, preparado para open source.
 - PHP ^8.3, Laravel ^13.0
 - MySQL 8.0, Redis
 - Docker Compose (app, nginx:8080, mysql:3306, redis:6379)
-- Vite + Tailwind CSS 4 + FullCalendar 6
+- Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3
 - Template: Duralux Admin 1.0.0 (`/home/ricardo/Documentos/Projetos/TEMAS/Duralux-admin-1.0.0/`)
 
 ## Pacotes Obrigatorios
@@ -75,7 +75,7 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 - **Usuario** — CRUD completo
 - **Cliente** — CRUD + Actions + busca AJAX
 - **Servico** — CRUD, tipos avulso/pacote + busca AJAX
-- **Agenda** — CRUD + confirmar/finalizar/cancelar, FullCalendar
+- **Agenda** — CRUD + confirmar/finalizar/cancelar, Toast UI Calendar
 - **Pagamento** — Titulo+Parcelas, baixa parcial por parcela, renegociacao, cancelamento, contas a receber, recibo
 - **Despesa** — Titulo+Parcelas, categorias, baixa parcial por parcela, recibo
 - **Estoque** — Movimentos entrada/saida/ajuste

@@ -1,0 +1,3 @@
+- [Project Goal](project_goal.md) — Meu Negocio é projeto de portfólio open source, NÃO produto comercial. Restrição: cortar > completar mal.
+- [Inconsistencies Found](project_inconsistencies.md) — Inconsistências encontradas na auditoria de 2026-04-25, base do FECHAMENTO_PORTFOLIO.md.
+- [User Profile](user_profile.md) — Ricardo é dev sênior, prefere PT-BR, padrões Duralux, perguntar antes de decidir produto.
