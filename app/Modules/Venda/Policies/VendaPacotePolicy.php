@@ -15,7 +15,7 @@ class VendaPacotePolicy
     public function view(Usuario $usuario, VendaPacote $venda): bool
     {
         return $usuario->rede_id === $venda->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $venda->empresa_id)
+            && $usuario->podeAcessarEmpresa($venda->empresa_id)
             && $usuario->can('agendamento.ver');
     }
 
@@ -27,7 +27,7 @@ class VendaPacotePolicy
     public function cancel(Usuario $usuario, VendaPacote $venda): bool
     {
         return $usuario->rede_id === $venda->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $venda->empresa_id)
+            && $usuario->podeAcessarEmpresa($venda->empresa_id)
             && $usuario->can('agendamento.cancelar');
     }
 }

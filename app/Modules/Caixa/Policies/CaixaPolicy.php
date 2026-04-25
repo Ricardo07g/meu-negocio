@@ -15,7 +15,7 @@ class CaixaPolicy
     public function view(Usuario $usuario, Caixa $caixa): bool
     {
         return $usuario->rede_id === $caixa->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $caixa->empresa_id)
+            && $usuario->podeAcessarEmpresa($caixa->empresa_id)
             && $usuario->can('financeiro.ver');
     }
 
@@ -27,14 +27,14 @@ class CaixaPolicy
     public function update(Usuario $usuario, Caixa $caixa): bool
     {
         return $usuario->rede_id === $caixa->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $caixa->empresa_id)
+            && $usuario->podeAcessarEmpresa($caixa->empresa_id)
             && $usuario->can('financeiro.editar');
     }
 
     public function delete(Usuario $usuario, Caixa $caixa): bool
     {
         return $usuario->rede_id === $caixa->rede_id
-            && ($usuario->hasRole('Admin') || $usuario->empresa_id === $caixa->empresa_id)
+            && $usuario->podeAcessarEmpresa($caixa->empresa_id)
             && $usuario->can('financeiro.editar');
     }
 }

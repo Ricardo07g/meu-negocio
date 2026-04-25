@@ -99,4 +99,25 @@ class Usuario extends Authenticatable
     // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
     // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
     // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
+
+    /**
+     * Verifica se este usuario pode acessar uma determinada empresa.
+     *
+     * Admin acessa tudo dentro da rede; demais usuarios so acessam empresas
+     * presentes na pivot empresa_usuario. Usado em Policies para autorizar
+     * operacoes sobre entidades transacionais (Agendamento, Venda, Caixa,
+     * Pagamento, Despesa).
+     */
+    public function podeAcessarEmpresa(?int $empresaId): bool
+    {
+        if ($empresaId === null) {
+            return false;
+        }
+
+        if ($this->hasRole('Admin')) {
+            return true;
+        }
+
+        return $this->empresas()->where('empresas.id', $empresaId)->exists();
+    }
 }
