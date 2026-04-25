@@ -3,8 +3,10 @@
 namespace App\Modules\Usuario\Models;
 
 use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
+use App\Modules\Tenant\Models\Empresa;
 use App\Traits\EmpresaTrait;
 use App\Traits\RedeTrait;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -57,6 +59,18 @@ class Usuario extends Authenticatable
     // ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║╚════██║
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
+    /**
+     * Empresas que este usuario pode acessar (N:N via pivot empresa_usuario).
+     *
+     * Para Admin, esta relacao normalmente nao e usada para autorizacao
+     * (Admin acessa tudo via EmpresaTrait + hasRole('Admin')); para nao-admin
+     * e a fonte de verdade do conjunto de empresas acessiveis.
+     */
+    public function empresas(): BelongsToMany
+    {
+        return $this->belongsToMany(Empresa::class, 'empresa_usuario')->withTimestamps();
+    }
 
     // █████╗  ██████╗███████╗███████╗███████╗ ██████╗ ██████╗ ███████╗
     // ██╔══██╗██╔════╝██╔════╝██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝

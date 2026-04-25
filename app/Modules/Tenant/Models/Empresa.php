@@ -10,6 +10,7 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -34,7 +35,20 @@ class Empresa extends BaseModel
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-    public function usuarios(): HasMany
+    /**
+     * Usuarios com acesso a esta empresa via pivot empresa_usuario (N:N).
+     * Fonte de verdade do conjunto de usuarios autorizados a operar a empresa.
+     */
+    public function usuarios(): BelongsToMany
+    {
+        return $this->belongsToMany(Usuario::class, 'empresa_usuario')->withTimestamps();
+    }
+
+    /**
+     * Usuarios que tem esta empresa como default ao logar (usuarios.empresa_id).
+     * Mantido para compatibilidade; nao e fonte de verdade de acesso.
+     */
+    public function usuariosDefault(): HasMany
     {
         return $this->hasMany(Usuario::class, 'empresa_id');
     }
