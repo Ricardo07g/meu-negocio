@@ -49,35 +49,56 @@ use Spatie\Permission\Models\Role;
  */
 class DesenvolvimentoSeeder extends Seeder
 {
-    private const TOTAL_CLIENTES        = 500;
-    private const TOTAL_SERVICOS        = 15;
-    private const TOTAL_PRODUTOS        = 30;
-    private const TOTAL_ATENDENTES      = 5;
-    private const TOTAL_AGENDAMENTOS    = 600;
-    private const TOTAL_VENDAS_PACOTE   = 60;
-    private const TOTAL_VENDAS_PRODUTO  = 100;
-    private const TOTAL_DESPESAS        = 150;
+    private const TOTAL_CLIENTES = 500;
+
+    private const TOTAL_SERVICOS = 15;
+
+    private const TOTAL_PRODUTOS = 30;
+
+    private const TOTAL_ATENDENTES = 5;
+
+    private const TOTAL_AGENDAMENTOS = 600;
+
+    private const TOTAL_VENDAS_PACOTE = 60;
+
+    private const TOTAL_VENDAS_PRODUTO = 100;
+
+    private const TOTAL_DESPESAS = 150;
+
     private const TOTAL_DESPESAS_PARCEL = 30;
-    private const CAIXAS_DIAS           = 45;
-    private const DIAS_PASSADO          = 60;
-    private const DIAS_FUTURO           = 30;
+
+    private const CAIXAS_DIAS = 45;
+
+    private const DIAS_PASSADO = 60;
+
+    private const DIAS_FUTURO = 30;
 
     private $faker;
+
     private Rede $rede;
+
     private Empresa $empresa;
+
     private Usuario $admin;
+
     /** @var Usuario[] */
     private array $atendentes = [];
+
     /** @var CategoriaProduto[] */
     private array $categoriasProduto = [];
+
     /** @var CategoriaDespesa[] */
     private array $categoriasDespesa = [];
+
     /** @var Produto[] */
     private array $produtos = [];
+
     /** @var Servico[] */
     private array $servicos = [];
+
     /** @var Cliente[] */
     private array $clientes = [];
+
     /** @var Caixa[] */
     private array $caixasPorData = [];
 
@@ -123,8 +144,8 @@ class DesenvolvimentoSeeder extends Seeder
             ['rede_id' => $this->rede->id, 'nome' => 'Unidade Central'],
             [
                 'documento' => $this->faker->numerify('##.###.###/0001-##'),
-                'telefone'  => $this->faker->cellphoneNumber(),
-                'email'     => 'contato@teste.com',
+                'telefone' => $this->faker->cellphoneNumber(),
+                'email' => 'contato@teste.com',
             ],
         );
 
@@ -134,38 +155,41 @@ class DesenvolvimentoSeeder extends Seeder
     private function criarUsuarios(): void
     {
         $adminRole = Role::where('name', 'Admin')->firstOrFail();
-        $profRole  = Role::where('name', 'Profissional')->firstOrFail();
 
         $this->admin = Usuario::firstOrCreate(
             ['email' => 'admin@teste.com'],
             [
-                'rede_id'    => $this->rede->id,
+                'rede_id' => $this->rede->id,
                 'empresa_id' => $this->empresa->id,
-                'nome'       => 'Administrador Demo',
-                'password'   => 'password',
-                'ativo'      => true,
-                'atende'     => false,
+                'nome' => 'Administrador Demo',
+                'password' => 'password',
+                'ativo' => true,
+                'atende' => false,
             ],
         );
         $this->admin->syncRoles([$adminRole]);
 
+        // Atendentes da demo recebem o papel Admin para que a navegacao funcione
+        // sem permission walls. A flag `atende = true` continua sendo o que
+        // determina aparicao no select de atendente da Agenda — autorizacao
+        // (Role) e funcao operacional (atende) sao independentes.
         for ($i = 1; $i <= self::TOTAL_ATENDENTES; $i++) {
             $atendente = Usuario::firstOrCreate(
                 ['email' => "atendente{$i}@teste.com"],
                 [
-                    'rede_id'    => $this->rede->id,
+                    'rede_id' => $this->rede->id,
                     'empresa_id' => $this->empresa->id,
-                    'nome'       => $this->faker->name(),
-                    'password'   => 'password',
-                    'ativo'      => true,
-                    'atende'     => true,
+                    'nome' => $this->faker->name(),
+                    'password' => 'password',
+                    'ativo' => true,
+                    'atende' => true,
                 ],
             );
-            $atendente->syncRoles([$profRole]);
+            $atendente->syncRoles([$adminRole]);
             $this->atendentes[] = $atendente;
         }
 
-        $this->command->info('Usuários: 1 admin + ' . count($this->atendentes) . ' atendentes.');
+        $this->command->info('Usuários: 1 admin + '.count($this->atendentes).' atendentes.');
     }
 
     private function criarCategoriasEProdutos(): void
@@ -189,22 +213,22 @@ class DesenvolvimentoSeeder extends Seeder
             $venda = round($custo * $this->faker->randomFloat(2, 1.4, 2.8), 2);
             $cat = $this->faker->randomElement($this->categoriasProduto);
             $this->produtos[] = Produto::create([
-                'rede_id'              => $this->rede->id,
+                'rede_id' => $this->rede->id,
                 'categoria_produto_id' => $cat->id,
-                'nome'                 => ucfirst($this->faker->words(2, true)) . ' ' . $this->faker->word(),
-                'codigo'               => 'P' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
-                'codigo_barras'        => $this->faker->ean13(),
-                'descricao'            => $this->faker->sentence(8),
-                'quantidade'           => $this->faker->numberBetween(0, 80),
-                'valor_custo'          => $custo,
-                'valor_venda'          => $venda,
-                'estoque_minimo'       => $this->faker->numberBetween(2, 10),
-                'unidade'              => $this->faker->randomElement(['un', 'cx', 'kg', 'L']),
-                'ativo'                => true,
+                'nome' => ucfirst($this->faker->words(2, true)).' '.$this->faker->word(),
+                'codigo' => 'P'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
+                'codigo_barras' => $this->faker->ean13(),
+                'descricao' => $this->faker->sentence(8),
+                'quantidade' => $this->faker->numberBetween(0, 80),
+                'valor_custo' => $custo,
+                'valor_venda' => $venda,
+                'estoque_minimo' => $this->faker->numberBetween(2, 10),
+                'unidade' => $this->faker->randomElement(['un', 'cx', 'kg', 'L']),
+                'ativo' => true,
             ]);
         }
 
-        $this->command->info('Categorias e ' . count($this->produtos) . ' produtos criados.');
+        $this->command->info('Categorias e '.count($this->produtos).' produtos criados.');
     }
 
     private function criarServicos(): void
@@ -218,10 +242,10 @@ class DesenvolvimentoSeeder extends Seeder
         foreach (array_slice($tiposAvulso, 0, self::TOTAL_SERVICOS - 4) as $s) {
             $this->servicos[] = Servico::create([
                 'rede_id' => $this->rede->id,
-                'nome'    => $s[0],
+                'nome' => $s[0],
                 'duracao' => $s[1],
-                'valor'   => $s[2],
-                'tipo'    => TipoServico::Avulso,
+                'valor' => $s[2],
+                'tipo' => TipoServico::Avulso,
             ]);
         }
 
@@ -232,60 +256,60 @@ class DesenvolvimentoSeeder extends Seeder
             ['Pacote Limpeza de Pele 4 Sessões', 60, 520, 4],
         ] as $p) {
             $this->servicos[] = Servico::create([
-                'rede_id'     => $this->rede->id,
-                'nome'        => $p[0],
-                'duracao'     => $p[1],
-                'valor'       => $p[2],
-                'tipo'        => TipoServico::Pacote,
+                'rede_id' => $this->rede->id,
+                'nome' => $p[0],
+                'duracao' => $p[1],
+                'valor' => $p[2],
+                'tipo' => TipoServico::Pacote,
                 'qtd_sessoes' => $p[3],
             ]);
         }
 
-        $this->command->info('Serviços: ' . count($this->servicos) . '.');
+        $this->command->info('Serviços: '.count($this->servicos).'.');
     }
 
     private function criarClientes(): void
     {
-        $this->command->info('Criando ' . self::TOTAL_CLIENTES . ' clientes…');
+        $this->command->info('Criando '.self::TOTAL_CLIENTES.' clientes…');
         for ($i = 0; $i < self::TOTAL_CLIENTES; $i++) {
             $this->clientes[] = Cliente::create([
-                'rede_id'           => $this->rede->id,
-                'nome'              => $this->faker->name(),
-                'telefone'          => $this->faker->cellphoneNumber(),
+                'rede_id' => $this->rede->id,
+                'nome' => $this->faker->name(),
+                'telefone' => $this->faker->cellphoneNumber(),
                 'telefone_whatsapp' => $this->faker->boolean(70),
-                'email'             => $this->faker->boolean(60) ? $this->faker->safeEmail() : null,
-                'data_nascimento'   => $this->faker->boolean(80) ? $this->faker->dateTimeBetween('-70 years', '-18 years') : null,
-                'cpf'               => $this->faker->boolean(60) ? $this->faker->cpf(false) : null,
-                'sexo'              => $this->faker->randomElement(['M', 'F', 'outro', null]),
+                'email' => $this->faker->boolean(60) ? $this->faker->safeEmail() : null,
+                'data_nascimento' => $this->faker->boolean(80) ? $this->faker->dateTimeBetween('-70 years', '-18 years') : null,
+                'cpf' => $this->faker->boolean(60) ? $this->faker->cpf(false) : null,
+                'sexo' => $this->faker->randomElement(['M', 'F', 'outro', null]),
             ]);
         }
     }
 
     private function criarCaixas(): void
     {
-        $this->command->info('Criando caixas dos últimos ' . self::CAIXAS_DIAS . ' dias…');
+        $this->command->info('Criando caixas dos últimos '.self::CAIXAS_DIAS.' dias…');
         for ($i = self::CAIXAS_DIAS; $i >= 1; $i--) {
             $data = Carbon::today()->subDays($i);
             $caixa = Caixa::create([
-                'rede_id'        => $this->rede->id,
-                'empresa_id'     => $this->empresa->id,
-                'usuario_id'     => $this->admin->id,
-                'data'           => $data->toDateString(),
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'usuario_id' => $this->admin->id,
+                'data' => $data->toDateString(),
                 'saldo_abertura' => $this->faker->randomFloat(2, 50, 300),
-                'status'         => StatusCaixa::Fechado,
-                'fechado_em'     => $data->copy()->endOfDay(),
-                'fechado_por'    => $this->admin->id,
+                'status' => StatusCaixa::Fechado,
+                'fechado_em' => $data->copy()->endOfDay(),
+                'fechado_por' => $this->admin->id,
             ]);
             $this->caixasPorData[$data->toDateString()] = $caixa;
         }
         $hoje = Carbon::today();
         $caixaHoje = Caixa::create([
-            'rede_id'        => $this->rede->id,
-            'empresa_id'     => $this->empresa->id,
-            'usuario_id'     => $this->admin->id,
-            'data'           => $hoje->toDateString(),
+            'rede_id' => $this->rede->id,
+            'empresa_id' => $this->empresa->id,
+            'usuario_id' => $this->admin->id,
+            'data' => $hoje->toDateString(),
             'saldo_abertura' => 200.00,
-            'status'         => StatusCaixa::Aberto,
+            'status' => StatusCaixa::Aberto,
         ]);
         $this->caixasPorData[$hoje->toDateString()] = $caixaHoje;
     }
@@ -297,7 +321,7 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarAgendamentosEPagamentos(): void
     {
-        $this->command->info('Criando ' . self::TOTAL_AGENDAMENTOS . ' agendamentos…');
+        $this->command->info('Criando '.self::TOTAL_AGENDAMENTOS.' agendamentos…');
         $avulsos = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Avulso));
 
         for ($i = 0; $i < self::TOTAL_AGENDAMENTOS; $i++) {
@@ -309,19 +333,19 @@ class DesenvolvimentoSeeder extends Seeder
             $hora = $this->faker->numberBetween(8, 18);
             $minuto = $this->faker->randomElement([0, 30]);
             $inicio = Carbon::now()->startOfDay()->addDays($diasOffset)->setTime($hora, $minuto);
-            $fim    = $inicio->copy()->addMinutes($servico->duracao);
+            $fim = $inicio->copy()->addMinutes($servico->duracao);
 
             $status = $this->escolherStatusAgendamento($diasOffset);
 
             $ag = Agendamento::create([
-                'rede_id'     => $this->rede->id,
-                'empresa_id'  => $this->empresa->id,
-                'cliente_id'  => $cliente->id,
-                'servico_id'  => $servico->id,
-                'atendente_id'=> $atendente->id,
-                'inicio'      => $inicio,
-                'fim'         => $fim,
-                'status'      => $status,
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'cliente_id' => $cliente->id,
+                'servico_id' => $servico->id,
+                'atendente_id' => $atendente->id,
+                'inicio' => $inicio,
+                'fim' => $fim,
+                'status' => $status,
             ]);
 
             if ($status === StatusAgendamento::Finalizado) {
@@ -343,6 +367,7 @@ class DesenvolvimentoSeeder extends Seeder
                 StatusAgendamento::Confirmado, StatusAgendamento::Finalizado, StatusAgendamento::Cancelado,
             ]);
         }
+
         return $this->faker->randomElement([
             StatusAgendamento::Agendado, StatusAgendamento::Agendado, StatusAgendamento::Confirmado, StatusAgendamento::Cancelado,
         ]);
@@ -377,9 +402,11 @@ class DesenvolvimentoSeeder extends Seeder
     private function criarVendasPacote(): void
     {
         $pacotes = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Pacote));
-        if (empty($pacotes)) return;
+        if (empty($pacotes)) {
+            return;
+        }
 
-        $this->command->info('Criando ' . self::TOTAL_VENDAS_PACOTE . ' vendas de pacote…');
+        $this->command->info('Criando '.self::TOTAL_VENDAS_PACOTE.' vendas de pacote…');
         for ($i = 0; $i < self::TOTAL_VENDAS_PACOTE; $i++) {
             $pacote = $this->faker->randomElement($pacotes);
             $cliente = $this->faker->randomElement($this->clientes);
@@ -387,15 +414,15 @@ class DesenvolvimentoSeeder extends Seeder
             $dataVenda = Carbon::now()->subDays($this->faker->numberBetween(1, self::DIAS_PASSADO));
 
             $vp = VendaPacote::create([
-                'rede_id'      => $this->rede->id,
-                'empresa_id'   => $this->empresa->id,
-                'cliente_id'   => $cliente->id,
-                'servico_id'   => $pacote->id,
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'cliente_id' => $cliente->id,
+                'servico_id' => $pacote->id,
                 'atendente_id' => $atendente->id,
-                'data'         => $dataVenda,
-                'valor_total'  => $pacote->valor,
-                'qtd_sessoes'  => $pacote->qtd_sessoes,
-                'status'       => StatusVendaPacote::Ativo,
+                'data' => $dataVenda,
+                'valor_total' => $pacote->valor,
+                'qtd_sessoes' => $pacote->qtd_sessoes,
+                'status' => StatusVendaPacote::Ativo,
             ]);
 
             // Pacote: 40% à vista, 60% a prazo (3-12 parcelas)
@@ -422,7 +449,7 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarVendasProduto(): void
     {
-        $this->command->info('Criando ' . self::TOTAL_VENDAS_PRODUTO . ' vendas de produto…');
+        $this->command->info('Criando '.self::TOTAL_VENDAS_PRODUTO.' vendas de produto…');
         for ($i = 0; $i < self::TOTAL_VENDAS_PRODUTO; $i++) {
             $cliente = $this->faker->randomElement($this->clientes);
             $usuario = $this->faker->randomElement($this->atendentes);
@@ -432,14 +459,14 @@ class DesenvolvimentoSeeder extends Seeder
             $subtotal = 0;
 
             $vp = VendaProduto::create([
-                'rede_id'     => $this->rede->id,
-                'empresa_id'  => $this->empresa->id,
-                'cliente_id'  => $cliente->id,
-                'usuario_id'  => $usuario->id,
-                'data'        => $dataVenda,
-                'subtotal'    => 0,
+                'rede_id' => $this->rede->id,
+                'empresa_id' => $this->empresa->id,
+                'cliente_id' => $cliente->id,
+                'usuario_id' => $usuario->id,
+                'data' => $dataVenda,
+                'subtotal' => 0,
                 'valor_total' => 0,
-                'status'      => StatusVendaProduto::Ativa,
+                'status' => StatusVendaProduto::Ativa,
             ]);
 
             for ($j = 0; $j < $itensQtd; $j++) {
@@ -451,22 +478,22 @@ class DesenvolvimentoSeeder extends Seeder
 
                 DB::table('venda_produto_itens')->insert([
                     'venda_produto_id' => $vp->id,
-                    'produto_id'       => $produto->id,
-                    'descricao'        => $produto->nome,
-                    'quantidade'       => $qtd,
-                    'valor_unitario'   => $unit,
-                    'desconto'         => 0,
-                    'acrescimo'        => 0,
-                    'subtotal'         => $sub,
-                    'created_at'       => now(),
-                    'updated_at'       => now(),
+                    'produto_id' => $produto->id,
+                    'descricao' => $produto->nome,
+                    'quantidade' => $qtd,
+                    'valor_unitario' => $unit,
+                    'desconto' => 0,
+                    'acrescimo' => 0,
+                    'subtotal' => $sub,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 MovimentoEstoque::create([
-                    'rede_id'    => $this->rede->id,
+                    'rede_id' => $this->rede->id,
                     'empresa_id' => $this->empresa->id,
                     'produto_id' => $produto->id,
-                    'tipo'       => TipoMovimentoEstoque::Saida,
+                    'tipo' => TipoMovimentoEstoque::Saida,
                     'quantidade' => $qtd,
                 ]);
                 $produto->decrement('quantidade', $qtd);
@@ -643,7 +670,7 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarDespesas(): void
     {
-        $this->command->info('Criando ' . (self::TOTAL_DESPESAS + self::TOTAL_DESPESAS_PARCEL) . ' despesas…');
+        $this->command->info('Criando '.(self::TOTAL_DESPESAS + self::TOTAL_DESPESAS_PARCEL).' despesas…');
 
         // Despesas simples (à vista)
         for ($i = 0; $i < self::TOTAL_DESPESAS; $i++) {
@@ -654,13 +681,13 @@ class DesenvolvimentoSeeder extends Seeder
 
             $this->criarDespesaAVista(
                 categoriaId: $categoria->id,
-                nome: $categoria->descricao . ' — ' . $this->faker->words(2, true),
+                nome: $categoria->descricao.' — '.$this->faker->words(2, true),
                 valor: $valor,
                 dataEmissao: $emissao,
                 vencimento: $vencimento,
                 mesReferencia: $emissao,
                 fornecedor: $this->faker->boolean(75) ? $this->faker->company() : null,
-                documento: $this->faker->boolean(60) ? 'DOC-' . $this->faker->numerify('######') : null,
+                documento: $this->faker->boolean(60) ? 'DOC-'.$this->faker->numerify('######') : null,
             );
         }
 
@@ -674,14 +701,14 @@ class DesenvolvimentoSeeder extends Seeder
 
             $this->criarDespesaAPrazo(
                 categoriaId: $categoria->id,
-                nome: $categoria->descricao . ' — ' . $this->faker->words(2, true),
+                nome: $categoria->descricao.' — '.$this->faker->words(2, true),
                 valorTotal: $valorTotal,
                 numParcelas: $n,
                 dataEmissao: $emissao,
                 primeiroVencimento: $primeiroVenc,
                 mesReferencia: $emissao,
                 fornecedor: $this->faker->company(),
-                documento: 'DOC-' . $this->faker->numerify('######'),
+                documento: 'DOC-'.$this->faker->numerify('######'),
             );
         }
     }

@@ -4,22 +4,26 @@
 
 Usa `spatie/laravel-permission` ^7.2 com guard `web`.
 
-## Papeis
+## Modelo
 
-| Papel | Descricao |
-|-------|-----------|
-| Dono | Todas as permissoes (dono da rede) |
-| Admin | Quase todas — nao pode alterar plano |
-| Gerente | Clientes, servicos, agenda, financeiro |
-| Profissional | Agenda (ver/criar), cliente (ver), servico (ver) |
-| Recepcao | Clientes, agendamentos, pagamentos |
-| Financeiro | Financeiro, pagamentos, despesas |
-| Estoque | Produtos, movimentos de estoque |
-| Visualizador | Somente ver (todas as areas) |
+**Apenas o perfil Admin master e seedado** com todas as permissoes do
+catalogo. Demais perfis (ex: Recepcao, Financeiro, Estoque) sao criados
+pelo Admin via UI (`/perfis-acesso`) conforme a necessidade do negocio.
 
-Enum: `app/Enums/PapelEnum.php` (sem "Dono" — Dono e o criador da rede)
+Validacao de papel em formularios e dinamica via `exists:roles,name`
+(nao ha mais enum hardcoded). Isso significa que:
 
-## Permissoes (formato: recurso.acao)
+- O sistema nao impoe uma matriz fixa de papeis.
+- Cada rede pode ter seus proprios papeis customizados.
+- Permission slugs (`recurso.acao`) sao fixos no codigo (ver catalogo
+  abaixo), papeis sao dados.
+
+Trade-off: a UI nao oferece um "wizard de papeis padrao" ao registrar
+uma rede nova — o Admin precisa criar manualmente os perfis adicionais.
+Para portfolio, este e o comportamento desejado (mantem o seeder simples
+e demonstra o modulo PerfilAcesso em uso real).
+
+## Permissoes (catalogo, formato `recurso.acao`)
 
 ### Rede
 - rede.ver, rede.editar, rede.configurar, rede.cobranca
@@ -36,9 +40,6 @@ Enum: `app/Enums/PapelEnum.php` (sem "Dono" — Dono e o criador da rede)
 ### Servico
 - servico.ver, servico.criar, servico.editar, servico.excluir
 
-### Profissional
-- profissional.ver, profissional.criar, profissional.editar, profissional.excluir
-
 ### Agendamento
 - agendamento.ver, agendamento.criar, agendamento.editar, agendamento.cancelar, agendamento.excluir
 
@@ -51,6 +52,9 @@ Enum: `app/Enums/PapelEnum.php` (sem "Dono" — Dono e o criador da rede)
 ### Despesa
 - despesa.ver, despesa.criar, despesa.editar, despesa.excluir
 
+### Categoria de Despesa
+- categoria_despesa.ver, categoria_despesa.criar, categoria_despesa.editar, categoria_despesa.excluir
+
 ### Estoque
 - estoque.ver, estoque.criar, estoque.editar, estoque.excluir
 
@@ -60,38 +64,45 @@ Enum: `app/Enums/PapelEnum.php` (sem "Dono" — Dono e o criador da rede)
 ### Movimento de estoque
 - movimento_estoque.ver, movimento_estoque.criar
 
+### Perfil de Acesso
+Slug mantido como `papel.*` por compatibilidade com codigo existente
+(modulo foi renomeado para PerfilAcesso, mas as permissions no banco
+seguem usando o slug `papel`).
+- papel.ver, papel.criar, papel.editar, papel.excluir
+
 ### Plano
 - plano.ver, plano.alterar
 
-## Matriz papel x permissoes
+## Funcao operacional vs autorizacao
 
-| Permissao | Dono | Admin | Gerente | Profissional | Recepcao | Financeiro | Estoque | Visualizador |
-|-----------|------|-------|---------|-------------|----------|------------|---------|-------------|
-| rede.* | sim | nao plano | nao | nao | nao | nao | nao | nao |
-| empresa.* | sim | sim | nao | nao | nao | nao | nao | nao |
-| usuario.* | sim | sim | nao | nao | nao | nao | nao | nao |
-| cliente.* | sim | sim | sim | ver | sim | nao | nao | ver |
-| servico.* | sim | sim | sim | ver | nao | nao | nao | ver |
-| agendamento.* | sim | sim | sim | ver/criar | sim | nao | nao | ver |
-| financeiro.* | sim | sim | sim | nao | nao | sim | nao | ver |
-| pagamento.* | sim | sim | sim | nao | sim | sim | nao | ver |
-| despesa.* | sim | sim | nao | nao | nao | sim | nao | ver |
-| produto.* | sim | sim | nao | nao | nao | nao | sim | ver |
-| estoque.* | sim | sim | nao | nao | nao | nao | sim | ver |
-| plano.* | sim | nao | nao | nao | nao | nao | nao | nao |
+A coluna `usuarios.atende` (boolean) e independente do Role. Indica que
+o usuario realiza atendimentos e deve aparecer no select de atendente
+da Agenda — nao tem nada a ver com permissoes.
 
-## Policies obrigatorias
+Exemplo: um usuario pode ser Admin (autorizacao total) e tambem atender
+clientes (`atende = true`). Outro pode ser Recepcao (sem permissao para
+agendar) mas tambem ter `atende = false` (nao aparece na agenda).
 
-Cada model deve ter Policy. Policies existentes:
-- RedePolicy, EmpresaPolicy, PlanoPolicy
-- UsuarioPolicy, ClientePolicy
-- ServicoPolicy, AgendamentoPolicy
-- PagamentoPolicy, DespesaPolicy
-- ProdutoPolicy, CategoriaProdutoPolicy
-- MovimentoEstoquePolicy, CaixaPolicy
-- VendaPacotePolicy, PapelPolicy
+## Policies
+
+Cada Model do dominio tem uma Policy registrada explicitamente em
+`AppServiceProvider::$policies` (auto-discovery do Laravel nao alcanca
+`App\Modules\{X}\Policies`). Policies existentes:
+
+- Tenant: RedePolicy, EmpresaPolicy, PlanoPolicy
+- Usuario: UsuarioPolicy
+- Cliente: ClientePolicy
+- Servico: ServicoPolicy
+- Agenda: AgendamentoPolicy
+- Pagamento: PagamentoPolicy
+- Despesa: DespesaPolicy, CategoriaDespesaPolicy
+- Produto: ProdutoPolicy, CategoriaProdutoPolicy
+- Estoque: MovimentoEstoquePolicy
+- Caixa: CaixaPolicy
+- Venda: VendaPacotePolicy
+- PerfilAcesso: PerfilAcessoPolicy (registrada para Spatie\Role)
 
 ## Validacao
 
-Toda action deve validar: permissao + tenant + empresa + plano.
+Toda action que muta estado deve validar: permissao + tenant + empresa + plano.
 Nunca executar sem validar.
