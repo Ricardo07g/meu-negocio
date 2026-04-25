@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('titulo', 'Papéis - Meu Negócio')
-@section('titulo-pagina', 'Papéis')
+@section('titulo', 'Perfis de Acesso - Meu Negócio')
+@section('titulo-pagina', 'Perfis de Acesso')
 @section('breadcrumb')
-    <li class="breadcrumb-item active">Papéis</li>
+    <li class="breadcrumb-item active">Perfis de Acesso</li>
 @endsection
 
 @section('content')
     @can('papel.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('papeis.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Papel
+            <a href="{{ route('perfis-acesso.create') }}" class="btn btn-primary w-100">
+                <i class="feather-plus me-2"></i>Novo Perfil de Acesso
             </a>
         </div>
     </div>
@@ -30,16 +30,16 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($papeis as $papel)
+                        @forelse($perfis as $perfil)
                         <tr>
                             <td>
-                                {{ $papel->name }}
-                                @if($papel->name === 'Admin')
+                                {{ $perfil->name }}
+                                @if($perfil->name === 'Admin')
                                 <span class="badge bg-primary ms-1">Sistema</span>
                                 @endif
                             </td>
-                            <td>{{ $papel->permissions->count() }}</td>
-                            <td>{{ $papel->users()->count() }}</td>
+                            <td>{{ $perfil->permissions->count() }}</td>
+                            <td>{{ $perfil->users()->count() }}</td>
                             <td>
                                 <div class="hstack gap-2 justify-content-end">
                                     <div class="dropdown">
@@ -49,17 +49,17 @@
                                         <ul class="dropdown-menu dropdown-menu-end">
                                             @can('papel.editar')
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('papeis.edit', $papel) }}">
+                                                <a class="dropdown-item" href="{{ route('perfis-acesso.edit', $perfil) }}">
                                                     <i class="feather-edit-3 me-3"></i>
                                                     <span>Editar</span>
                                                 </a>
                                             </li>
                                             @endcan
                                             @can('papel.excluir')
-                                            @if($papel->name !== 'Admin')
+                                            @if($perfil->name !== 'Admin')
                                             <li class="dropdown-divider"></li>
                                             <li>
-                                                <form action="{{ route('papeis.destroy', $papel) }}" method="POST" data-confirm="Excluir este papel?">
+                                                <form action="{{ route('perfis-acesso.destroy', $perfil) }}" method="POST" data-confirm="Excluir este perfil de acesso?">
                                                     @csrf @method('DELETE')
                                                     <button type="submit" class="dropdown-item text-danger">
                                                         <i class="feather-trash-2 me-3"></i>
@@ -75,7 +75,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum papel cadastrado.</td></tr>
+                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum perfil de acesso cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -3,25 +3,24 @@
 use App\Modules\Agenda\Controllers\AgendaController;
 use App\Modules\Auth\Controllers\LoginController;
 use App\Modules\Auth\Controllers\RegistrarController;
+use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\ClienteController;
 use App\Modules\Dashboard\Controllers\DashboardController;
 use App\Modules\Despesa\Controllers\CategoriaDespesaController;
 use App\Modules\Despesa\Controllers\DespesaController;
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
-use App\Modules\Papel\Controllers\PapelController;
+use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\CategoriaProdutoController;
 use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\EmpresaController;
 use App\Modules\Usuario\Controllers\UsuarioController;
-use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
 // Pagina inicial
 Route::get('/', fn () => redirect()->route('login'));
-
 
 // Autenticacao (guest)
 Route::middleware('guest')->group(function () {
@@ -124,6 +123,6 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         // Administracao
         Route::resource('empresas', EmpresaController::class);
         Route::resource('usuarios', UsuarioController::class);
-        Route::resource('papeis', PapelController::class)->parameters(['papeis' => 'papel']);
+        Route::resource('perfis-acesso', PerfilAcessoController::class)->parameters(['perfis-acesso' => 'perfil_acesso']);
     });
 });

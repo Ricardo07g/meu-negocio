@@ -16,7 +16,7 @@ use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Policies\MovimentoEstoquePolicy;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Policies\PagamentoPolicy;
-use App\Modules\Papel\Policies\PapelPolicy;
+use App\Modules\PerfilAcesso\Policies\PerfilAcessoPolicy;
 use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Produto\Policies\CategoriaProdutoPolicy;
@@ -58,7 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Plano::class => PlanoPolicy::class,
         Produto::class => ProdutoPolicy::class,
         Rede::class => RedePolicy::class,
-        Role::class => PapelPolicy::class,
+        Role::class => PerfilAcessoPolicy::class,
         Servico::class => ServicoPolicy::class,
         Usuario::class => UsuarioPolicy::class,
         VendaPacote::class => VendaPacotePolicy::class,

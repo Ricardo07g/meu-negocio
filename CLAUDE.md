@@ -86,7 +86,7 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 
 ### Parciais
 - **Auth** — Login/Registrar
-- **Papel** — Controller + Policy + Views
+- **PerfilAcesso** — Controller + Service + Request + Policy + Views (renomeado de Papel)
 
 ---
 
