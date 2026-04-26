@@ -16,6 +16,7 @@ use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\CategoriaProdutoController;
 use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
+use App\Modules\Tenant\Controllers\EmpresaAtualController;
 use App\Modules\Tenant\Controllers\EmpresaController;
 use App\Modules\Usuario\Controllers\UsuarioController;
 use App\Modules\Venda\Controllers\VendaController;
@@ -46,6 +47,9 @@ Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->n
 Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // Seletor multi-empresa do header (ME-009)
+    Route::post('empresas-atuais', [EmpresaAtualController::class, 'atualizar'])->name('empresas-atuais.atualizar');
 
     // Rotas que necessitam empresa
     Route::middleware(['verificar.empresa'])->group(function () {
