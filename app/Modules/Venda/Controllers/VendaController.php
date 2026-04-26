@@ -88,6 +88,14 @@ class VendaController extends Controller
     public function store(CriarVendaRequest $request): RedirectResponse
     {
         try {
+            // ME-010: quando ha multiplas empresas selecionadas no header, o
+            // formulario envia empresa_id; setamos como override de criacao
+            // para que toda a cascata (Venda, Pagamento, Parcela, Baixa,
+            // MovimentoCaixa) use a mesma empresa via EmpresaTrait::creating.
+            if ($request->filled('empresa_id')) {
+                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
+            }
+
             $condicao = CondicaoPagamento::from($request->condicao_pagamento);
             $aVista = $condicao === CondicaoPagamento::AVista;
 
@@ -164,6 +172,8 @@ class VendaController extends Controller
             return redirect()->route('vendas.index')->with('sucesso', $msg);
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 

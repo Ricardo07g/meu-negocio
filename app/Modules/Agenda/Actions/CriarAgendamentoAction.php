@@ -2,9 +2,9 @@
 
 namespace App\Modules\Agenda\Actions;
 
-use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Enums\StatusAgendamento;
 use App\Exceptions\ConflitoAgendamentoException;
+use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Servico\Models\Servico;
 
@@ -14,7 +14,7 @@ class CriarAgendamentoAction
     {
         // Calcular fim automaticamente se nao informado
         $fim = $data->fim;
-        if (!$fim) {
+        if (! $fim) {
             $servico = Servico::findOrFail($data->servico_id);
             $fim = $data->inicio->copy()->addMinutes($servico->duracao);
         }
@@ -22,14 +22,18 @@ class CriarAgendamentoAction
         // Verificar conflito de horario
         $this->verificarConflito($data->atendente_id, $data->inicio, $fim);
 
-        return Agendamento::create([
+        return Agendamento::create(array_filter([
+            // empresa_id: se vier do form (multiplas empresas selecionadas no
+            // header), respeita; caso contrario o EmpresaTrait::creating
+            // resolve com a unica empresa da sessao.
+            'empresa_id' => $data->empresa_id,
             'cliente_id' => $data->cliente_id,
             'servico_id' => $data->servico_id,
             'atendente_id' => $data->atendente_id,
             'inicio' => $data->inicio,
             'fim' => $fim,
             'status' => StatusAgendamento::Agendado,
-        ]);
+        ], fn ($v) => $v !== null));
     }
 
     private function verificarConflito(int $atendenteId, $inicio, $fim, ?int $ignorarId = null): void
@@ -48,7 +52,7 @@ class CriarAgendamentoAction
         }
 
         if ($query->exists()) {
-            throw new ConflitoAgendamentoException();
+            throw new ConflitoAgendamentoException;
         }
     }
 }

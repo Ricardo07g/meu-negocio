@@ -33,12 +33,17 @@ class CaixaController extends Controller
             $data = $request->query('data', today()->toDateString());
             $dataSelecionada = Carbon::parse($data);
 
-            $caixa = $this->service->caixaDoDia($data);
-
             $totalEntradas = 0;
             $totalSaidas = 0;
             $totalReforcos = 0;
             $saldoAtual = 0;
+
+            // ME-010: Caixa Diario opera por uma unica empresa. Com mais de
+            // uma empresa selecionada na sessao, a view exibe um aviso e
+            // pulamos a consulta para evitar misturar caixas de empresas
+            // diferentes na tela.
+            $multiplasEmpresas = count((array) session('empresas_atuais', [])) !== 1;
+            $caixa = $multiplasEmpresas ? null : $this->service->caixaDoDia($data);
 
             if ($caixa) {
                 $caixa->load('movimentos', 'usuario', 'fechadoPor');

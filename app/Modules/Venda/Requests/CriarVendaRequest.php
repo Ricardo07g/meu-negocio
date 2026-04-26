@@ -21,6 +21,18 @@ class CriarVendaRequest extends FormRequest
     {
         $tipoVenda = $this->input('tipo_venda', 'servico');
 
+        // ME-010: empresa_id e exigido quando ha mais de uma empresa selecionada
+        // na sessao do header. Com 1 unica empresa o EmpresaTrait resolve.
+        $empresasAtuais = (array) session('empresas_atuais', []);
+        $exigeEmpresa = count($empresasAtuais) > 1;
+        $regrasEmpresa = [
+            'empresa_id' => [
+                $exigeEmpresa ? 'required' : 'nullable',
+                'integer',
+                $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
+            ],
+        ];
+
         $condicoesParceladas = [
             CondicaoPagamento::APrazo->value,
         ];
@@ -39,25 +51,25 @@ class CriarVendaRequest extends FormRequest
             'condicao_pagamento' => ['required', Rule::in($condicoesHabilitadas)],
             'mes_referencia' => ['required', 'date'],
             'forma_pagamento' => [
-                'required_if:condicao_pagamento,' . implode(',', $condicoesComForma),
+                'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                 'nullable',
                 Rule::enum(FormaPagamento::class),
             ],
             'numero_parcelas' => [
-                'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),
                 'nullable',
                 'integer',
                 'min:2',
-                'max:' . CalculadoraParcelas::MAX_PARCELAS,
+                'max:'.CalculadoraParcelas::MAX_PARCELAS,
             ],
             'primeiro_vencimento' => [
-                'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),
                 'nullable',
                 'date',
                 'after_or_equal:today',
             ],
             'forma_recebimento_prazo' => [
-                'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),
                 'nullable',
                 Rule::enum(FormaRecebimentoPrazo::class),
             ],
@@ -70,7 +82,7 @@ class CriarVendaRequest extends FormRequest
         ];
 
         if ($tipoVenda === 'produto') {
-            return array_merge([
+            return array_merge($regrasEmpresa, [
                 'tipo_venda' => ['required', 'in:servico,produto'],
                 'cliente_id' => ['nullable', 'integer', 'exists:clientes,id'],
                 'itens' => ['required', 'array', 'min:1'],
@@ -110,6 +122,6 @@ class CriarVendaRequest extends FormRequest
             ];
         }
 
-        return array_merge($rules, $pagamentoRules);
+        return array_merge($regrasEmpresa, $rules, $pagamentoRules);
     }
 }

@@ -61,6 +61,13 @@ class DespesaController extends Controller
     public function store(SalvarDespesaRequest $request): RedirectResponse
     {
         try {
+            // ME-010: setar empresa de criacao quando ha multiplas selecionadas
+            // para garantir que Despesa + ParcelaDespesa + BaixaDespesa usem a
+            // mesma empresa via EmpresaTrait::creating override.
+            if ($request->filled('empresa_id')) {
+                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
+            }
+
             $condicao = CondicaoPagamento::from($request->condicao_pagamento);
 
             $forma = $request->forma_pagamento
@@ -109,6 +116,8 @@ class DespesaController extends Controller
             return redirect()->route('despesas.index')->with('sucesso', 'Despesa criada com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao criar despesa');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 

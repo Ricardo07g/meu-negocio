@@ -91,7 +91,16 @@ class AgendaController extends Controller
         try {
             $this->authorize('create', Agendamento::class);
 
+            // ME-010: empresa_id e exigido quando ha mais de uma empresa selecionada.
+            $empresasAtuais = (array) session('empresas_atuais', []);
+            $exigeEmpresa = count($empresasAtuais) > 1;
+
             $dados = $request->validate([
+                'empresa_id' => [
+                    $exigeEmpresa ? 'required' : 'nullable',
+                    'integer',
+                    $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
+                ],
                 'cliente_id' => 'required|exists:clientes,id',
                 'servico_id' => 'required|exists:servicos,id',
                 'atendente_id' => 'required|exists:usuarios,id',
@@ -100,6 +109,7 @@ class AgendaController extends Controller
             ]);
 
             $agendamento = $action->executar(AgendamentoData::from([
+                'empresa_id' => isset($dados['empresa_id']) ? (int) $dados['empresa_id'] : null,
                 'cliente_id' => (int) $dados['cliente_id'],
                 'servico_id' => (int) $dados['servico_id'],
                 'atendente_id' => (int) $dados['atendente_id'],

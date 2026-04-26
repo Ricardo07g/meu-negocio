@@ -11,6 +11,11 @@
         <h5 class="card-title">{{ $isCreate ? 'Cadastrar' : 'Editar' }} Despesa</h5>
     </div>
     <div class="card-body">
+        @if ($isCreate)
+            <div class="row g-3">
+                @include('partials.sub-seletor-empresa', ['valorAtual' => null, 'colunaCss' => 'col-md-6'])
+            </div>
+        @endif
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="form-label">Nome / Descrição <span class="text-danger">*</span></label>

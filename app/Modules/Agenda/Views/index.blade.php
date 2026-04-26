@@ -93,6 +93,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
+                    @php $empresasAtuais = (array) session('empresas_atuais', []); @endphp
+                    @if (count($empresasAtuais) > 1)
+                        <div class="mb-3">
+                            <label class="form-label">Empresa</label>
+                            <select name="empresa_id" class="form-select" required>
+                                @foreach (\App\Modules\Tenant\Models\Empresa::query()->whereIn('id', $empresasAtuais)->orderBy('nome')->get() as $empresaOpcao)
+                                    <option value="{{ $empresaOpcao->id }}">{{ $empresaOpcao->nome }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="mb-3">
                         <label class="form-label">Cliente</label>
                         <input type="text" class="form-control" id="agenda-cliente-input" placeholder="Digite para buscar cliente..." autocomplete="off" required>
