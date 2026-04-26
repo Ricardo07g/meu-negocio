@@ -10,7 +10,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Agendamentos Hoje</div>
+                            <div class="fs-12 text-muted mb-1">Agendamentos Hoje <span class="fs-11 text-muted">(empresas atuais)</span></div>
                             <h5 class="fw-bold mb-0">{{ $agendamentosHoje }}</h5>
                         </div>
                         <div class="wd-40 ht-40 bg-soft-primary rounded-circle d-flex align-items-center justify-content-center">
@@ -25,7 +25,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Total Clientes</div>
+                            <div class="fs-12 text-muted mb-1">Total Clientes <span class="fs-11 text-muted">(rede)</span></div>
                             <h5 class="fw-bold mb-0">{{ $totalClientes }}</h5>
                         </div>
                         <div class="wd-40 ht-40 bg-soft-success rounded-circle d-flex align-items-center justify-content-center">
@@ -40,7 +40,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Receita do Mês</div>
+                            <div class="fs-12 text-muted mb-1">Receita do Mês <span class="fs-11 text-muted">(empresas atuais)</span></div>
                             <h5 class="fw-bold mb-0 text-success">R$ {{ number_format($receitaMes, 2, ',', '.') }}</h5>
                         </div>
                         <div class="wd-40 ht-40 bg-soft-warning rounded-circle d-flex align-items-center justify-content-center">
@@ -55,7 +55,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Serviços Ativos</div>
+                            <div class="fs-12 text-muted mb-1">Serviços Ativos <span class="fs-11 text-muted">(rede)</span></div>
                             <h5 class="fw-bold mb-0">{{ $servicosAtivos }}</h5>
                         </div>
                         <div class="wd-40 ht-40 bg-soft-info rounded-circle d-flex align-items-center justify-content-center">
@@ -74,7 +74,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Contas a Receber</div>
+                            <div class="fs-12 text-muted mb-1">Contas a Receber <span class="fs-11 text-muted">(empresas atuais)</span></div>
                             <h5 class="fw-bold mb-0 text-danger">R$ {{ number_format($totalContasReceber, 2, ',', '.') }}</h5>
                             <small class="text-muted">{{ $contasReceber }} pagamento(s) pendente(s)</small>
                         </div>
@@ -92,7 +92,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between">
                         <div>
-                            <div class="fs-12 text-muted mb-1">Caixa</div>
+                            <div class="fs-12 text-muted mb-1">Caixa <span class="fs-11 text-muted">(empresas atuais)</span></div>
                             @if($caixaAberto)
                                 <h5 class="fw-bold mb-0 text-success">Aberto</h5>
                                 <small class="text-muted">Abertura: R$ {{ number_format($caixaAberto->saldo_abertura, 2, ',', '.') }}</small>

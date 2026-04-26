@@ -34,6 +34,10 @@ class DashboardService
         return Agendamento::whereDate('inicio', today())->count();
     }
 
+    /**
+     * Intencionalmente por rede: Cliente e catalogo da rede (nao ha empresa_id).
+     * O EmpresaTrait nao e aplicado a Cliente, RedeTrait limita a rede do usuario.
+     */
     public function totalClientes(): int
     {
         return Cliente::count();
@@ -46,6 +50,9 @@ class DashboardService
             ->sum('valor');
     }
 
+    /**
+     * Intencionalmente por rede: Servico e catalogo da rede (sem empresa_id).
+     */
     public function servicosAtivos(): int
     {
         return Servico::count();
