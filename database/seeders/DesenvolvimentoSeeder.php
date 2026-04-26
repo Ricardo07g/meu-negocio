@@ -79,6 +79,9 @@ class DesenvolvimentoSeeder extends Seeder
 
     private Empresa $empresa;
 
+    /** @var Empresa[] Empresas adicionais para demo multi-empresa (ME-012). */
+    private array $empresasExtras = [];
+
     private Usuario $admin;
 
     /** @var Usuario[] */
@@ -149,7 +152,20 @@ class DesenvolvimentoSeeder extends Seeder
             ],
         );
 
-        $this->command->info("Rede #{$this->rede->id} e Empresa #{$this->empresa->id} criadas.");
+        // ME-012: cria mais 2 empresas para demonstrar o cenario multi-empresa
+        // (Rede com N empresas, pivot empresa_usuario, seletor no header).
+        foreach (['Filial Norte', 'Filial Sul'] as $nome) {
+            $this->empresasExtras[] = Empresa::firstOrCreate(
+                ['rede_id' => $this->rede->id, 'nome' => $nome],
+                [
+                    'documento' => $this->faker->numerify('##.###.###/0001-##'),
+                    'telefone' => $this->faker->cellphoneNumber(),
+                    'email' => strtolower(str_replace(' ', '', $nome)).'@teste.com',
+                ],
+            );
+        }
+
+        $this->command->info("Rede #{$this->rede->id} criada com 3 empresas (Unidade Central + Filial Norte + Filial Sul).");
     }
 
     private function criarUsuarios(): void
@@ -173,6 +189,12 @@ class DesenvolvimentoSeeder extends Seeder
         // sem permission walls. A flag `atende = true` continua sendo o que
         // determina aparicao no select de atendente da Agenda — autorizacao
         // (Role) e funcao operacional (atende) sao independentes.
+        //
+        // ME-012: tambem populamos a pivot empresa_usuario com distribuicao
+        // variada para demonstrar o cenario multi-empresa. Admin nao precisa
+        // de pivot (acessa tudo via Role 'Admin').
+        $todasEmpresas = array_merge([$this->empresa], $this->empresasExtras);
+
         for ($i = 1; $i <= self::TOTAL_ATENDENTES; $i++) {
             $atendente = Usuario::firstOrCreate(
                 ['email' => "atendente{$i}@teste.com"],
@@ -186,10 +208,27 @@ class DesenvolvimentoSeeder extends Seeder
                 ],
             );
             $atendente->syncRoles([$adminRole]);
+
+            // Distribuicao: atendente 1 -> todas; atendente 2 -> Central+Norte;
+            // atendente 3 -> Central; atendente 4 -> Sul; atendente 5 -> Norte+Sul.
+            $empresasParaAtendente = match ($i) {
+                1 => $todasEmpresas,
+                2 => [$todasEmpresas[0], $todasEmpresas[1]],
+                3 => [$todasEmpresas[0]],
+                4 => [$todasEmpresas[2]],
+                5 => [$todasEmpresas[1], $todasEmpresas[2]],
+                default => [$this->empresa],
+            };
+            // Pivot empresa_usuario tem rede_id obrigatorio — passamos via array.
+            $sync = collect($empresasParaAtendente)
+                ->mapWithKeys(fn ($e) => [$e->id => ['rede_id' => $this->rede->id]])
+                ->all();
+            $atendente->empresas()->sync($sync);
+
             $this->atendentes[] = $atendente;
         }
 
-        $this->command->info('Usuários: 1 admin + '.count($this->atendentes).' atendentes.');
+        $this->command->info('Usuários: 1 admin + '.count($this->atendentes).' atendentes (com pivot multi-empresa).');
     }
 
     private function criarCategoriasEProdutos(): void

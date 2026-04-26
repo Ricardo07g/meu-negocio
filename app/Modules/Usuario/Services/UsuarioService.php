@@ -59,7 +59,11 @@ class UsuarioService
         }
 
         if ($data->empresas !== null) {
-            $usuario->empresas()->sync($data->empresas);
+            // Pivot empresa_usuario tem rede_id obrigatorio.
+            $sync = collect($data->empresas)
+                ->mapWithKeys(fn ($id) => [(int) $id => ['rede_id' => $usuario->rede_id]])
+                ->all();
+            $usuario->empresas()->sync($sync);
         }
 
         return $usuario->fresh();
