@@ -17,6 +17,10 @@
                 <h5 class="card-title">Nova Venda</h5>
             </div>
             <div class="card-body">
+                {{-- Sub-seletor de empresa (ME-010) --}}
+                <div class="row">
+                    @include('partials.sub-seletor-empresa', ['valorAtual' => null, 'colunaCss' => 'col-md-6'])
+                </div>
                 {{-- Toggle Serviço / Produto --}}
                 <div class="row mb-4">
                     <div class="col-md-6">

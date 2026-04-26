@@ -34,6 +34,27 @@
 @endpush
 
 @section('content')
+    @php
+        // ME-010: Caixa Diario opera por uma unica empresa. Se ha multiplas
+        // empresas selecionadas no header, exibimos um aviso ao inves do caixa.
+        $empresasAtuais = (array) session('empresas_atuais', []);
+    @endphp
+    @if (count($empresasAtuais) !== 1)
+        <div class="card stretch stretch-full">
+            <div class="card-body text-center py-5">
+                <div class="mb-3">
+                    <i class="feather-alert-circle" style="font-size: 48px; color: #f0ad4e;"></i>
+                </div>
+                <h5 class="mb-2">Selecione exatamente 1 empresa para operar o caixa</h5>
+                <p class="text-muted mb-0">
+                    O caixa diario e por empresa. Use o seletor de empresas no topo
+                    da pagina para deixar apenas uma empresa marcada.
+                </p>
+            </div>
+        </div>
+        @php return; @endphp
+    @endif
+
     {{-- Navegacao por data --}}
     @php
         $dataAnterior = $dataSelecionada->copy()->subDay()->toDateString();

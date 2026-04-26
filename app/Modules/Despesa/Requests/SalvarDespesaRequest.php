@@ -33,6 +33,15 @@ class SalvarDespesaRequest extends FormRequest
         ];
 
         if ($isCreate) {
+            // ME-010: empresa_id obrigatorio quando ha mais de uma empresa selecionada.
+            $empresasAtuais = (array) session('empresas_atuais', []);
+            $exigeEmpresa = count($empresasAtuais) > 1;
+            $rules['empresa_id'] = [
+                $exigeEmpresa ? 'required' : 'nullable',
+                'integer',
+                $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
+            ];
+
             $condicoesParceladas = [
                 CondicaoPagamento::APrazo->value,
             ];
@@ -52,19 +61,19 @@ class SalvarDespesaRequest extends FormRequest
                 'condicao_pagamento' => ['required', Rule::in($condicoesHabilitadas)],
                 'primeiro_vencimento' => ['required', 'date', 'after_or_equal:data_emissao'],
                 'forma_pagamento' => [
-                    'required_if:condicao_pagamento,' . implode(',', $condicoesComForma),
+                    'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                     'nullable',
                     Rule::enum(FormaPagamento::class),
                 ],
                 'numero_parcelas' => [
-                    'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                    'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),
                     'nullable',
                     'integer',
                     'min:2',
-                    'max:' . CalculadoraParcelas::MAX_PARCELAS,
+                    'max:'.CalculadoraParcelas::MAX_PARCELAS,
                 ],
                 'forma_recebimento_prazo' => [
-                    'required_if:condicao_pagamento,' . implode(',', $condicoesParceladas),
+                    'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),
                     'nullable',
                     Rule::enum(FormaRecebimentoPrazo::class),
                 ],

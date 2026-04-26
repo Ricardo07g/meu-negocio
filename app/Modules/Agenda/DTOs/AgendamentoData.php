@@ -8,6 +8,7 @@ use Spatie\LaravelData\Data;
 class AgendamentoData extends Data
 {
     public function __construct(
+        public ?int $empresa_id = null,
         public ?int $cliente_id = null,
         public ?int $servico_id = null,
         public ?int $atendente_id = null,

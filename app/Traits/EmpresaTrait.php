@@ -93,9 +93,18 @@ trait EmpresaTrait
                 return;
             }
 
-            // Mais de 1 empresa: caller deve passar empresa_id explicitamente.
-            // Nao seta nada; deixa a constraint do banco / validacao do
-            // SalvarXxxRequest barrar se faltar.
+            // Mais de 1 empresa selecionada: aplica override por request, se
+            // disponivel. ME-010: telas de operacao (Venda, Agenda, Despesa)
+            // setam session('empresa_criacao_atual') com a empresa escolhida
+            // no sub-seletor — o trait usa esse valor como contexto de
+            // criacao para que entidades em cascata (Venda + Pagamento +
+            // Parcela + Baixa + MovimentoCaixa) compartilhem a mesma empresa
+            // sem precisar propagar empresa_id em cada Action.
+            $override = session('empresa_criacao_atual');
+            if (is_int($override) && in_array($override, $empresasIds, true)) {
+                $model->empresa_id = $override;
+            }
+            // Sem override: deixa null (caller deve passar empresa_id explicitamente).
         });
     }
 
