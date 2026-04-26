@@ -51,6 +51,28 @@ Endpoints: `GET clientes/buscar?q=`, `GET produtos/buscar?q=`, `GET servicos/bus
 ### Multi-tenant
 Single DB + tenant_id. Traits: `RedeTrait` (rede_id), `EmpresaTrait` (empresa_id, Admin ve tudo).
 
+### Multi-empresa (Fase 1.5)
+Uma `Rede` tem N `Empresa`s. Regra de escopo:
+- **Catalogo (rede):** Cliente, Servico, Produto, CategoriaProduto, CategoriaDespesa — sem `empresa_id`. Compartilhados entre empresas da rede.
+- **Transacional (empresa):** Agendamento, Venda, Pagamento, Despesa, Caixa, Estoque — com `empresa_id`. Isolados por empresa.
+
+Modelo de acesso do usuario:
+- `usuarios.empresa_id` = empresa default ao logar (mantido por compat).
+- Pivot `empresa_usuario` (`rede_id`, `empresa_id`, `usuario_id`) = fonte de verdade do conjunto de empresas que um nao-admin pode acessar.
+- Admin (`hasRole('Admin')`) acessa todas as empresas da rede automaticamente — pivot dispensavel.
+- Validacao no `SalvarUsuarioRequest` exige >=1 empresa para nao-admin.
+
+Selecao corrente:
+- `session('empresas_atuais')` armazena os IDs de empresas selecionadas pelo usuario no header.
+- Middleware `VerificarEmpresa` popula a sessao no primeiro request pos-login (Admin = todas; nao-admin = pivot) e poda IDs invalidos.
+- Seletor multi-select no header (`POST /empresas-atuais`) atualiza a sessao + reload.
+- `EmpresaTrait` filtra `WHERE empresa_id IN (session('empresas_atuais'))` — Admin sem sessao explicita nao filtra.
+
+Operacao com multiplas empresas selecionadas:
+- **Caixa Diario** exige exatamente 1 empresa selecionada (mostra aviso se >1).
+- **Agenda, Venda, Despesa**: forms incluem `partials/sub-seletor-empresa.blade.php` quando ha >1 empresa; controller seta `session('empresa_criacao_atual')` no inicio do `store()` e faz `forget()` no `finally`. Esse override garante que cascatas (Venda -> Pagamento -> Parcela -> Baixa -> MovimentoCaixa) compartilhem a mesma empresa.
+- Helper `Usuario::podeAcessarEmpresa(?int)` usado por todas as Policies.
+
 ### BaseModel
 `App\Models\BaseModel` extends Model + usa `RedeTrait`. Todos models tenant-aware estendem BaseModel.
 Excecoes: Plano, Rede, MovimentoCaixa (Model direto). Usuario (Authenticatable + traits direto).
