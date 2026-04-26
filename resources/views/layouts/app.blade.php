@@ -308,6 +308,7 @@
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
+                    @include('partials.seletor-empresas')
                     <div class="nxl-h-item dark-lavel-toggle">
                         <a href="javascript:void(0);" class="nxl-head-link dark-button">
                             <i class="feather-moon"></i>
