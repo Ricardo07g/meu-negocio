@@ -18,6 +18,7 @@ use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\EmpresaAtualController;
 use App\Modules\Tenant\Controllers\EmpresaController;
+use App\Modules\Usuario\Controllers\PerfilController;
 use App\Modules\Usuario\Controllers\UsuarioController;
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,11 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
     // Seletor multi-empresa do header (ME-009)
     Route::post('empresas-atuais', [EmpresaAtualController::class, 'atualizar'])->name('empresas-atuais.atualizar');
+
+    // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
+    Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');
+    Route::post('perfil', [PerfilController::class, 'atualizar'])->name('perfil.atualizar');
+    Route::post('perfil/senha', [PerfilController::class, 'atualizarSenha'])->name('perfil.senha');
 
     // Rotas que necessitam empresa
     Route::middleware(['verificar.empresa'])->group(function () {

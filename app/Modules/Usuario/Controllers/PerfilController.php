@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Modules\Usuario\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Usuario\Requests\AtualizarPerfilRequest;
+use App\Modules\Usuario\Requests\AtualizarSenhaPerfilRequest;
+use App\Traits\TratamentoErros;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\View\View;
+
+class PerfilController extends Controller
+{
+    use TratamentoErros;
+
+    public function index(): View|RedirectResponse
+    {
+        try {
+            $usuario = auth()->user()->loadMissing([
+                'empresa:id,nome',
+                'empresas:id,nome',
+                'roles:id,name',
+            ]);
+
+            return view('usuario::perfil', compact('usuario'));
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao carregar perfil');
+        }
+    }
+
+    public function atualizar(AtualizarPerfilRequest $request): RedirectResponse
+    {
+        try {
+            $usuario = $request->user();
+            $usuario->update($request->validated());
+
+            return redirect()->route('perfil.index')->with('sucesso', 'Perfil atualizado com sucesso.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao atualizar perfil');
+        }
+    }
+
+    public function atualizarSenha(AtualizarSenhaPerfilRequest $request): RedirectResponse
+    {
+        try {
+            $usuario = $request->user();
+            $usuario->update([
+                'password' => Hash::make($request->input('password')),
+            ]);
+
+            return redirect()->route('perfil.index')->with('sucesso', 'Senha alterada com sucesso.');
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao alterar senha');
+        }
+    }
+}

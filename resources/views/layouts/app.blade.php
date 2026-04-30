@@ -332,7 +332,10 @@
                                     </div>
                                 </div>
                             </div>
-                            {{-- TODO: Meu Perfil --}}
+                            <a href="{{ route('perfil.index') }}" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Meu Perfil</span>
+                            </a>
                             <div class="dropdown-divider"></div>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
