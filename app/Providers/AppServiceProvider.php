@@ -24,11 +24,7 @@ use App\Modules\Produto\Policies\ProdutoPolicy;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Policies\ServicoPolicy;
 use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
 use App\Modules\Tenant\Policies\EmpresaPolicy;
-use App\Modules\Tenant\Policies\PlanoPolicy;
-use App\Modules\Tenant\Policies\RedePolicy;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\VendaPacote;
@@ -55,9 +51,7 @@ class AppServiceProvider extends ServiceProvider
         Empresa::class => EmpresaPolicy::class,
         MovimentoEstoque::class => MovimentoEstoquePolicy::class,
         Pagamento::class => PagamentoPolicy::class,
-        Plano::class => PlanoPolicy::class,
         Produto::class => ProdutoPolicy::class,
-        Rede::class => RedePolicy::class,
         Role::class => PerfilAcessoPolicy::class,
         Servico::class => ServicoPolicy::class,
         Usuario::class => UsuarioPolicy::class,

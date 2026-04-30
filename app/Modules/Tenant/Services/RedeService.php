@@ -8,7 +8,6 @@ use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Tenant\Actions\CriarEmpresaAction;
-use App\Modules\Tenant\DTOs\AtualizarRedeData;
 use App\Modules\Tenant\DTOs\CriarRedeData;
 use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\Plano;
@@ -120,19 +119,5 @@ class RedeService
 
             return $rede;
         });
-    }
-
-    public function atualizar(Rede $rede, AtualizarRedeData $data): Rede
-    {
-        $rede->update(['nome' => $data->nome]);
-
-        return $rede->fresh();
-    }
-
-    public function alterarPlano(Rede $rede, Plano $plano): Rede
-    {
-        $rede->update(['plano_id' => $plano->id]);
-
-        return $rede->fresh();
     }
 }
