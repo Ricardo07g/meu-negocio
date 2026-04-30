@@ -185,7 +185,7 @@
         if (!btn) return;
         const rows = tabelaBody.querySelectorAll('[data-row]');
         if (rows.length <= 1) {
-            alert('A venda precisa ter ao menos um item.');
+            swalAlerta('A venda precisa ter ao menos um item.');
             return;
         }
         btn.closest('[data-row]').remove();
@@ -195,7 +195,7 @@
     document.getElementById('formEditarVendaProduto').addEventListener('submit', function (e) {
         if (tabelaBody.querySelectorAll('[data-row]').length === 0) {
             e.preventDefault();
-            alert('A venda precisa ter ao menos um item.');
+            swalAlerta('A venda precisa ter ao menos um item.');
         }
     });
 </script>
