@@ -1006,11 +1006,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const { pronto, motivo } = obterEstadoVenda();
         if (!pronto) {
             e.preventDefault();
-            if (typeof swalAlerta === 'function') {
-                swalAlerta(motivo);
-            } else {
-                alert(motivo);
-            }
+            swalAlerta(motivo);
         }
     });
 
