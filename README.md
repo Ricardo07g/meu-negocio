@@ -95,6 +95,10 @@ A pasta [`.ai/`](.ai/README.md) contém ~30 arquivos de contexto organizados em 
 
 A [`CLAUDE.md`](CLAUDE.md) na raiz é o guia consolidado de convenções do projeto.
 
+### Decisões arquiteturais (ADRs)
+
+As decisões marcantes da arquitetura estão registradas em [`docs/ADR/`](docs/ADR/README.md) no formato MADR-light. Tópicos cobertos: multi-tenant single-DB, modelo financeiro Título+Parcela+Baixa, estrutura modular, BaseModel+traits para tenancy, caixa diário retroativo e padrões de foreign keys.
+
 ---
 
 ## Setup local com Docker
