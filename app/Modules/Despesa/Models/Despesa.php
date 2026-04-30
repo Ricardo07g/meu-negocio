@@ -7,7 +7,9 @@ use App\Enums\FormaRecebimentoPrazo;
 use App\Enums\StatusDespesa;
 use App\Enums\StatusParcela;
 use App\Models\BaseModel;
+use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Traits\EmpresaTrait;
+use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -15,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Despesa extends BaseModel
 {
-    use EmpresaTrait, SoftDeletes;
+    use EmpresaTrait, RegistraAtividade, SoftDeletes;
 
     protected $table = 'despesas';
 
@@ -67,7 +69,7 @@ class Despesa extends BaseModel
     public function baixas(): HasManyThrough
     {
         return $this->hasManyThrough(
-            \App\Modules\Caixa\Models\BaixaDespesa::class,
+            BaixaDespesa::class,
             ParcelaDespesa::class,
             'despesa_id',
             'parcela_despesa_id',
@@ -99,6 +101,7 @@ class Despesa extends BaseModel
                 $total += $baixa->valorTotal();
             }
         }
+
         return (float) $total;
     }
 
@@ -135,6 +138,7 @@ class Despesa extends BaseModel
 
         if ($ativas->isEmpty()) {
             $this->update(['status' => StatusDespesa::Cancelada]);
+
             return;
         }
 

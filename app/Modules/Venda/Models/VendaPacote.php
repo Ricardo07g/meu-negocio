@@ -10,6 +10,7 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
+use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class VendaPacote extends BaseModel
 {
-    use EmpresaTrait, SoftDeletes;
+    use EmpresaTrait, RegistraAtividade, SoftDeletes;
 
     protected $table = 'vendas_pacote';
 
