@@ -93,8 +93,11 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 ## Modulos — Estado Atual
 
 ### Completos
+- **Auth** — Login, Registrar, Logout, Reset de Senha, Rate Limit em login/registro
 - **Tenant** — Rede, Empresa, Plano
 - **Usuario** — CRUD completo
+- **Perfil (Meu Perfil)** — Self-service: dados pessoais + troca de senha (`GET/POST /perfil`, `POST /perfil/senha`)
+- **PerfilAcesso** — CRUD de papeis e permissoes (renomeado de Papel; validacao dinamica via `exists:roles,name`)
 - **Cliente** — CRUD + Actions + busca AJAX
 - **Servico** — CRUD, tipos avulso/pacote + busca AJAX
 - **Agenda** — CRUD + confirmar/finalizar/cancelar, Toast UI Calendar
@@ -104,11 +107,7 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 - **Produto** — CRUD + CategoriaProduto (descricao + ativo) + busca AJAX
 - **Venda** — VendaPacote + VendaProduto (carrinho multi-item) + estorno automatico
 - **Caixa** — Navegacao por dia, abrir/fechar/reabrir, sangria/reforco, retroativo
-- **Dashboard** — Cards reais (agendamentos, clientes, receita, contas a receber, caixa)
-
-### Parciais
-- **Auth** — Login/Registrar
-- **PerfilAcesso** — Controller + Service + Request + Policy + Views (renomeado de Papel)
+- **Dashboard** — Cards reais + listas de proximos agendamentos e parcelas a vencer (agregacoes em `DashboardService`)
 
 ---
 
@@ -123,14 +122,14 @@ planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_paco
 
 ### Modelo financeiro: Titulo + Parcela
 - **Titulo** = `Pagamento` (a receber) ou `Despesa` (a pagar). Contem `condicao_pagamento`, `forma_recebimento_prazo`, valor bruto/liquido, referencia ao originador (venda, despesa avulsa).
-- **Parcela** = `ParcelaPagamento` / `ParcelaDespesa`. Tem `numero`, `data_vencimento`, `valor`, `valor_pago`, `status` (Pendente/Pago/ParcialmentePago/Cancelado), `forma_pagamento` (preenchida na baixa).
+- **Parcela** = `ParcelaPagamento` / `ParcelaDespesa`. Tem `numero`, `data_vencimento`, `valor`, `valor_pago`, `status` (`StatusParcela` — ver enums abaixo), `forma_pagamento` (preenchida na baixa).
 - **Baixa** = `BaixaPagamento` / `BaixaDespesa`. Vincula parcela + caixa + valor + multa/juros/desconto. Uma parcela pode ter N baixas.
 - Geracao de parcelas: `App\Support\Parcelamento\CalculadoraParcelas`.
 
 ### Enums do modelo
 - `CondicaoPagamento`: `a_vista`, `a_prazo`, `boleto`, `pix_parcelado`
 - `FormaRecebimentoPrazo`: canais esperados de recebimento do titulo a prazo
-- `StatusParcela`: `Pendente`, `Pago`, `ParcialmentePago`, `Cancelado`
+- `StatusParcela`: `Pendente`, `Pago`, `Vencido`, `Cancelado`, `Renegociado`
 - `FormaPagamento`: pix, dinheiro, cartao etc. (na parcela/baixa, NAO no titulo)
 
 ### Venda → Pagamento → Caixa
@@ -158,6 +157,36 @@ planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_paco
 
 ## Seeds (ao registrar)
 Categorias, produtos, servicos, clientes padrao criados automaticamente ao registrar nova rede.
+
+---
+
+## Testes
+
+- `tests/Feature/` agrupado por contexto: `Auth/` (Login, Registro, RateLimit), `Venda/` (a vista, a prazo), `Pagamento/` (baixa parcial, permissoes), `Caixa/` (estorno), `MultiTenant/` (isolamento), `Usuario/` (perfil), alem de `AuditoriaTest.php`.
+- 17 testes Feature cobrindo registro, login, rate limit, venda a vista/a prazo, baixa parcial de parcela, estorno automatico, isolamento entre redes, atualizacao de perfil e auditoria via ActivityLog.
+- `composer test` roda em **SQLite in-memory** (config no `phpunit.xml`).
+- Factories em `database/factories/`: `RedeFactory`, `EmpresaFactory`, `UsuarioFactory`.
+- Helper `criarRedeAutenticada()` em `tests/TestCase.php` cria `Plano` + `Rede` + `Empresa` + `Usuario` autenticado em uma chamada.
+- Style: `vendor/bin/pint --test` deve manter zero diffs.
+
+---
+
+## CI/CD
+
+- `.github/workflows/ci.yml` roda em `push` e `pull_request` para `main`.
+- Steps: setup PHP 8.3 (com `pdo_sqlite`, `redis`, `bcmath`, `gd`) -> `composer install` -> `php artisan key:generate` -> `composer test` -> `vendor/bin/pint --test`.
+- Cache de pacotes Composer entre execucoes via `actions/cache@v4`.
+
+---
+
+## Documentacao
+
+- `README.md` — peca de portfolio com setup Docker, screenshots e overview do produto.
+- `CONTRIBUTING.md` — guia de contribuicao (padroes de commit, fluxo de PR, padroes de codigo).
+- `docs/ADR/` — 6 ADRs de decisoes arquiteturais (multi-tenant single-DB, modelo financeiro Titulo+Parcela+Baixa, estrutura modular, BaseModel + traits, caixa diario com retroativo, FKs cascade/null/restrict). Indice em `docs/ADR/README.md`.
+- `docs/FECHAMENTO_PORTFOLIO.md` — backlog do fechamento de portfolio (historico das Fases 1 a 5 + closure).
+- `docs/FASE_1_5_MULTI_EMPRESA.md` — backlog da fase multi-empresa N:N (historico de ME-001 a ME-013).
+- `docs/INSTRUCOES_DEV_FECHAMENTO.md` — instrucoes de execucao do fechamento (historico).
 
 ---
 
