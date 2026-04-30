@@ -6,11 +6,12 @@ use App\Enums\TipoMovimentoEstoque;
 use App\Models\BaseModel;
 use App\Modules\Produto\Models\Produto;
 use App\Traits\EmpresaTrait;
+use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MovimentoEstoque extends BaseModel
 {
-    use EmpresaTrait;
+    use EmpresaTrait, RegistraAtividade;
 
     protected $table = 'movimentos_estoque';
 
