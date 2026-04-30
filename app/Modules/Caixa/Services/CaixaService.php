@@ -4,8 +4,8 @@ namespace App\Modules\Caixa\Services;
 
 use App\Enums\FormaPagamento;
 use App\Enums\StatusCaixa;
-use App\Enums\StatusParcela;
 use App\Enums\StatusPagamento;
+use App\Enums\StatusParcela;
 use App\Enums\TipoMovimentoCaixa;
 use App\Exceptions\NegocioException;
 use App\Modules\Caixa\Models\BaixaDespesa;
@@ -71,7 +71,7 @@ class CaixaService
         );
 
         $observacao = $caixa->observacao
-            ? $caixa->observacao . "\n" . $registro
+            ? $caixa->observacao."\n".$registro
             : $registro;
 
         $caixa->update([
@@ -227,7 +227,7 @@ class CaixaService
             }
 
             $caixa = $this->caixaAberto();
-            if (!$caixa) {
+            if (! $caixa) {
                 throw new NegocioException($mensagemSemCaixa);
             }
 
@@ -257,11 +257,17 @@ class CaixaService
             $totalLiquido = $valor + $multa + $juros - $desconto;
             $descricao = "Parcela {$parcela->numero}/{$parcela->total} {$tituloLabel} #{$tituloId}";
             if ($multa > 0 || $juros > 0 || $desconto > 0) {
-                $partes = ['principal R$ ' . number_format($valor, 2, ',', '.')];
-                if ($multa > 0) $partes[] = 'multa R$ ' . number_format($multa, 2, ',', '.');
-                if ($juros > 0) $partes[] = 'juros R$ ' . number_format($juros, 2, ',', '.');
-                if ($desconto > 0) $partes[] = 'desconto R$ ' . number_format($desconto, 2, ',', '.');
-                $descricao .= ' (' . implode(' + ', $partes) . ')';
+                $partes = ['principal R$ '.number_format($valor, 2, ',', '.')];
+                if ($multa > 0) {
+                    $partes[] = 'multa R$ '.number_format($multa, 2, ',', '.');
+                }
+                if ($juros > 0) {
+                    $partes[] = 'juros R$ '.number_format($juros, 2, ',', '.');
+                }
+                if ($desconto > 0) {
+                    $partes[] = 'desconto R$ '.number_format($desconto, 2, ',', '.');
+                }
+                $descricao .= ' ('.implode(' + ', $partes).')';
             }
 
             MovimentoCaixa::create([
@@ -296,7 +302,7 @@ class CaixaService
 
             $totalPago = (float) $pagamento->valorPago();
 
-            if ($totalPago > 0 && !$this->caixaAberto()) {
+            if ($totalPago > 0 && ! $this->caixaAberto()) {
                 throw new NegocioException(
                     'Não é possível estornar um pagamento com valores recebidos sem caixa aberto. Abra o caixa antes de cancelar a venda.'
                 );

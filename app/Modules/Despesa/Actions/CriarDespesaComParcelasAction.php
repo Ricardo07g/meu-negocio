@@ -2,7 +2,6 @@
 
 namespace App\Modules\Despesa\Actions;
 
-use App\Enums\CondicaoPagamento;
 use App\Enums\StatusDespesa;
 use App\Enums\StatusParcela;
 use App\Exceptions\NegocioException;
@@ -72,7 +71,7 @@ class CriarDespesaComParcelasAction
      */
     private function montarParcelas(CriarDespesaData $data): array
     {
-        if (!empty($data->parcelas_personalizadas)) {
+        if (! empty($data->parcelas_personalizadas)) {
             return array_map(function (array $p) use ($data) {
                 return [
                     'numero' => (int) $p['numero'],
@@ -109,15 +108,15 @@ class CriarDespesaComParcelasAction
 
     private function validar(CriarDespesaData $data): void
     {
-        if ($data->condicao_pagamento->exigeFormaNaCriacao() && !$data->forma_pagamento_avista) {
+        if ($data->condicao_pagamento->exigeFormaNaCriacao() && ! $data->forma_pagamento_avista) {
             throw new NegocioException('Forma de pagamento é obrigatória.');
         }
 
-        if ($data->condicao_pagamento->geraParcelas() && !$data->forma_recebimento_prazo) {
+        if ($data->condicao_pagamento->geraParcelas() && ! $data->forma_recebimento_prazo) {
             throw new NegocioException('Forma de recebimento prevista (carnê, etc) é obrigatória quando a despesa é a prazo.');
         }
 
-        if (!empty($data->parcelas_personalizadas)) {
+        if (! empty($data->parcelas_personalizadas)) {
             $somaValores = array_sum(array_map(
                 fn ($p) => (float) $p['valor'],
                 $data->parcelas_personalizadas,
@@ -127,6 +126,7 @@ class CriarDespesaComParcelasAction
                     'A soma das parcelas não bate com o valor total da despesa.'
                 );
             }
+
             return;
         }
 

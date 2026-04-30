@@ -12,6 +12,7 @@ use InvalidArgumentException;
 class CalculadoraParcelas
 {
     public const MIN_PARCELAS = 1;
+
     public const MAX_PARCELAS = 24;
 
     /**

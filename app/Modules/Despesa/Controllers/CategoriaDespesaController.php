@@ -23,8 +23,8 @@ class CategoriaDespesaController extends Controller
             $filtros = $request->only(['q', 'ativo', 'com_despesas']);
             $query = CategoriaDespesa::withCount('despesas')->orderBy('descricao');
 
-            if (!empty($filtros['q'])) {
-                $query->where('descricao', 'like', '%' . $filtros['q'] . '%');
+            if (! empty($filtros['q'])) {
+                $query->where('descricao', 'like', '%'.$filtros['q'].'%');
             }
 
             if (isset($filtros['ativo']) && $filtros['ativo'] !== '') {

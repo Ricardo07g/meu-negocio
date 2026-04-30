@@ -2,7 +2,6 @@
 
 namespace App\Modules\Tenant\Policies;
 
-use App\Modules\Tenant\Models\Plano;
 use App\Modules\Usuario\Models\Usuario;
 
 class PlanoPolicy

@@ -85,6 +85,7 @@ class ParcelaPagamento extends BaseModel
         foreach ($this->baixas as $baixa) {
             $total += $baixa->valorTotal();
         }
+
         return (float) $total;
     }
 
@@ -97,7 +98,7 @@ class ParcelaPagamento extends BaseModel
 
     public function diasAtraso(): int
     {
-        if (!$this->estaVencida()) {
+        if (! $this->estaVencida()) {
             return 0;
         }
 
@@ -113,6 +114,7 @@ class ParcelaPagamento extends BaseModel
         if ($this->estaVencida()) {
             return StatusParcela::Vencido;
         }
+
         return $this->status;
     }
 }

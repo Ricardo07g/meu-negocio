@@ -4,10 +4,11 @@ namespace App\Modules\Pagamento\Models;
 
 use App\Enums\CondicaoPagamento;
 use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusParcela;
 use App\Enums\StatusPagamento;
+use App\Enums\StatusParcela;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
@@ -89,7 +90,7 @@ class Pagamento extends BaseModel
     public function baixas(): HasManyThrough
     {
         return $this->hasManyThrough(
-            \App\Modules\Caixa\Models\BaixaPagamento::class,
+            BaixaPagamento::class,
             ParcelaPagamento::class,
             'pagamento_id',
             'parcela_pagamento_id',
@@ -121,6 +122,7 @@ class Pagamento extends BaseModel
                 $total += $baixa->valorTotal();
             }
         }
+
         return (float) $total;
     }
 
@@ -165,6 +167,7 @@ class Pagamento extends BaseModel
 
         if ($ativas->isEmpty()) {
             $this->update(['status' => StatusPagamento::Cancelado]);
+
             return;
         }
 

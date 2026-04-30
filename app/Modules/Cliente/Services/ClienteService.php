@@ -19,7 +19,7 @@ class ClienteService
     {
         $query = Cliente::query()->orderBy('nome');
 
-        if (!empty($filtros['q'])) {
+        if (! empty($filtros['q'])) {
             $q = $filtros['q'];
             $query->where(function ($sub) use ($q) {
                 $sub->where('nome', 'like', "%{$q}%")
@@ -33,12 +33,12 @@ class ClienteService
         $this->aplicarSituacaoFinanceira($query, $filtros['situacao_financeira'] ?? null);
         $this->aplicarAtividade($query, $filtros['atividade'] ?? null);
 
-        if (!empty($filtros['aniversariantes'])) {
+        if (! empty($filtros['aniversariantes'])) {
             $query->whereNotNull('data_nascimento')
                 ->whereMonth('data_nascimento', now()->month);
         }
 
-        if (!empty($filtros['com_whatsapp'])) {
+        if (! empty($filtros['com_whatsapp'])) {
             $query->where('telefone_whatsapp', true);
         }
 
@@ -51,12 +51,10 @@ class ClienteService
 
         match ($situacao) {
             'em_dia' => $query->whereDoesntHave('pagamentos', fn ($q) => $q->where('status', 'pendente')),
-            'pendente' => $query->whereHas('pagamentos', fn ($q) =>
-                $q->where('status', 'pendente')
-                    ->where(fn ($sub) => $sub->whereNull('data_vencimento')->orWhereDate('data_vencimento', '>=', $hoje))
+            'pendente' => $query->whereHas('pagamentos', fn ($q) => $q->where('status', 'pendente')
+                ->where(fn ($sub) => $sub->whereNull('data_vencimento')->orWhereDate('data_vencimento', '>=', $hoje))
             ),
-            'vencido' => $query->whereHas('pagamentos', fn ($q) =>
-                $q->where('status', 'pendente')->whereDate('data_vencimento', '<', $hoje)
+            'vencido' => $query->whereHas('pagamentos', fn ($q) => $q->where('status', 'pendente')->whereDate('data_vencimento', '<', $hoje)
             ),
             default => null,
         };
@@ -64,12 +62,13 @@ class ClienteService
 
     private function aplicarAtividade($query, ?string $atividade): void
     {
-        if (!$atividade || $atividade === 'todos') {
+        if (! $atividade || $atividade === 'todos') {
             return;
         }
 
         if ($atividade === 'novo') {
             $query->where('created_at', '>=', now()->subDays(30));
+
             return;
         }
 
@@ -80,6 +79,7 @@ class ClienteService
                 ->orWhereHas('vendasPacote', fn ($sq) => $sq->where('created_at', '>=', $desde))
                 ->orWhereHas('vendasProduto', fn ($sq) => $sq->where('created_at', '>=', $desde))
             );
+
             return;
         }
 

@@ -14,14 +14,14 @@ class VerificarRede
     {
         $usuario = $request->user();
 
-        if (!$usuario || !$usuario->rede_id) {
-            throw new TenantNaoEncontradoException();
+        if (! $usuario || ! $usuario->rede_id) {
+            throw new TenantNaoEncontradoException;
         }
 
         $rede = $usuario->rede;
 
-        if (!$rede || $rede->status !== StatusRede::Ativa) {
-            throw new TenantNaoEncontradoException();
+        if (! $rede || $rede->status !== StatusRede::Ativa) {
+            throw new TenantNaoEncontradoException;
         }
 
         return $next($request);

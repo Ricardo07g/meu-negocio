@@ -2,9 +2,8 @@
 
 namespace App\Modules\Pagamento\Actions;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\StatusParcela;
 use App\Enums\StatusPagamento;
+use App\Enums\StatusParcela;
 use App\Exceptions\NegocioException;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
@@ -71,7 +70,7 @@ class CriarPagamentoComParcelasAction
      */
     private function montarParcelas(CriarPagamentoData $data): array
     {
-        if (!empty($data->parcelas_personalizadas)) {
+        if (! empty($data->parcelas_personalizadas)) {
             return array_map(function (array $p) use ($data) {
                 return [
                     'numero' => (int) $p['numero'],
@@ -110,15 +109,15 @@ class CriarPagamentoComParcelasAction
 
     private function validar(CriarPagamentoData $data): void
     {
-        if ($data->condicao_pagamento->exigeFormaNaCriacao() && !$data->forma_pagamento_avista) {
+        if ($data->condicao_pagamento->exigeFormaNaCriacao() && ! $data->forma_pagamento_avista) {
             throw new NegocioException('Forma de pagamento é obrigatória.');
         }
 
-        if ($data->condicao_pagamento->geraParcelas() && !$data->forma_recebimento_prazo) {
+        if ($data->condicao_pagamento->geraParcelas() && ! $data->forma_recebimento_prazo) {
             throw new NegocioException('Forma de recebimento prevista (carnê, etc) é obrigatória quando a venda é a prazo.');
         }
 
-        if (!empty($data->parcelas_personalizadas)) {
+        if (! empty($data->parcelas_personalizadas)) {
             $somaValores = array_sum(array_map(
                 fn ($p) => (float) $p['valor'],
                 $data->parcelas_personalizadas,
@@ -128,6 +127,7 @@ class CriarPagamentoComParcelasAction
                     'A soma das parcelas não bate com o valor total da venda.'
                 );
             }
+
             return;
         }
 
@@ -138,7 +138,7 @@ class CriarPagamentoComParcelasAction
                     sprintf('Número de parcelas deve estar entre 2 e %d.', CalculadoraParcelas::MAX_PARCELAS)
                 );
             }
-            if (!$data->primeiro_vencimento) {
+            if (! $data->primeiro_vencimento) {
                 throw new NegocioException('Primeiro vencimento é obrigatório para venda parcelada.');
             }
         }

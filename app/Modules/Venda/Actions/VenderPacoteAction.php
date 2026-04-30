@@ -2,12 +2,12 @@
 
 namespace App\Modules\Venda\Actions;
 
-use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Enums\StatusAgendamento;
 use App\Enums\StatusVendaPacote;
 use App\Exceptions\ConflitoAgendamentoException;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Venda\DTOs\VenderPacoteData;
 use App\Modules\Venda\Models\VendaPacote;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +32,7 @@ class VenderPacoteAction
 
             foreach ($data->datas as $index => $dataStr) {
                 $horarioSessao = $data->horarios[$index] ?? $data->horario;
-                $inicio = Carbon::parse($dataStr . ' ' . $horarioSessao);
+                $inicio = Carbon::parse($dataStr.' '.$horarioSessao);
                 $fim = $inicio->copy()->addMinutes($servico->duracao);
 
                 // Verificar conflito
@@ -44,6 +44,7 @@ class VenderPacoteAction
 
                 if ($temConflito) {
                     $conflitos[] = $inicio->format('d/m/Y H:i');
+
                     continue;
                 }
 
@@ -58,9 +59,9 @@ class VenderPacoteAction
                 ]);
             }
 
-            if (!empty($conflitos)) {
+            if (! empty($conflitos)) {
                 throw new ConflitoAgendamentoException(
-                    'Conflito de horario nas datas: ' . implode(', ', $conflitos)
+                    'Conflito de horario nas datas: '.implode(', ', $conflitos)
                 );
             }
 

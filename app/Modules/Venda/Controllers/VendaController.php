@@ -22,9 +22,11 @@ use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
 use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
 use App\Traits\TratamentoErros;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class VendaController extends Controller
@@ -115,7 +117,7 @@ class VendaController extends Controller
 
             $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
-            if ($aVista && !$this->caixaService->caixaAberto()) {
+            if ($aVista && ! $this->caixaService->caixaAberto()) {
                 return redirect()->back()->withInput()
                     ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
             }
@@ -136,6 +138,7 @@ class VendaController extends Controller
                     $parcelasPersonalizadas,
                     $formaRecebimentoPrazo,
                 );
+
                 return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
             }
 
@@ -155,7 +158,7 @@ class VendaController extends Controller
                 $msg = 'Pacote vendido com sucesso! Agendamentos criados.';
             } else {
                 $payload = $request->validated();
-                $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'] . ' ' . $payload['horario']);
+                $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'].' '.$payload['horario']);
                 $this->service->criarAvulso(
                     AgendamentoData::from($payload),
                     $condicao,
@@ -185,7 +188,7 @@ class VendaController extends Controller
     private function extrairParcelasPersonalizadas(CriarVendaRequest $request): ?array
     {
         $raw = $request->input('parcelas');
-        if (empty($raw) || !is_array($raw)) {
+        if (empty($raw) || ! is_array($raw)) {
             return null;
         }
 
@@ -239,7 +242,7 @@ class VendaController extends Controller
     {
         try {
             $agendamento->load(['cliente', 'servico', 'pagamento.parcelas']);
-            if (!$this->service->podeEditar($agendamento->pagamento) || !in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
+            if (! $this->service->podeEditar($agendamento->pagamento) || ! in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
                 return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
             }
 
@@ -265,7 +268,7 @@ class VendaController extends Controller
         try {
             $this->authorize('view', $pacote);
             $pacote->load(['cliente', 'servico', 'pagamento.parcelas']);
-            if (!$this->service->podeEditar($pacote->pagamento) || $pacote->status->value !== 'ativo') {
+            if (! $this->service->podeEditar($pacote->pagamento) || $pacote->status->value !== 'ativo') {
                 return redirect()->route('vendas.index')->with('erro', 'Pacote não pode ser editado.');
             }
 
@@ -291,7 +294,7 @@ class VendaController extends Controller
     {
         try {
             $vendaProduto->load(['cliente', 'itens.produto', 'pagamento.parcelas']);
-            if (!$this->service->podeEditar($vendaProduto->pagamento) || $vendaProduto->status->value !== 'ativa') {
+            if (! $this->service->podeEditar($vendaProduto->pagamento) || $vendaProduto->status->value !== 'ativa') {
                 return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
             }
 
@@ -312,7 +315,7 @@ class VendaController extends Controller
         }
     }
 
-    public function recibo(string $tipo, int $id): \Illuminate\Http\Response|RedirectResponse
+    public function recibo(string $tipo, int $id): Response|RedirectResponse
     {
         try {
             $empresa = auth()->user()->empresa ?? null;
@@ -324,7 +327,7 @@ class VendaController extends Controller
                 default => abort(404, 'Tipo de venda inválido'),
             };
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('venda::recibo', array_merge($dados, [
+            $pdf = Pdf::loadView('venda::recibo', array_merge($dados, [
                 'empresa' => $empresa,
                 'tipo' => $tipo,
             ]));

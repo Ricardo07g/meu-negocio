@@ -11,7 +11,7 @@ class ModuleServiceProvider extends ServiceProvider
     {
         $modulesPath = app_path('Modules');
 
-        if (!File::isDirectory($modulesPath)) {
+        if (! File::isDirectory($modulesPath)) {
             return;
         }
 
@@ -20,13 +20,13 @@ class ModuleServiceProvider extends ServiceProvider
             $moduleKey = strtolower($moduleName);
 
             // Registrar views do módulo (referenciadas como 'modulo::view')
-            $viewsPath = $modulePath . '/Views';
+            $viewsPath = $modulePath.'/Views';
             if (File::isDirectory($viewsPath)) {
                 $this->loadViewsFrom($viewsPath, $moduleKey);
             }
 
             // Registrar migrations do módulo
-            $migrationsPath = $modulePath . '/Migrations';
+            $migrationsPath = $modulePath.'/Migrations';
             if (File::isDirectory($migrationsPath) && count(File::files($migrationsPath)) > 0) {
                 $this->loadMigrationsFrom($migrationsPath);
             }

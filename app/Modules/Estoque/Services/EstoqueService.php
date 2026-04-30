@@ -2,8 +2,8 @@
 
 namespace App\Modules\Estoque\Services;
 
-use App\Modules\Estoque\DTOs\RegistrarMovimentoData;
 use App\Enums\TipoMovimentoEstoque;
+use App\Modules\Estoque\DTOs\RegistrarMovimentoData;
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Produto\Models\Produto;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -36,15 +36,15 @@ class EstoqueService
     {
         $query = MovimentoEstoque::with('produto')->orderBy('created_at', 'desc');
 
-        if (!empty($filtros['produto_id'])) {
+        if (! empty($filtros['produto_id'])) {
             $query->where('produto_id', $filtros['produto_id']);
         }
 
-        if (!empty($filtros['tipo'])) {
+        if (! empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
         }
 
-        if (!empty($filtros['q'])) {
+        if (! empty($filtros['q'])) {
             $q = $filtros['q'];
             $query->whereHas('produto', function ($sub) use ($q) {
                 $sub->where('nome', 'like', "%{$q}%")

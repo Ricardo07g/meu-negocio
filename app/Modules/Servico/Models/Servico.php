@@ -4,8 +4,8 @@ namespace App\Modules\Servico\Models;
 
 use App\Enums\TipoServico;
 use App\Models\BaseModel;
-use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Venda\Models\VendaPacote;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

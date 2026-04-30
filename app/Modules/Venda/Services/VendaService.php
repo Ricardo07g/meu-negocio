@@ -4,6 +4,7 @@ namespace App\Modules\Venda\Services;
 
 use App\Enums\CondicaoPagamento;
 use App\Enums\FormaPagamento;
+use App\Enums\FormaRecebimentoPrazo;
 use App\Enums\StatusParcela;
 use App\Enums\StatusVendaPacote;
 use App\Enums\StatusVendaProduto;
@@ -60,7 +61,7 @@ class VendaService
                 'id' => $p->id,
                 'cliente' => $p->cliente->nome,
                 'servico' => $p->servico->nome,
-                'info' => $p->qtd_sessoes . ' sessões',
+                'info' => $p->qtd_sessoes.' sessões',
                 'valor' => $p->valor_total,
                 'status' => $p->status->value,
                 'status_label' => $p->status->label(),
@@ -101,8 +102,8 @@ class VendaService
                 'tipo' => 'produto',
                 'id' => $vp->id,
                 'cliente' => $vp->cliente->nome ?? '-',
-                'servico' => $vp->itens->count() . ' produto(s)',
-                'info' => $vp->itens->sum('quantidade') . ' un.',
+                'servico' => $vp->itens->count().' produto(s)',
+                'info' => $vp->itens->sum('quantidade').' un.',
                 'valor' => $vp->valor_total,
                 'status' => $vp->status->value,
                 'status_label' => $vp->status->label(),
@@ -145,10 +146,10 @@ class VendaService
             default => null,
         };
 
-        if (!empty($filtros['data_inicio'])) {
+        if (! empty($filtros['data_inicio'])) {
             $inicio = Carbon::parse($filtros['data_inicio'])->startOfDay();
         }
-        if (!empty($filtros['data_fim'])) {
+        if (! empty($filtros['data_fim'])) {
             $fim = Carbon::parse($filtros['data_fim'])->endOfDay();
         }
 
@@ -165,7 +166,7 @@ class VendaService
             $query->where('created_at', '<=', $dataFim);
         }
 
-        if (!empty($filtros['situacao_pagamento'])) {
+        if (! empty($filtros['situacao_pagamento'])) {
             $situacao = $filtros['situacao_pagamento'];
             $hoje = now()->toDateString();
             $query->whereHas('pagamento', function ($q) use ($situacao, $hoje) {
@@ -183,7 +184,7 @@ class VendaService
             });
         }
 
-        if (!empty($filtros['forma_pagamento'])) {
+        if (! empty($filtros['forma_pagamento'])) {
             $forma = $filtros['forma_pagamento'];
             $query->whereHas('pagamento', function ($q) use ($forma) {
                 if ($forma === 'a_prazo') {
@@ -196,7 +197,7 @@ class VendaService
             });
         }
 
-        if (!empty($filtros['atendente_id'])) {
+        if (! empty($filtros['atendente_id'])) {
             $atendenteId = (int) $filtros['atendente_id'];
             if ($origem === 'produto') {
                 $query->where('usuario_id', $atendenteId);
@@ -206,10 +207,10 @@ class VendaService
         }
 
         if ($origem !== 'avulso') {
-            if (!empty($filtros['valor_min'])) {
+            if (! empty($filtros['valor_min'])) {
                 $query->where('valor_total', '>=', (float) $filtros['valor_min']);
             }
-            if (!empty($filtros['valor_max'])) {
+            if (! empty($filtros['valor_max'])) {
                 $query->where('valor_total', '<=', (float) $filtros['valor_max']);
             }
         }
@@ -217,17 +218,19 @@ class VendaService
 
     private function aplicarValorAvulso($query, array $filtros): void
     {
-        if (!empty($filtros['valor_min'])) {
+        if (! empty($filtros['valor_min'])) {
             $query->whereHas('servico', fn ($q) => $q->where('valor', '>=', (float) $filtros['valor_min']));
         }
-        if (!empty($filtros['valor_max'])) {
+        if (! empty($filtros['valor_max'])) {
             $query->whereHas('servico', fn ($q) => $q->where('valor', '<=', (float) $filtros['valor_max']));
         }
     }
 
     private function aplicarBuscaPacote($query, ?string $q): void
     {
-        if (!$q) return;
+        if (! $q) {
+            return;
+        }
         $query->where(function ($sub) use ($q) {
             $sub->where('id', $q)
                 ->orWhereHas('cliente', fn ($r) => $r->where('nome', 'like', "%{$q}%"))
@@ -237,7 +240,9 @@ class VendaService
 
     private function aplicarBuscaAvulso($query, ?string $q): void
     {
-        if (!$q) return;
+        if (! $q) {
+            return;
+        }
         $query->where(function ($sub) use ($q) {
             $sub->where('id', $q)
                 ->orWhereHas('cliente', fn ($r) => $r->where('nome', 'like', "%{$q}%"))
@@ -247,7 +252,9 @@ class VendaService
 
     private function aplicarBuscaProduto($query, ?string $q): void
     {
-        if (!$q) return;
+        if (! $q) {
+            return;
+        }
         $query->where(function ($sub) use ($q) {
             $sub->where('id', $q)
                 ->orWhereHas('cliente', fn ($r) => $r->where('nome', 'like', "%{$q}%"))
@@ -296,7 +303,7 @@ class VendaService
         ?int $numeroParcelas = null,
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
-        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+        ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
     ): Agendamento {
         return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $agendamento = $this->criarAgendamento->executar($data);
@@ -332,7 +339,7 @@ class VendaService
         ?int $numeroParcelas = null,
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
-        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+        ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
     ): VendaPacote {
         return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $pacote = $this->venderPacote->executar($data);
@@ -367,7 +374,7 @@ class VendaService
         ?string $data = null,
         ?string $observacao = null,
         ?array $parcelasPersonalizadas = null,
-        ?\App\Enums\FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+        ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
     ): VendaProduto {
         return DB::transaction(function () use ($cliente_id, $itens, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $data, $observacao, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             ['venda' => $venda, 'pagamento' => $pagamento] = $this->criarVendaProdutoAction->executar(
@@ -396,12 +403,12 @@ class VendaService
      */
     private function baixarAVistaSeAplicavel(Pagamento $pagamento, CondicaoPagamento $condicao, ?FormaPagamento $forma): void
     {
-        if ($condicao !== CondicaoPagamento::AVista || !$forma) {
+        if ($condicao !== CondicaoPagamento::AVista || ! $forma) {
             return;
         }
 
         $parcela = $pagamento->parcelas->first();
-        if (!$parcela) {
+        if (! $parcela) {
             return;
         }
 
@@ -462,7 +469,7 @@ class VendaService
 
     private function estornarPagamentoSeExistir(?Pagamento $pagamento): void
     {
-        if (!$pagamento) {
+        if (! $pagamento) {
             return;
         }
         $this->caixaService->estornarPagamento($pagamento);
@@ -470,19 +477,20 @@ class VendaService
 
     public function podeEditar(?Pagamento $pagamento): bool
     {
-        if (!$pagamento) {
+        if (! $pagamento) {
             return true;
         }
+
         return $pagamento->valorPago() <= 0.0;
     }
 
     public function atualizarAvulso(Agendamento $agendamento, array $data): Agendamento
     {
         return DB::transaction(function () use ($agendamento, $data) {
-            if (!in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
+            if (! in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
                 throw new \DomainException('Agendamento não pode ser editado nesse status.');
             }
-            if (!$this->podeEditar($agendamento->pagamento)) {
+            if (! $this->podeEditar($agendamento->pagamento)) {
                 throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
@@ -505,7 +513,7 @@ class VendaService
             if ($pacote->status !== StatusVendaPacote::Ativo) {
                 throw new \DomainException('Pacote não pode ser editado nesse status.');
             }
-            if (!$this->podeEditar($pacote->pagamento)) {
+            if (! $this->podeEditar($pacote->pagamento)) {
                 throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
@@ -545,7 +553,7 @@ class VendaService
             if ($venda->status !== StatusVendaProduto::Ativa) {
                 throw new \DomainException('Venda não pode ser editada nesse status.');
             }
-            if (!$this->podeEditar($venda->pagamento)) {
+            if (! $this->podeEditar($venda->pagamento)) {
                 throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
@@ -586,5 +594,4 @@ class VendaService
             return $venda->fresh()->load('itens');
         });
     }
-
 }

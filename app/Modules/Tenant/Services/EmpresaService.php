@@ -4,8 +4,8 @@ namespace App\Modules\Tenant\Services;
 
 use App\Modules\Tenant\Actions\CriarEmpresaAction;
 use App\Modules\Tenant\DTOs\EmpresaData;
-use App\Modules\Tenant\Models\Rede;
 use App\Modules\Tenant\Models\Empresa;
+use App\Modules\Tenant\Models\Rede;
 use Illuminate\Database\Eloquent\Collection;
 
 class EmpresaService

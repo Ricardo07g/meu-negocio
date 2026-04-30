@@ -2,7 +2,6 @@
 
 namespace App\Modules\Venda\DTOs;
 
-use Carbon\Carbon;
 use Spatie\LaravelData\Data;
 
 class VenderPacoteData extends Data

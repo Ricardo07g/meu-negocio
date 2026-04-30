@@ -23,8 +23,8 @@ class CategoriaProdutoController extends Controller
             $filtros = $request->only(['q', 'ativo', 'com_produtos']);
             $query = CategoriaProduto::withCount('produtos')->orderBy('descricao');
 
-            if (!empty($filtros['q'])) {
-                $query->where('descricao', 'like', '%' . $filtros['q'] . '%');
+            if (! empty($filtros['q'])) {
+                $query->where('descricao', 'like', '%'.$filtros['q'].'%');
             }
 
             if (isset($filtros['ativo']) && $filtros['ativo'] !== '') {

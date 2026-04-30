@@ -13,34 +13,29 @@ trait TratamentoErros
 {
     protected function tratarErro(\Throwable $e, string $contexto): RedirectResponse|JsonResponse
     {
-        if ($e instanceof ValidationException || $e instanceof AuthorizationException) 
-        {
+        if ($e instanceof ValidationException || $e instanceof AuthorizationException) {
             throw $e;
         }
 
-        if ($e instanceof NegocioException)
-        {
+        if ($e instanceof NegocioException) {
             Log::warning($contexto, [
                 'mensagem' => $e->getMessage(),
                 'usuario_id' => auth()->id(),
                 'exception' => $e::class,
             ]);
             $mensagem = $e->getMessage();
-        } 
-        else 
-        {
+        } else {
             Log::error($contexto, [
                 'mensagem' => $e->getMessage(),
                 'usuario_id' => auth()->id(),
                 'exception' => $e::class,
-                'arquivo' => $e->getFile() . ':' . $e->getLine(),
+                'arquivo' => $e->getFile().':'.$e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
             $mensagem = 'Ocorreu um erro inesperado. Tente novamente.';
         }
 
-        if (request()->ajax() || request()->wantsJson())
-        {
+        if (request()->ajax() || request()->wantsJson()) {
             return response()->json(['erro' => $mensagem], 500);
         }
 

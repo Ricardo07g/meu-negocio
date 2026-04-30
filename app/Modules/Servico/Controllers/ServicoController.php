@@ -4,8 +4,8 @@ namespace App\Modules\Servico\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Servico\DTOs\ServicoData;
-use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Services\ServicoService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\JsonResponse;
