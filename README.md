@@ -2,6 +2,7 @@
 
 > SaaS multi-tenant para a gestão de pequenos negócios — clínicas, salões, massoterapia e profissionais autônomos. Agenda, vendas, financeiro, caixa diário e estoque em um único produto, isolado por rede e por empresa.
 
+[![CI](https://github.com/Ricardo07g/meu-negocio/actions/workflows/ci.yml/badge.svg)](https://github.com/Ricardo07g/meu-negocio/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/PHP-%5E8.3-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![Laravel](https://img.shields.io/badge/Laravel-%5E13.0-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
