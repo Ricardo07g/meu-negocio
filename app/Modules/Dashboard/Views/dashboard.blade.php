@@ -111,6 +111,98 @@
     </div>
 
     <div class="row mt-4">
+        {{-- Proximos Agendamentos de Hoje --}}
+        <div class="col-xxl-6 col-md-12">
+            <div class="card stretch stretch-full">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title">Próximos Agendamentos de Hoje</h5>
+                    <a href="{{ route('agenda.index') }}" class="text-muted small"><i class="feather-external-link"></i> Ver todos</a>
+                </div>
+                <div class="card-body p-0">
+                    @if($proximosAgendamentos->isEmpty())
+                        <div class="text-center text-muted py-5">
+                            <i class="feather-calendar fs-1 d-block mb-2"></i>
+                            <p class="mb-0">Nenhum agendamento restante para hoje.</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Serviço</th>
+                                        <th class="text-end">&nbsp;</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($proximosAgendamentos as $agendamento)
+                                        <tr>
+                                            <td><strong>{{ $agendamento->inicio->format('H:i') }}</strong></td>
+                                            <td>{{ $agendamento->cliente->nome ?? '—' }}</td>
+                                            <td>{{ $agendamento->servico->nome ?? '—' }}</td>
+                                            <td class="text-end">
+                                                <a href="{{ route('agenda.show', $agendamento) }}" class="btn btn-sm btn-light-primary"><i class="feather-eye"></i></a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Parcelas Vencendo (7 dias) --}}
+        <div class="col-xxl-6 col-md-12">
+            <div class="card stretch stretch-full">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title">Parcelas Vencendo (7 dias)</h5>
+                    <a href="{{ route('pagamentos.contas-a-receber') }}" class="text-muted small"><i class="feather-external-link"></i> Contas a Receber</a>
+                </div>
+                <div class="card-body p-0">
+                    @if($parcelasVencendo->isEmpty())
+                        <div class="text-center text-muted py-5">
+                            <i class="feather-check-circle fs-1 d-block mb-2"></i>
+                            <p class="mb-0">Nenhuma parcela vencendo nos próximos 7 dias.</p>
+                        </div>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Vencimento</th>
+                                        <th>Cliente</th>
+                                        <th class="text-end">Valor</th>
+                                        <th>Status</th>
+                                        <th class="text-end">&nbsp;</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($parcelasVencendo as $parcela)
+                                        <tr>
+                                            <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
+                                            <td>{{ $parcela->pagamento?->cliente?->nome ?? '—' }}</td>
+                                            <td class="text-end">R$ {{ number_format($parcela->valor - $parcela->valor_pago, 2, ',', '.') }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ $parcela->status->cor() }}">{{ $parcela->status->label() }}</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{{ route('parcelas-pagamento.baixa-form', $parcela) }}" class="btn btn-sm btn-light-success"><i class="feather-dollar-sign"></i></a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
         <div class="col-12">
             <div class="card stretch stretch-full">
                 <div class="card-header">
