@@ -12,7 +12,7 @@ class ProdutoService
     {
         $query = Produto::query()->with('categoria')->orderBy('nome');
 
-        if (!empty($filtros['q'])) {
+        if (! empty($filtros['q'])) {
             $q = $filtros['q'];
             $query->where(function ($sub) use ($q) {
                 $sub->where('nome', 'like', "%{$q}%")
@@ -22,7 +22,7 @@ class ProdutoService
             });
         }
 
-        if (!empty($filtros['categoria_produto_id'])) {
+        if (! empty($filtros['categoria_produto_id'])) {
             $query->where('categoria_produto_id', $filtros['categoria_produto_id']);
         }
 
@@ -32,11 +32,11 @@ class ProdutoService
 
         $this->aplicarEstoque($query, $filtros['estoque'] ?? null);
 
-        if (!empty($filtros['preco_min'])) {
+        if (! empty($filtros['preco_min'])) {
             $query->where('valor_venda', '>=', $filtros['preco_min']);
         }
 
-        if (!empty($filtros['preco_max'])) {
+        if (! empty($filtros['preco_max'])) {
             $query->where('valor_venda', '<=', $filtros['preco_max']);
         }
 

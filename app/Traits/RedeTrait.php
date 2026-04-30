@@ -11,15 +11,13 @@ trait RedeTrait
     public static function bootRedeTrait(): void
     {
         static::addGlobalScope('rede', function (Builder $query) {
-            if ($usuario = static::resolverUsuarioAutenticado())
-            {
-                $query->where($query->getModel()->getTable() . '.rede_id', $usuario->rede_id);
+            if ($usuario = static::resolverUsuarioAutenticado()) {
+                $query->where($query->getModel()->getTable().'.rede_id', $usuario->rede_id);
             }
         });
 
         static::creating(function ($model) {
-            if (!$model->rede_id)
-            {
+            if (! $model->rede_id) {
                 if ($usuario = static::resolverUsuarioAutenticado()) {
                     $model->rede_id = $usuario->rede_id;
                 }
@@ -36,15 +34,13 @@ trait RedeTrait
     {
         static $resolvendo = false;
 
-        if ($resolvendo)
-        {
+        if ($resolvendo) {
             return null;
         }
 
         $resolvendo = true;
 
-        try
-        {
+        try {
             $usuario = auth()->user();
         } finally {
             $resolvendo = false;

@@ -2,7 +2,6 @@
 
 namespace App\Modules\Estoque\Policies;
 
-use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Usuario\Models\Usuario;
 
 class MovimentoEstoquePolicy

@@ -4,8 +4,8 @@ namespace App\Modules\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Tenant\DTOs\EmpresaData;
-use App\Modules\Tenant\Requests\SalvarEmpresaRequest;
 use App\Modules\Tenant\Models\Empresa;
+use App\Modules\Tenant\Requests\SalvarEmpresaRequest;
 use App\Modules\Tenant\Services\EmpresaService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;

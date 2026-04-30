@@ -3,11 +3,11 @@
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\DTOs\ProdutoData;
-use App\Modules\Produto\Requests\SalvarProdutoRequest;
 use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Estoque\Services\EstoqueService;
+use App\Modules\Produto\Requests\SalvarProdutoRequest;
 use App\Modules\Produto\Services\ProdutoService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\JsonResponse;
@@ -19,15 +19,11 @@ class ProdutoController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct( private ProdutoService $service, private EstoqueService $estoqueService)
-    {
-
-    }
+    public function __construct(private ProdutoService $service, private EstoqueService $estoqueService) {}
 
     public function index(Request $request): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('viewAny', Produto::class);
             $filtros = $request->only(['q', 'categoria_produto_id', 'ativo', 'estoque', 'preco_min', 'preco_max']);
             $produtos = $this->service->listar($filtros);
@@ -41,8 +37,7 @@ class ProdutoController extends Controller
 
     public function create(): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('create', Produto::class);
             $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
@@ -54,8 +49,7 @@ class ProdutoController extends Controller
 
     public function store(SalvarProdutoRequest $request): RedirectResponse
     {
-        try
-        {
+        try {
             $this->service->criar(ProdutoData::from($request->validated()));
 
             return redirect()->route('produtos.index')->with('sucesso', 'Produto criado com sucesso.');
@@ -66,8 +60,7 @@ class ProdutoController extends Controller
 
     public function show(Produto $produto): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('view', $produto);
             $movimentos = $this->estoqueService->listarMovimentos($produto->id);
 
@@ -79,8 +72,7 @@ class ProdutoController extends Controller
 
     public function edit(Produto $produto): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('update', $produto);
             $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
@@ -92,8 +84,7 @@ class ProdutoController extends Controller
 
     public function update(SalvarProdutoRequest $request, Produto $produto): RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('update', $produto);
             $this->service->atualizar($produto, ProdutoData::from($request->validated()));
 
@@ -105,8 +96,7 @@ class ProdutoController extends Controller
 
     public function destroy(Produto $produto): RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('delete', $produto);
             $this->service->excluir($produto);
 
@@ -127,7 +117,7 @@ class ProdutoController extends Controller
         $produtos = Produto::where('ativo', true)
             ->where(function ($query) use ($q) {
                 $query->where('nome', 'like', "%{$q}%")
-                      ->orWhere('codigo', 'like', "%{$q}%");
+                    ->orWhere('codigo', 'like', "%{$q}%");
             })
             ->limit(10)
             ->get(['id', 'nome', 'valor_venda', 'quantidade']);

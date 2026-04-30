@@ -2,11 +2,11 @@
 
 namespace App\Modules\Produto\Models;
 
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
-use App\Modules\Estoque\Models\MovimentoEstoque;
-use App\Modules\Produto\Models\CategoriaProduto;
 use App\Models\BaseModel;
+use App\Modules\Estoque\Models\MovimentoEstoque;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Produto extends BaseModel
 {

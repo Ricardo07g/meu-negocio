@@ -9,6 +9,7 @@ use App\Enums\StatusVendaProduto;
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Pagamento\Actions\CriarPagamentoComParcelasAction;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
+use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Venda\Models\VendaProdutoItem;
@@ -24,7 +25,7 @@ class CriarVendaProdutoAction
      * Cria a VendaProduto + itens (baixando estoque) + Pagamento com parcelas.
      * A baixa a vista e feita posteriormente pelo VendaService (precisa do CaixaService).
      *
-     * @return array{venda: VendaProduto, pagamento: \App\Modules\Pagamento\Models\Pagamento}
+     * @return array{venda: VendaProduto, pagamento: Pagamento}
      */
     public function executar(
         ?int $cliente_id,

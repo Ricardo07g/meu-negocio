@@ -8,23 +8,23 @@ use App\Modules\Agenda\Actions\CriarAgendamentoAction;
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Agenda\Requests\SalvarAgendamentoRequest;
+use App\Modules\Agenda\Services\AgendamentoService;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Agenda\Services\AgendamentoService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AgendaController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private AgendamentoService $service)
-    {}
+    public function __construct(private AgendamentoService $service) {}
 
     private array $coresAtendente = [
         '#3454d1', '#25b865', '#e49e3d', '#d13b4c', '#17a2b8',
@@ -56,7 +56,7 @@ class AgendaController extends Controller
                 return [
                     'id' => (string) $ag->id,
                     'calendarId' => (string) $ag->atendente_id,
-                    'title' => ($ag->cliente->nome ?? '-') . ' — ' . ($ag->servico->nome ?? '-'),
+                    'title' => ($ag->cliente->nome ?? '-').' — '.($ag->servico->nome ?? '-'),
                     'start' => $ag->inicio->format('Y-m-d\TH:i:s'),
                     'end' => $ag->fim->format('Y-m-d\TH:i:s'),
                     'category' => 'time',
@@ -114,11 +114,11 @@ class AgendaController extends Controller
                 'servico_id' => (int) $dados['servico_id'],
                 'atendente_id' => (int) $dados['atendente_id'],
                 'inicio' => Carbon::parse($dados['inicio']),
-                'fim' => !empty($dados['fim']) ? Carbon::parse($dados['fim']) : null,
+                'fim' => ! empty($dados['fim']) ? Carbon::parse($dados['fim']) : null,
             ]));
 
             return response()->json(['id' => $agendamento->id], 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
@@ -141,7 +141,7 @@ class AgendaController extends Controller
             ]);
 
             return response()->json(['ok' => true]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
@@ -174,7 +174,7 @@ class AgendaController extends Controller
                     'servico' => $agendamento->servico->nome ?? '-',
                     'atendente' => $agendamento->atendente->nome ?? '-',
                     'data' => $agendamento->inicio->format('d/m/Y'),
-                    'horario' => $agendamento->inicio->format('H:i') . ' - ' . $agendamento->fim->format('H:i'),
+                    'horario' => $agendamento->inicio->format('H:i').' - '.$agendamento->fim->format('H:i'),
                     'status' => $agendamento->status->value,
                     'observacoes' => $agendamento->observacoes ?? '-',
                     'pacote_id' => $agendamento->venda_pacote_id,

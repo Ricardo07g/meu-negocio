@@ -28,14 +28,15 @@ class LoginController extends Controller
         try {
             $credentials = $request->only('email', 'password');
 
-            if (!Auth::attempt($credentials)) {
+            if (! Auth::attempt($credentials)) {
                 return back()->withErrors(['email' => 'Credenciais inválidas.'])->onlyInput('email');
             }
 
             $usuario = Auth::user();
 
-            if (!$usuario->ativo) {
+            if (! $usuario->ativo) {
                 Auth::logout();
+
                 return back()->withErrors(['email' => 'Sua conta está desativada.']);
             }
 

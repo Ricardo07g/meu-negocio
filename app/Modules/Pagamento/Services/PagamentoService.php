@@ -27,7 +27,7 @@ class PagamentoService
             $query->where('status', $status);
         }
 
-        if (!empty($filtros['q'])) {
+        if (! empty($filtros['q'])) {
             $q = $filtros['q'];
             $query->where(function ($sub) use ($q) {
                 $sub->where('id', $q)
@@ -35,7 +35,7 @@ class PagamentoService
             });
         }
 
-        if (!empty($filtros['origem'])) {
+        if (! empty($filtros['origem'])) {
             match ($filtros['origem']) {
                 'avulso' => $query->whereNotNull('agendamento_id'),
                 'pacote' => $query->whereNotNull('venda_pacote_id'),
@@ -44,7 +44,7 @@ class PagamentoService
             };
         }
 
-        if (!empty($filtros['situacao'])) {
+        if (! empty($filtros['situacao'])) {
             $hoje = now()->toDateString();
             match ($filtros['situacao']) {
                 'em_dia' => $query->whereIn('status', ['pendente', 'parcial'])
@@ -57,7 +57,7 @@ class PagamentoService
             };
         }
 
-        if (!empty($filtros['mes_referencia'])) {
+        if (! empty($filtros['mes_referencia'])) {
             $mes = $filtros['mes_referencia']; // formato Y-m
             $query->whereRaw("DATE_FORMAT(mes_referencia, '%Y-%m') = ?", [$mes]);
         }
@@ -90,8 +90,8 @@ class PagamentoService
             }
 
             $observacaoAcumulada = trim(
-                ($parcela->observacao ? $parcela->observacao . "\n" : '')
-                . sprintf(
+                ($parcela->observacao ? $parcela->observacao."\n" : '')
+                .sprintf(
                     '[Renegociado em %s] valor R$ %s → R$ %s; vencimento %s → %s. %s',
                     now()->format('d/m/Y H:i'),
                     number_format((float) $parcela->valor, 2, ',', '.'),
@@ -125,7 +125,7 @@ class PagamentoService
                 throw new NegocioException('Parcela já paga não pode ser cancelada.');
             }
 
-            $observacao = $parcela->observacao ? $parcela->observacao . "\n" : '';
+            $observacao = $parcela->observacao ? $parcela->observacao."\n" : '';
             $observacao .= sprintf('[Cancelada em %s] %s', now()->format('d/m/Y H:i'), $motivo ?? '');
 
             $parcela->update([

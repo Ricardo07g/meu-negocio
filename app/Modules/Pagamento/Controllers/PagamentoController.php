@@ -13,9 +13,11 @@ use App\Modules\Pagamento\Requests\RenegociarParcelaRequest;
 use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
 use App\Modules\Pagamento\Services\PagamentoService;
 use App\Traits\TratamentoErros;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class PagamentoController extends Controller
@@ -107,14 +109,14 @@ class PagamentoController extends Controller
         return redirect()->route('pagamentos.index', ['status' => 'pendente']);
     }
 
-    public function recibo(Pagamento $pagamento): \Illuminate\Http\Response|RedirectResponse
+    public function recibo(Pagamento $pagamento): Response|RedirectResponse
     {
         try {
             $this->authorize('view', $pagamento);
             $pagamento->load(['cliente', 'parcelas.baixas', 'agendamento.servico', 'vendaPacote.servico', 'vendaProduto.itens']);
             $empresa = auth()->user()->empresa ?? null;
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pagamento::recibo', compact('pagamento', 'empresa'));
+            $pdf = Pdf::loadView('pagamento::recibo', compact('pagamento', 'empresa'));
 
             return $pdf->stream("comprovante-recebimento-{$pagamento->id}.pdf");
         } catch (\Throwable $e) {

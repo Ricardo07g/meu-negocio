@@ -3,10 +3,10 @@
 namespace App\Modules\Cliente\Models;
 
 use App\Models\BaseModel;
+use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Agenda\Models\Agendamento;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

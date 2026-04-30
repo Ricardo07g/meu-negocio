@@ -12,7 +12,7 @@ class ServicoService
     {
         $query = Servico::query()->orderBy('nome');
 
-        if (!empty($filtros['q'])) {
+        if (! empty($filtros['q'])) {
             $q = $filtros['q'];
             $query->where(function ($sub) use ($q) {
                 $sub->where('nome', 'like', "%{$q}%")
@@ -20,23 +20,23 @@ class ServicoService
             });
         }
 
-        if (!empty($filtros['tipo'])) {
+        if (! empty($filtros['tipo'])) {
             $query->where('tipo', $filtros['tipo']);
         }
 
-        if (!empty($filtros['valor_min'])) {
+        if (! empty($filtros['valor_min'])) {
             $query->where('valor', '>=', $filtros['valor_min']);
         }
 
-        if (!empty($filtros['valor_max'])) {
+        if (! empty($filtros['valor_max'])) {
             $query->where('valor', '<=', $filtros['valor_max']);
         }
 
-        if (!empty($filtros['duracao_min'])) {
+        if (! empty($filtros['duracao_min'])) {
             $query->where('duracao', '>=', $filtros['duracao_min']);
         }
 
-        if (!empty($filtros['duracao_max'])) {
+        if (! empty($filtros['duracao_max'])) {
             $query->where('duracao', '<=', $filtros['duracao_max']);
         }
 

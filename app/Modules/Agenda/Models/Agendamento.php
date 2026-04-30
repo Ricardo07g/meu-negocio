@@ -4,11 +4,11 @@ namespace App\Modules\Agenda\Models;
 
 use App\Enums\StatusAgendamento;
 use App\Models\BaseModel;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Venda\Models\VendaPacote;
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use App\Modules\Venda\Models\VendaPacote;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

@@ -18,9 +18,11 @@ use App\Modules\Pagamento\Requests\CancelarParcelaRequest;
 use App\Modules\Pagamento\Requests\RenegociarParcelaRequest;
 use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
 use App\Traits\TratamentoErros;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class DespesaController extends Controller
@@ -82,7 +84,7 @@ class DespesaController extends Controller
 
             $parcelasPersonalizadas = null;
             $raw = $request->input('parcelas');
-            if (!empty($raw) && is_array($raw)) {
+            if (! empty($raw) && is_array($raw)) {
                 $parcelasPersonalizadas = array_map(function (array $p) {
                     return [
                         'numero' => (int) $p['numero'],
@@ -224,14 +226,14 @@ class DespesaController extends Controller
         return redirect()->route('despesas.index', ['status' => 'pendente']);
     }
 
-    public function recibo(Despesa $despesa): \Illuminate\Http\Response|RedirectResponse
+    public function recibo(Despesa $despesa): Response|RedirectResponse
     {
         try {
             $this->authorize('view', $despesa);
             $despesa->load(['categoria', 'parcelas.baixas']);
             $empresa = auth()->user()->empresa ?? null;
 
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('despesa::recibo', compact('despesa', 'empresa'));
+            $pdf = Pdf::loadView('despesa::recibo', compact('despesa', 'empresa'));
 
             return $pdf->stream("comprovante-pagamento-{$despesa->id}.pdf");
         } catch (\Throwable $e) {

@@ -4,10 +4,10 @@ namespace App\Modules\Estoque\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Estoque\DTOs\RegistrarMovimentoData;
-use App\Modules\Estoque\Requests\RegistrarMovimentoRequest;
 use App\Modules\Estoque\Models\MovimentoEstoque;
-use App\Modules\Produto\Models\Produto;
+use App\Modules\Estoque\Requests\RegistrarMovimentoRequest;
 use App\Modules\Estoque\Services\EstoqueService;
+use App\Modules\Produto\Models\Produto;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

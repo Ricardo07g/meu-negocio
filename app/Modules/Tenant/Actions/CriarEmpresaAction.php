@@ -2,7 +2,6 @@
 
 namespace App\Modules\Tenant\Actions;
 
-use App\Modules\Tenant\Actions\ValidarPlanoAction;
 use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Tenant\Models\Rede;

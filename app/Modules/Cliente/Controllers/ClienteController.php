@@ -4,8 +4,8 @@ namespace App\Modules\Cliente\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Cliente\DTOs\ClienteData;
-use App\Modules\Cliente\Requests\SalvarClienteRequest;
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Cliente\Requests\SalvarClienteRequest;
 use App\Modules\Cliente\Services\ClienteService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\JsonResponse;
@@ -17,13 +17,11 @@ class ClienteController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private ClienteService $service)
-    {}
+    public function __construct(private ClienteService $service) {}
 
     public function index(Request $request): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('viewAny', Cliente::class);
             $filtros = $request->only(['q', 'situacao_financeira', 'atividade', 'aniversariantes', 'com_whatsapp']);
             $clientes = $this->service->listar($filtros);
@@ -36,8 +34,7 @@ class ClienteController extends Controller
 
     public function create(): View|RedirectResponse
     {
-        try
-        {
+        try {
             $this->authorize('create', Cliente::class);
 
             return view('cliente::create');
@@ -48,8 +45,7 @@ class ClienteController extends Controller
 
     public function store(SalvarClienteRequest $request): RedirectResponse
     {
-        try
-        {
+        try {
             $this->service->criar(ClienteData::from($request->validated()));
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente criado com sucesso.');
@@ -60,8 +56,7 @@ class ClienteController extends Controller
 
     public function show(Cliente $cliente): View|RedirectResponse
     {
-        try 
-        {
+        try {
             $this->authorize('view', $cliente);
 
             $cliente->load([
@@ -80,8 +75,7 @@ class ClienteController extends Controller
 
     public function edit(Cliente $cliente): View|RedirectResponse
     {
-        try 
-        {
+        try {
             $this->authorize('update', $cliente);
 
             return view('cliente::edit', compact('cliente'));
