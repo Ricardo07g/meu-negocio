@@ -29,9 +29,9 @@ Route::get('/', fn () => redirect()->route('login'));
 // Autenticacao (guest)
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
+    Route::post('login', [LoginController::class, 'login'])->middleware('throttle:5,1');
     Route::get('registrar', [RegistrarController::class, 'showRegistrationForm'])->name('registrar');
-    Route::post('registrar', [RegistrarController::class, 'register']);
+    Route::post('registrar', [RegistrarController::class, 'register'])->middleware('throttle:5,1');
 
     // Recuperacao de senha
     Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
