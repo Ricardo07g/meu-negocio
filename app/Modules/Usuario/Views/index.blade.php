@@ -7,16 +7,15 @@
 @endsection
 
 @section('content')
-    {{-- Button row OUTSIDE the card --}}
-    @can('usuario.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('usuarios.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Usuário
-            </a>
-        </div>
-    </div>
-    @endcan
+    @include('partials.aviso-limite-plano', [
+        'recurso' => 'usuarios',
+        'atual' => $limite['atual'],
+        'maximo' => $limite['maximo'],
+        'atingido' => $limite['atingido'],
+        'rotaCriar' => route('usuarios.create'),
+        'labelBotao' => 'Novo Usuário',
+        'permissaoBlade' => 'usuario.criar',
+    ])
 
     {{-- Card with table --}}
     <div class="card stretch stretch-full">

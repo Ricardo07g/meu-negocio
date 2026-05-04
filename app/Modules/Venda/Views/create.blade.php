@@ -17,10 +17,6 @@
                 <h5 class="card-title">Nova Venda</h5>
             </div>
             <div class="card-body">
-                {{-- Sub-seletor de empresa (ME-010) --}}
-                <div class="row">
-                    @include('partials.sub-seletor-empresa', ['valorAtual' => null, 'colunaCss' => 'col-md-6'])
-                </div>
                 {{-- Toggle Serviço / Produto --}}
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -253,11 +249,11 @@
 
                     <div class="col-md-4" id="formaPagamentoWrapper">
                         <label class="form-label" id="formaPagamentoLabel">Forma de Pagamento <span class="text-danger">*</span></label>
-                        <select name="forma_pagamento" id="formaPagamentoSelect" class="form-select @error('forma_pagamento') is-invalid @enderror">
+                        <select name="forma_pagamento" id="formaPagamentoSelect"
+                                class="form-select @error('forma_pagamento') is-invalid @enderror"
+                                data-old="{{ old('forma_pagamento') }}">
                             <option value="">Selecione...</option>
-                            <option value="pix" {{ old('forma_pagamento') === 'pix' ? 'selected' : '' }}>Pix</option>
-                            <option value="dinheiro" {{ old('forma_pagamento') === 'dinheiro' ? 'selected' : '' }}>Dinheiro</option>
-                            <option value="cartao" {{ old('forma_pagamento') === 'cartao' ? 'selected' : '' }}>Cartão</option>
+                            {{-- Opcoes preenchidas dinamicamente pelo JS conforme a condicao de pagamento --}}
                         </select>
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
@@ -751,6 +747,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const carneTbody = document.getElementById('carneTbody');
     const carneTotalFoot = document.getElementById('carneTotalFoot');
 
+    // Opcoes de forma_pagamento por condicao. Mantem em sincronia com FormaPagamento.cases().
+    const FORMAS_AVISTA = [
+        { value: 'pix', label: 'Pix' },
+        { value: 'dinheiro', label: 'Dinheiro' },
+        { value: 'cartao', label: 'Cartão' },
+    ];
+    const FORMAS_APRAZO = [
+        { value: 'boleto', label: 'Boleto' },
+        { value: 'pix', label: 'Pix' },
+        { value: 'cartao', label: 'Cartão' },
+    ];
+
+    function popularFormasPagamento(opcoes) {
+        const valorAtual = formaPagamentoSelect.value || formaPagamentoSelect.dataset.old || '';
+        formaPagamentoSelect.innerHTML = '<option value="">Selecione...</option>'
+            + opcoes.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
+        // Restaura a selecao se ainda for valida no novo conjunto.
+        if (opcoes.some(o => o.value === valorAtual)) {
+            formaPagamentoSelect.value = valorAtual;
+        } else {
+            formaPagamentoSelect.value = '';
+        }
+    }
+
     function aplicarCondicaoPagamento() {
         const c = condicaoSelecionada();
         const aVista = c === 'a_vista';
@@ -760,7 +780,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         formaPagamentoWrapper.style.display = exigeForma ? '' : 'none';
         formaPagamentoSelect.disabled = !exigeForma;
-        if (!exigeForma) formaPagamentoSelect.value = '';
+        if (!exigeForma) {
+            formaPagamentoSelect.value = '';
+        } else {
+            popularFormasPagamento(aVista ? FORMAS_AVISTA : FORMAS_APRAZO);
+        }
 
         const formaLabel = document.getElementById('formaPagamentoLabel');
         if (formaLabel) {
@@ -873,13 +897,14 @@ document.addEventListener('DOMContentLoaded', function() {
             'Ajuste valor, vencimento e competência de cada parcela se necessário. A soma precisa bater com o total da venda.';
 
         const baseVenc = new Date(vencRaw + 'T12:00:00');
-        const mesRefDefault = mesReferencia.value || vencRaw.substring(0, 7);
         const linhas = [];
         for (let i = 1; i <= n; i++) {
             const venc = adicionarMeses(baseVenc, i - 1);
             const vencIso = venc.getFullYear() + '-' +
                 String(venc.getMonth() + 1).padStart(2, '0') + '-' +
                 String(venc.getDate()).padStart(2, '0');
+            // Competencia da parcela = mes do seu vencimento.
+            const mesRefParcela = vencIso.substring(0, 7);
             const val = i === n ? ultima : porParcela;
             const idx = i - 1;
             linhas.push(
@@ -889,9 +914,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<input type="hidden" name="parcelas[' + idx + '][total]" value="' + n + '">' +
                 '</td>' +
                 '<td><input type="date" name="parcelas[' + idx + '][data_vencimento]" ' +
-                '       class="form-control form-control-sm" value="' + vencIso + '" required></td>' +
+                '       class="form-control form-control-sm" data-parcela-vencimento value="' + vencIso + '" required></td>' +
                 '<td><input type="month" name="parcelas[' + idx + '][mes_referencia]" ' +
-                '       class="form-control form-control-sm" value="' + mesRefDefault + '" required></td>' +
+                '       class="form-control form-control-sm" data-parcela-mes-ref value="' + mesRefParcela + '" required></td>' +
                 '<td class="text-end"><input type="number" step="0.01" min="0.01" data-parcela-valor ' +
                 '       name="parcelas[' + idx + '][valor]" ' +
                 '       class="form-control form-control-sm text-end" value="' + val.toFixed(2) + '" required></td>' +
@@ -899,6 +924,18 @@ document.addEventListener('DOMContentLoaded', function() {
             );
         }
         carneTbody.innerHTML = linhas.join('');
+
+        // Quando o usuario muda o vencimento de uma parcela manualmente, atualiza
+        // a competencia daquela linha (a menos que ja tenha sido editada manual).
+        carneTbody.querySelectorAll('input[data-parcela-vencimento]').forEach(function (el) {
+            el.addEventListener('change', function () {
+                const tr = el.closest('tr');
+                const mesRefInput = tr.querySelector('input[data-parcela-mes-ref]');
+                if (mesRefInput && el.value) {
+                    mesRefInput.value = el.value.substring(0, 7);
+                }
+            });
+        });
 
         carneTbody.querySelectorAll('input[data-parcela-valor]').forEach(function (el) {
             el.addEventListener('input', recalcularSomaCarne);

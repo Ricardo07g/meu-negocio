@@ -23,7 +23,10 @@
         <div class="card-body">
             <form method="GET" action="{{ route('movimentos-estoque.index') }}">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-12">
+                    {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
+                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-md-3'])
+
+                    <div class="col-md-9">
                         <label class="form-label">Buscar</label>
                         <input type="text" name="q" class="form-control" placeholder="Nome ou código do produto..." value="{{ request('q') }}">
                     </div>

@@ -7,16 +7,15 @@
 @endsection
 
 @section('content')
-    {{-- Button row OUTSIDE the card --}}
-    @can('empresa.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('empresas.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Nova Empresa
-            </a>
-        </div>
-    </div>
-    @endcan
+    @include('partials.aviso-limite-plano', [
+        'recurso' => 'empresas',
+        'atual' => $limite['atual'],
+        'maximo' => $limite['maximo'],
+        'atingido' => $limite['atingido'],
+        'rotaCriar' => route('empresas.create'),
+        'labelBotao' => 'Nova Empresa',
+        'permissaoBlade' => 'empresa.criar',
+    ])
 
     {{-- Card with table --}}
     <div class="card stretch stretch-full">

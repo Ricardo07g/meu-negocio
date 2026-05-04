@@ -21,16 +21,16 @@ class CriarVendaRequest extends FormRequest
     {
         $tipoVenda = $this->input('tipo_venda', 'servico');
 
-        // ME-010: empresa_id e exigido quando ha mais de uma empresa selecionada
-        // na sessao do header. Com 1 unica empresa o EmpresaTrait resolve.
+        // ME-010 v3: empresa vem do contexto da listagem (URL `?empresa_id=X`)
+        // ou do header (`empresas_atuais`). Form NAO precisa enviar; se enviar,
+        // validamos contra `empresas_atuais` para defesa em profundidade.
         $empresasAtuais = (array) session('empresas_atuais', []);
-        $exigeEmpresa = count($empresasAtuais) > 1;
         $regrasEmpresa = [
-            'empresa_id' => [
-                $exigeEmpresa ? 'required' : 'nullable',
+            'empresa_id' => array_filter([
+                'nullable',
                 'integer',
-                $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
-            ],
+                $empresasAtuais !== [] ? 'in:'.implode(',', $empresasAtuais) : null,
+            ]),
         ];
 
         $condicoesParceladas = [

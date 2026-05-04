@@ -36,13 +36,30 @@
                 @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
             <div class="col-md-6">
-                <label class="form-label">Perfil de Acesso <span class="text-danger">*</span></label>
+                <label class="form-label d-flex justify-content-between align-items-center">
+                    <span>Perfil de Acesso <span class="text-danger">*</span></span>
+                    @can('papel.criar')
+                        <a href="{{ route('perfis-acesso.create') }}" class="fs-12 text-primary text-decoration-none">
+                            <i class="feather-plus me-1"></i>Novo perfil
+                        </a>
+                    @endcan
+                </label>
                 <select name="papel" class="form-select @error('papel') is-invalid @enderror" required>
                     <option value="">Selecione...</option>
                     @foreach($papeis as $papel)
                         <option value="{{ $papel }}" {{ $papelSelecionado == $papel ? 'selected' : '' }}>{{ $papel }}</option>
                     @endforeach
                 </select>
+                @if (count($papeis) <= 1)
+                    <small class="text-muted d-block mt-1">
+                        <i class="feather-info me-1"></i>
+                        Apenas o perfil Admin esta disponivel.
+                        @can('papel.criar')
+                            <a href="{{ route('perfis-acesso.index') }}">Crie perfis customizados</a>
+                            (Recepcao, Financeiro, etc) com permissoes especificas.
+                        @endcan
+                    </small>
+                @endif
                 @error('papel') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>

@@ -12,6 +12,7 @@ use App\Modules\Agenda\Services\AgendamentoService;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -41,7 +42,11 @@ class AgendaController extends Controller
 
             $agendamentos = $this->service->listarPorPeriodo($start, $end);
 
-            $atendentesLista = Usuario::where('atende', true)->orderBy('nome')->get();
+            $empresaId = ContextoEmpresa::resolver();
+            $atendentesLista = ($empresaId
+                ? Usuario::atendentesDaEmpresa($empresaId)
+                : Usuario::where('atende', true))
+                ->orderBy('nome')->get();
             $calendars = $atendentesLista->values()->map(fn ($u, $i) => [
                 'id' => (string) $u->id,
                 'name' => $u->nome,
@@ -91,16 +96,16 @@ class AgendaController extends Controller
         try {
             $this->authorize('create', Agendamento::class);
 
-            // ME-010: empresa_id e exigido quando ha mais de uma empresa selecionada.
+            // ME-010 v3: empresa vem do contexto da listagem ou do header.
+            // Form NAO envia empresa_id — o EmpresaTrait resolve via session.
             $empresasAtuais = (array) session('empresas_atuais', []);
-            $exigeEmpresa = count($empresasAtuais) > 1;
 
             $dados = $request->validate([
-                'empresa_id' => [
-                    $exigeEmpresa ? 'required' : 'nullable',
+                'empresa_id' => array_filter([
+                    'nullable',
                     'integer',
-                    $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
-                ],
+                    $empresasAtuais !== [] ? 'in:'.implode(',', $empresasAtuais) : null,
+                ]),
                 'cliente_id' => 'required|exists:clientes,id',
                 'servico_id' => 'required|exists:servicos,id',
                 'atendente_id' => 'required|exists:usuarios,id',
@@ -153,7 +158,11 @@ class AgendaController extends Controller
         try {
             $this->authorize('viewAny', Agendamento::class);
 
-            $atendentes = Usuario::where('atende', true)->get();
+            $empresaId = ContextoEmpresa::resolver();
+            $atendentes = ($empresaId
+                ? Usuario::atendentesDaEmpresa($empresaId)
+                : Usuario::where('atende', true))
+                ->orderBy('nome')->get();
             $cores = $this->coresAtendente;
 
             return view('agenda::index', compact('atendentes', 'cores'));
@@ -194,7 +203,11 @@ class AgendaController extends Controller
             $this->authorize('update', $agendamento);
             $clientes = Cliente::all();
             $servicos = Servico::all();
-            $atendentes = Usuario::where('atende', true)->get();
+            $empresaId = ContextoEmpresa::resolver();
+            $atendentes = ($empresaId
+                ? Usuario::atendentesDaEmpresa($empresaId)
+                : Usuario::where('atende', true))
+                ->orderBy('nome')->get();
 
             return view('agenda::edit', compact('agendamento', 'clientes', 'servicos', 'atendentes'));
         } catch (\Throwable $e) {
@@ -208,7 +221,9 @@ class AgendaController extends Controller
             $this->authorize('update', $agendamento);
             $this->service->atualizar($agendamento, AgendamentoData::from($request->validated()));
 
-            return redirect()->route('agenda.index')->with('sucesso', 'Agendamento atualizado.');
+            return redirect()
+                ->route('agenda.index')
+                ->with('sucesso', 'Agendamento atualizado.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao atualizar agendamento');
         }
@@ -233,7 +248,8 @@ class AgendaController extends Controller
             $this->authorize('update', $agendamento);
             $this->service->finalizar($agendamento);
 
-            return redirect()->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
+            return redirect()
+                ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento finalizado.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao finalizar agendamento');
@@ -246,7 +262,8 @@ class AgendaController extends Controller
             $this->authorize('cancel', $agendamento);
             $this->service->cancelar($agendamento);
 
-            return redirect()->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
+            return redirect()
+                ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento cancelado.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar agendamento');

@@ -2,13 +2,13 @@
 
 namespace App\Modules\Despesa\Services;
 
+use App\Enums\StatusDespesa;
 use App\Enums\StatusParcela;
 use App\Exceptions\NegocioException;
 use App\Modules\Despesa\Actions\CriarDespesaComParcelasAction;
 use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Models\Despesa;
 use App\Modules\Despesa\Models\ParcelaDespesa;
-use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -80,62 +80,40 @@ class DespesaService
         return $this->criarComParcelas->executar($data);
     }
 
-    public function atualizar(Despesa $despesa, array $data): Despesa
-    {
-        $despesa->update([
-            'categoria_despesa_id' => $data['categoria_despesa_id'] ?? $despesa->categoria_despesa_id,
-            'nome' => $data['nome'] ?? $despesa->nome,
-            'fornecedor_nome' => $data['fornecedor_nome'] ?? $despesa->fornecedor_nome,
-            'documento' => $data['documento'] ?? $despesa->documento,
-            'observacoes' => $data['observacoes'] ?? $despesa->observacoes,
-            'mes_referencia' => $data['mes_referencia'] ?? $despesa->mes_referencia,
-            'data_emissao' => $data['data_emissao'] ?? $despesa->data_emissao,
-        ]);
-
-        return $despesa->fresh();
-    }
-
     public function excluir(Despesa $despesa): void
     {
         $despesa->delete();
     }
 
-    public function renegociarParcela(ParcelaDespesa $parcela, RenegociarParcelaData $data): ParcelaDespesa
+    /**
+     * Cancela a despesa: marca todas as parcelas em aberto como canceladas
+     * (Pendente + Renegociado), e o status agregado vira Cancelada se nao
+     * houver parcela paga. Despesas ja pagas ou ja canceladas sao rejeitadas.
+     */
+    public function cancelarDespesa(Despesa $despesa, ?string $motivo = null): Despesa
     {
-        return DB::transaction(function () use ($parcela, $data) {
-            if ($parcela->status === StatusParcela::Pago) {
-                throw new NegocioException('Parcela já paga não pode ser renegociada.');
+        return DB::transaction(function () use ($despesa, $motivo) {
+            if ($despesa->status === StatusDespesa::Paga) {
+                throw new NegocioException('Despesa já paga não pode ser cancelada.');
             }
-            if ($parcela->status === StatusParcela::Cancelado) {
-                throw new NegocioException('Parcela cancelada não pode ser renegociada.');
-            }
-            if ($data->valor < (float) $parcela->valor_pago) {
-                throw new NegocioException('O novo valor não pode ser menor que o já pago.');
+            if ($despesa->status === StatusDespesa::Cancelada) {
+                throw new NegocioException('Despesa já está cancelada.');
             }
 
-            $observacaoAcumulada = trim(
-                ($parcela->observacao ? $parcela->observacao."\n" : '')
-                .sprintf(
-                    '[Renegociado em %s] valor R$ %s → R$ %s; vencimento %s → %s. %s',
-                    now()->format('d/m/Y H:i'),
-                    number_format((float) $parcela->valor, 2, ',', '.'),
-                    number_format($data->valor, 2, ',', '.'),
-                    $parcela->data_vencimento?->format('d/m/Y') ?? '—',
-                    $data->data_vencimento->format('d/m/Y'),
-                    $data->observacao ? "Motivo: {$data->observacao}" : '',
-                )
-            );
+            $sufixo = sprintf('[Cancelada com a despesa em %s] %s', now()->format('d/m/Y H:i'), $motivo ?? '');
 
-            $parcela->update([
-                'valor' => $data->valor,
-                'data_vencimento' => $data->data_vencimento,
-                'status' => (float) $parcela->valor_pago > 0 ? StatusParcela::Renegociado : StatusParcela::Pendente,
-                'observacao' => $observacaoAcumulada,
-            ]);
+            foreach ($despesa->parcelas as $parcela) {
+                if (in_array($parcela->status, [StatusParcela::Pendente, StatusParcela::Renegociado], true)) {
+                    $parcela->update([
+                        'status' => StatusParcela::Cancelado,
+                        'observacao' => trim(($parcela->observacao ? $parcela->observacao."\n" : '').$sufixo),
+                    ]);
+                }
+            }
 
-            $parcela->despesa?->recalcularStatus();
+            $despesa->load('parcelas')->recalcularStatus();
 
-            return $parcela->fresh();
+            return $despesa->fresh();
         });
     }
 

@@ -57,20 +57,30 @@ Uma `Rede` tem N `Empresa`s. Regra de escopo:
 - **Transacional (empresa):** Agendamento, Venda, Pagamento, Despesa, Caixa, Estoque — com `empresa_id`. Isolados por empresa.
 
 Modelo de acesso do usuario:
-- `usuarios.empresa_id` = empresa default ao logar (mantido por compat).
-- Pivot `empresa_usuario` (`rede_id`, `empresa_id`, `usuario_id`) = fonte de verdade do conjunto de empresas que um nao-admin pode acessar.
+- **`Usuario` e entidade rede-level** (`RedeTrait` apenas — NAO usa `EmpresaTrait`). Aplicar EmpresaTrait em `Usuario` quebraria `auth()->user()` quando o contexto vigente fosse diferente do `usuario.empresa_id` default.
+- `usuarios.empresa_id` = empresa default ao logar (preferencia, mantida por compat). NAO e barreira de tenancy.
+- Pivot `empresa_usuario` (`rede_id`, `empresa_id`, `usuario_id`) = fonte de verdade do conjunto de empresas que um usuario pode acessar.
 - Admin (`hasRole('Admin')`) acessa todas as empresas da rede automaticamente — pivot dispensavel.
 - Validacao no `SalvarUsuarioRequest` exige >=1 empresa para nao-admin.
+- Listagens de atendentes (Agenda, Venda) usam scope `Usuario::atendentesDaEmpresa($empresaId)` que filtra via pivot `empresa_usuario` (ou Role `Admin`). Helper `App\Support\ContextoEmpresa::resolver()` retorna o id da empresa em contexto (URL > sessao com 1 empresa) ou null.
 
 Selecao corrente:
-- `session('empresas_atuais')` armazena os IDs de empresas selecionadas pelo usuario no header.
-- Middleware `VerificarEmpresa` popula a sessao no primeiro request pos-login (Admin = todas; nao-admin = pivot) e poda IDs invalidos.
-- Seletor multi-select no header (`POST /empresas-atuais`) atualiza a sessao + reload.
-- `EmpresaTrait` filtra `WHERE empresa_id IN (session('empresas_atuais'))` — Admin sem sessao explicita nao filtra.
+- `session('empresas_atuais')` armazena os IDs de empresas acessiveis ao usuario.
+- Middleware `VerificarEmpresa` popula a sessao em todo request (Admin = todas as empresas da rede; nao-admin = pivot `empresa_usuario`) e poda IDs invalidos.
+- Nao ha mais seletor manual no header — a sessao reflete sempre o universo total acessivel ao usuario.
+- `EmpresaTrait` filtra `WHERE empresa_id IN (...)` priorizando contexto da listagem; senao, `empresas_atuais`.
 
-Operacao com multiplas empresas selecionadas:
-- **Caixa Diario** exige exatamente 1 empresa selecionada (mostra aviso se >1).
-- **Agenda, Venda, Despesa**: forms incluem `partials/sub-seletor-empresa.blade.php` quando ha >1 empresa; controller seta `session('empresa_criacao_atual')` no inicio do `store()` e faz `forget()` no `finally`. Esse override garante que cascatas (Venda -> Pagamento -> Parcela -> Baixa -> MovimentoCaixa) compartilhem a mesma empresa.
+Operacao com multiplas empresas (modelo ME-010 v3):
+- **`empresas_atuais`** (sessao, multi): universo acessivel — sempre todas que o usuario pode ver, nao editavel manualmente.
+- **`empresa_contexto_atual`** (sessao, single int): contexto vigente da listagem. Define a empresa-base para criar registros e filtrar listagem.
+- **Filtro de listagem** (`partials/filtro-empresa-listagem.blade.php`) presente como primeira coluna do filter form em Venda/Pagamento/Despesa/Estoque, e standalone em Agenda/Caixa (que nao tem filter form). Submit do form leva `?empresa_id=X` na URL → middleware `aplicar.contexto.empresa` interpreta o param:
+  - `?empresa_id=X` (X em `empresas_atuais`): seta `session('empresa_contexto_atual') = X`.
+  - `?empresa_id=todas`: limpa contexto.
+  - sem param: respeita contexto existente; poda se ficou stale.
+- **EmpresaTrait** prioriza `empresa_contexto_atual` sobre `empresas_atuais` no scope e no `creating`. Forms criados a partir da listagem herdam empresa do contexto silenciosamente — sem precisar de selector proprio.
+- **Caixa Diario** exige 1 empresa unica: aceita contexto (URL) OU 1 empresa no header. Com varias no header sem contexto, exibe aviso pedindo escolha.
+- **Pagamento e Despesa (baixa/renegociar/cancelar parcela)**: defesa em profundidade — controllers setam `session('empresa_criacao_atual', $parcela->empresa_id)` no try e fazem `forget()` no finally. Garante que `BaixaPagamento`/`BaixaDespesa` (que tem `empresa_id NOT NULL`) tenha o id correto mesmo se o usuario chegou via link direto sem passar pela listagem.
+- **Sub-seletor visual** (`partials/sub-seletor-empresa.blade.php`) ainda existe em modo `visualizar` nas telas de baixa para deixar explicito a empresa da parcela.
 - Helper `Usuario::podeAcessarEmpresa(?int)` usado por todas as Policies.
 
 ### BaseModel

@@ -16,7 +16,6 @@ use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\CategoriaProdutoController;
 use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
-use App\Modules\Tenant\Controllers\EmpresaAtualController;
 use App\Modules\Tenant\Controllers\EmpresaController;
 use App\Modules\Usuario\Controllers\PerfilController;
 use App\Modules\Usuario\Controllers\UsuarioController;
@@ -49,16 +48,13 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Seletor multi-empresa do header (ME-009)
-    Route::post('empresas-atuais', [EmpresaAtualController::class, 'atualizar'])->name('empresas-atuais.atualizar');
-
     // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
     Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::post('perfil', [PerfilController::class, 'atualizar'])->name('perfil.atualizar');
     Route::post('perfil/senha', [PerfilController::class, 'atualizarSenha'])->name('perfil.senha');
 
     // Rotas que necessitam empresa
-    Route::middleware(['verificar.empresa'])->group(function () {
+    Route::middleware(['verificar.empresa', 'aplicar.contexto.empresa'])->group(function () {
 
         // Agenda
         Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
@@ -111,13 +107,13 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
             // Contas a Pagar
             Route::get('contas-a-pagar', [DespesaController::class, 'contasAPagar'])->name('despesas.contas-a-pagar');
             Route::get('despesas/{despesa}/recibo', [DespesaController::class, 'recibo'])->name('despesas.recibo');
-            Route::resource('despesas', DespesaController::class)->except(['show']);
+            Route::patch('despesas/{despesa}/cancelar', [DespesaController::class, 'cancelar'])->name('despesas.cancelar');
+            Route::resource('despesas', DespesaController::class)->except(['show', 'edit', 'update']);
             Route::resource('categorias-despesa', CategoriaDespesaController::class)->except(['show']);
 
             // Parcelas de contas a pagar
             Route::get('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcelaForm'])->name('parcelas-despesa.baixa-form');
             Route::post('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcela'])->name('parcelas-despesa.baixa');
-            Route::patch('parcelas-despesa/{parcela}/renegociar', [DespesaController::class, 'renegociarParcela'])->name('parcelas-despesa.renegociar');
             Route::patch('parcelas-despesa/{parcela}/cancelar', [DespesaController::class, 'cancelarParcela'])->name('parcelas-despesa.cancelar');
 
             // Caixa

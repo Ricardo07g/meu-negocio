@@ -33,6 +33,7 @@
     $totalAtivas = $parcelas->whereNotIn('status', [\App\Enums\StatusParcela::Cancelado])->count();
     $proxima = $pagamento->proximaParcela();
     $condicaoLabel = $pagamento->condicao_pagamento->label();
+    $algumaVencida = $parcelas->contains(fn ($p) => $p->estaVencida());
 @endphp
 
 <div class="d-flex align-items-stretch">
@@ -45,6 +46,7 @@
                 aria-expanded="false"
                 aria-controls="{{ $collapseId }}">
             <div class="text-start px-3 py-2" style="flex: 4 1 0; min-width: 0;">
+                <div class="fs-11 text-muted fw-medium">#{{ $pagamento->id }}</div>
                 <div class="fw-semibold text-truncate-1-line">
                     {{ $pagamento->cliente->nome ?? '—' }}
                     <span class="text-muted fw-normal">— {{ $origemDetalhe }}</span>
@@ -60,7 +62,7 @@
                 <div>
                     Data da venda: {{ $pagamento->created_at->format('d/m/Y') }}
                 </div>
-                @if($saldo > 0)
+                @if($saldo > 0 && $algumaVencida)
                     <div class="text-danger mt-1">
                         A receber: <span class="fw-semibold">R$ {{ number_format($saldo, 2, ',', '.') }}</span>
                     </div>
@@ -180,7 +182,7 @@
                                         <th class="text-end">Desconto</th>
                                         <th class="text-end">Multa</th>
                                         <th class="text-end">Juros</th>
-                                        <th class="text-end">Ações</th>
+                                        <th class="text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -212,9 +214,9 @@
                                             <td class="text-end {{ $jurosTotal > 0 ? 'text-warning' : 'text-muted' }}">
                                                 {{ $jurosTotal > 0 ? 'R$ ' . number_format($jurosTotal, 2, ',', '.') : '—' }}
                                             </td>
-                                            <td class="text-end">
+                                            <td class="text-center">
                                                 @if($podeBaixar || $podeRenegociar || $podeCancelar)
-                                                    <div class="dropdown">
+                                                    <div class="dropdown d-inline-block">
                                                         <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
                                                             <i class="feather-more-horizontal"></i>
                                                         </a>
