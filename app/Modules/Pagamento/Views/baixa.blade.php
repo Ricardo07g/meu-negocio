@@ -42,6 +42,14 @@
             <h5 class="card-title">Parcela {{ $parcela->numero }}/{{ $parcela->total }} — Pagamento #{{ $pagamento->id }}</h5>
         </div>
         <div class="card-body">
+            <div class="row">
+                @include('partials.sub-seletor-empresa', [
+                    'valorAtual' => $parcela->empresa_id,
+                    'modo' => 'visualizar',
+                    'colunaCss' => 'col-md-4',
+                    'rotulo' => 'Empresa da parcela',
+                ])
+            </div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="fs-12 text-muted">Cliente</div>

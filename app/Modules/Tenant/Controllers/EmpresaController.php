@@ -25,7 +25,16 @@ class EmpresaController extends Controller
             $this->authorize('viewAny', Empresa::class);
             $empresas = $this->service->listar();
 
-            return view('tenant::index', compact('empresas'));
+            $rede = auth()->user()->rede;
+            $maxEmpresas = (int) ($rede->plano->max_empresas ?? 0);
+            $atualEmpresas = $rede->empresas()->count();
+            $limite = [
+                'atual' => $atualEmpresas,
+                'maximo' => $maxEmpresas,
+                'atingido' => $maxEmpresas !== 0 && $atualEmpresas >= $maxEmpresas,
+            ];
+
+            return view('tenant::index', compact('empresas', 'limite'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar empresas');
         }

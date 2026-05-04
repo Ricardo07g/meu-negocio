@@ -50,11 +50,17 @@ class MovimentoEstoqueController extends Controller
     public function store(RegistrarMovimentoRequest $request): RedirectResponse
     {
         try {
+            if ($request->filled('empresa_id')) {
+                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
+            }
+
             $this->service->registrarMovimento(RegistrarMovimentoData::from($request->validated()));
 
             return redirect()->route('movimentos-estoque.index')->with('sucesso', 'Movimento registrado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao criar movimento de estoque');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 }

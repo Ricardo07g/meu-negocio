@@ -30,6 +30,14 @@
             <h5 class="card-title">Parcela {{ $parcela->numero }}/{{ $parcela->total }} — Despesa #{{ $despesa->id }}</h5>
         </div>
         <div class="card-body">
+            <div class="row">
+                @include('partials.sub-seletor-empresa', [
+                    'valorAtual' => $parcela->empresa_id,
+                    'modo' => 'visualizar',
+                    'colunaCss' => 'col-md-4',
+                    'rotulo' => 'Empresa da parcela',
+                ])
+            </div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <div class="fs-12 text-muted">Despesa</div>
@@ -177,11 +185,11 @@
                     </div>
                 </div>
 
-                <div class="d-flex gap-2 pt-4">
-                    <a href="{{ route('despesas.index') }}" class="btn btn-light px-5 py-2" style="min-width: 300px;">
+                <div class="d-flex justify-content-between mb-5 pb-4 pt-4">
+                    <a href="{{ route('despesas.index') }}" class="btn btn-light px-5" style="min-width: 300px;">
                         <i class="feather-arrow-left me-2"></i>Voltar
                     </a>
-                    <button type="submit" class="btn btn-primary px-5 py-2" style="min-width: 300px;">
+                    <button type="submit" class="btn btn-primary px-5" style="min-width: 300px;">
                         <i class="feather-dollar-sign me-2"></i>Registrar Pagamento
                     </button>
                 </div>

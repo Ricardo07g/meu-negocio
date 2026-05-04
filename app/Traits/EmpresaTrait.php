@@ -9,28 +9,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Trait de isolamento por empresa (multi-tenant nivel 2).
  *
- * Aplica um global scope que filtra registros pelas empresas atualmente
- * selecionadas pelo usuario autenticado. As empresas selecionadas ficam
- * armazenadas em `session('empresas_atuais')` e sao gerenciadas pelo
- * middleware VerificarEmpresa + seletor no header (ME-007 / ME-009).
+ * Aplica um global scope que filtra registros pelas empresas em contexto
+ * atual. A resolucao do contexto segue uma cadeia de prioridade:
  *
- * Comportamento (ME-006):
- *  - Admin: nao filtra empresa no scope (ja ve toda a rede via RedeTrait).
- *    Excecao: se ele explicitamente reduzir a selecao no header, a sessao
- *    sera respeitada como filtro adicional.
- *  - Nao-admin: filtra `empresa_id IN (session(empresas_atuais))`.
- *  - Sem usuario autenticado (jobs, console, testes sem auth): nao filtra
- *    para nao quebrar fluxos fora do request HTTP.
- *  - Sem sessao populada (request antes do middleware ou fluxos legados):
- *    fallback para `$usuario->empresa_id` (compat com pre-ME-006).
+ *  1. `session('empresa_contexto_atual')` (int): contexto explicito definido
+ *     pelo filtro de listagem (URL `?empresa_id=X`). Quando setado, filtra
+ *     SOMENTE essa empresa — vence o multi-select do header (ME-010 v3).
+ *  2. `session('empresas_atuais')` (int[]): selecao multi do header
+ *     (ME-007 / ME-009), gerenciada pelo middleware VerificarEmpresa.
+ *  3. Fallback: `$usuario->empresa_id` (compat pre-ME-006).
  *
- * Boot creating:
- *  - Se modelo nao tem empresa_id setado e ha exatamente 1 empresa
- *    resolvida (sessao com 1 ou fallback do empresa_id default), atribui
- *    automaticamente.
- *  - Se ha multiplas empresas selecionadas, NAO atribui (o chamador deve
- *    passar empresa_id explicitamente — telas com >1 empresa selecionada
- *    devem oferecer sub-seletor, ME-010).
+ * Comportamento:
+ *  - Admin: idem; quando ha contexto setado, filtra por ele; sem sessao
+ *    explicita, nao filtra (ve toda a rede via RedeTrait).
+ *  - Nao-admin: filtra sempre.
+ *  - Sem usuario autenticado (jobs, console, testes sem auth): nao filtra.
+ *
+ * Boot creating (cadeia de resolucao para preencher empresa_id):
+ *  1. Modelo ja tem empresa_id setado: respeita.
+ *  2. Contexto explicito: usa.
+ *  3. Exatamente 1 empresa em `empresas_atuais`: usa.
+ *  4. Override `empresa_criacao_atual` (int em `empresas_atuais`): usa
+ *     — defesa em profundidade para baixas de parcela quando o usuario
+ *     nao passou pela listagem (acesso via link direto).
+ *  5. Senao: deixa null (caller deve passar empresa_id explicitamente).
  */
 trait EmpresaTrait
 {
@@ -123,8 +125,14 @@ trait EmpresaTrait
      */
     protected static function resolverEmpresasAtuais(mixed $usuario): ?array
     {
-        $sessao = session('empresas_atuais');
+        // Prioridade 1: contexto explicito da listagem (ME-010 v3).
+        $contexto = session('empresa_contexto_atual');
+        if (is_int($contexto) && $contexto > 0) {
+            return [$contexto];
+        }
 
+        // Prioridade 2: selecao multi do header.
+        $sessao = session('empresas_atuais');
         if (is_array($sessao)) {
             return array_values(array_map('intval', $sessao));
         }

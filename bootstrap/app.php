@@ -5,6 +5,7 @@ use App\Exceptions\EmpresaNaoEncontradaException;
 use App\Exceptions\NegocioException;
 use App\Exceptions\PlanoLimiteException;
 use App\Exceptions\TenantNaoEncontradoException;
+use App\Http\Middleware\AplicarContextoEmpresa;
 use App\Http\Middleware\VerificarEmpresa;
 use App\Http\Middleware\VerificarPlano;
 use App\Http\Middleware\VerificarRede;
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'verificar.rede' => VerificarRede::class,
             'verificar.empresa' => VerificarEmpresa::class,
+            'aplicar.contexto.empresa' => AplicarContextoEmpresa::class,
             'verificar.plano' => VerificarPlano::class,
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,

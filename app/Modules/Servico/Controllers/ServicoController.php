@@ -61,7 +61,19 @@ class ServicoController extends Controller
         try {
             $this->authorize('view', $servico);
 
-            return view('servico::show', compact('servico'));
+            $agendamentos = $servico->agendamentos()
+                ->with(['cliente', 'atendente'])
+                ->orderByDesc('inicio')
+                ->paginate(10, pageName: 'pageAgenda');
+
+            $vendasPacote = $servico->isPacote()
+                ? $servico->vendasPacote()
+                    ->with('cliente')
+                    ->orderByDesc('created_at')
+                    ->paginate(10, pageName: 'pagePacote')
+                : null;
+
+            return view('servico::show', compact('servico', 'agendamentos', 'vendasPacote'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao exibir serviço');
         }

@@ -11,7 +11,11 @@
         // Mantem a aba "Alterar senha" aberta apos erro de validacao especifico
         // de senha, e a aba "Dados pessoais" no caso default ou em erro de nome/email.
         $abaSenha = $errors->hasAny(['senha_atual', 'password']);
+
+        // Voltar: lista de usuarios (se tem permissao) ou dashboard.
+        $rotaVoltar = auth()->user()->can('usuario.ver') ? route('usuarios.index') : route('dashboard');
     @endphp
+
     <div class="row">
         {{-- Coluna esquerda: identificacao read-only --}}
         <div class="col-xxl-4 col-xl-5">
@@ -103,8 +107,8 @@
                                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary px-5 py-2" style="min-width: 200px;">
+                            <div class="d-flex justify-content-end mb-3 pb-3 pt-3">
+                                <button type="submit" class="btn btn-primary px-5" style="min-width: 200px;">
                                     <i class="feather-save me-2"></i>Salvar
                                 </button>
                             </div>
@@ -134,8 +138,8 @@
                                     <input type="password" name="password_confirmation" class="form-control" minlength="8" required>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary px-5 py-2" style="min-width: 200px;">
+                            <div class="d-flex justify-content-end mb-3 pb-3 pt-3">
+                                <button type="submit" class="btn btn-primary px-5" style="min-width: 200px;">
                                     <i class="feather-lock me-2"></i>Alterar senha
                                 </button>
                             </div>
@@ -144,5 +148,12 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Voltar: fora dos cards, abaixo, padrao das telas show/edit --}}
+    <div class="d-flex justify-content-start mt-4">
+        <a href="{{ $rotaVoltar }}" class="btn btn-light px-5 py-2" style="min-width: 300px;">
+            <i class="feather-arrow-left me-2"></i>Voltar
+        </a>
     </div>
 @endsection

@@ -308,7 +308,6 @@
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
-                    @include('partials.seletor-empresas')
                     <div class="nxl-h-item dark-lavel-toggle">
                         <a href="javascript:void(0);" class="nxl-head-link dark-button">
                             <i class="feather-moon"></i>
@@ -453,54 +452,90 @@
                 Swal.fire({ icon: 'warning', title: 'Atenção', text: msg, confirmButtonColor: '#3085d6' });
             };
 
-            // Renegociação de parcela via SweetAlert2
-            document.querySelectorAll('.js-renegociar-parcela').forEach(function (link) {
-                link.addEventListener('click', function () {
-                    var action = this.dataset.action;
-                    var valor = this.dataset.valor;
-                    var vencimento = this.dataset.vencimento;
-                    var csrf = document.querySelector('meta[name="csrf-token"]')?.content
-                        || document.querySelector('input[name="_token"]')?.value || '';
+            // Renegociacao de parcela — delegacao de evento + diagnostico no console.
+            console.info('[renegociar] handler v3 ativo (delegacao no body)');
+            document.body.addEventListener('click', function (e) {
+                var link = e.target.closest('.js-renegociar-parcela');
+                if (! link) return;
+                e.preventDefault();
+                e.stopPropagation();
 
-                    Swal.fire({
-                        title: 'Renegociar parcela',
-                        html:
-                            '<div class="text-start">' +
-                            '<label class="form-label mb-1">Novo vencimento</label>' +
-                            '<input id="swalVenc" type="date" class="form-control mb-3" value="' + vencimento + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                            '<label class="form-label mb-1">Novo valor (R$)</label>' +
-                            '<input id="swalValor" type="number" step="0.01" min="0.01" class="form-control mb-3" value="' + parseFloat(valor).toFixed(2) + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
-                            '<label class="form-label mb-1">Motivo / observação</label>' +
-                            '<textarea id="swalObs" rows="3" class="form-control" style="width:100%;max-width:100%;box-sizing:border-box;"></textarea>' +
-                            '</div>',
-                        showCancelButton: true,
-                        confirmButtonText: 'Salvar renegociação',
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonColor: '#3454d1',
-                        focusConfirm: false,
-                        preConfirm: function () {
-                            var v = document.getElementById('swalVenc').value;
-                            var vl = document.getElementById('swalValor').value;
-                            if (!v || !vl) {
-                                Swal.showValidationMessage('Preencha vencimento e valor.');
-                                return false;
-                            }
-                            return { vencimento: v, valor: vl, obs: document.getElementById('swalObs').value };
+                console.info('[renegociar] click capturado', link);
+
+                var action = link.dataset.action;
+                var valor = link.dataset.valor;
+                var vencimento = link.dataset.vencimento;
+                var csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+                if (! action) {
+                    console.error('[renegociar] data-action ausente', link);
+                    return;
+                }
+                if (! csrf) {
+                    console.error('[renegociar] CSRF token nao encontrado no meta');
+                    Swal.fire({ icon: 'error', title: 'Erro', text: 'Token CSRF ausente. Recarregue a pagina.' });
+                    return;
+                }
+                if (typeof Swal === 'undefined') {
+                    console.error('[renegociar] SweetAlert2 (Swal) nao carregado');
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Renegociar parcela',
+                    html:
+                        '<div class="text-start">' +
+                        '<label class="form-label mb-1">Novo vencimento</label>' +
+                        '<input id="swalVenc" type="date" class="form-control mb-3" value="' + vencimento + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
+                        '<label class="form-label mb-1">Novo valor (R$)</label>' +
+                        '<input id="swalValor" type="number" step="0.01" min="0.01" class="form-control mb-3" value="' + parseFloat(valor).toFixed(2) + '" style="width:100%;max-width:100%;box-sizing:border-box;">' +
+                        '<label class="form-label mb-1">Motivo / observação</label>' +
+                        '<textarea id="swalObs" rows="3" class="form-control" style="width:100%;max-width:100%;box-sizing:border-box;"></textarea>' +
+                        '</div>',
+                    showCancelButton: true,
+                    confirmButtonText: 'Salvar renegociação',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#3454d1',
+                    focusConfirm: false,
+                    preConfirm: function () {
+                        var v = document.getElementById('swalVenc').value;
+                        var vl = document.getElementById('swalValor').value;
+                        if (!v || !vl) {
+                            Swal.showValidationMessage('Preencha vencimento e valor.');
+                            return false;
                         }
-                    }).then(function (res) {
-                        if (!res.isConfirmed) return;
-                        var form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = action;
-                        form.innerHTML =
-                            '<input type="hidden" name="_token" value="' + csrf + '">' +
-                            '<input type="hidden" name="_method" value="PATCH">' +
-                            '<input type="hidden" name="data_vencimento" value="' + res.value.vencimento + '">' +
-                            '<input type="hidden" name="valor" value="' + res.value.valor + '">' +
-                            '<input type="hidden" name="observacao" value="' + (res.value.obs || '').replace(/"/g, '&quot;') + '">';
-                        document.body.appendChild(form);
-                        form.submit();
-                    });
+                        return { vencimento: v, valor: vl, obs: document.getElementById('swalObs').value };
+                    }
+                }).then(function (res) {
+                    console.info('[renegociar] swal resultado', res);
+                    // Compatibilidade com SweetAlert2 antigo (sem `isConfirmed`):
+                    // o que importa e ter `value` (preenchido pelo preConfirm).
+                    if (! res || ! res.value) return;
+
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = action;
+                    form.style.display = 'none';
+                    form.acceptCharset = 'UTF-8';
+
+                    function input(name, value) {
+                        var i = document.createElement('input');
+                        i.type = 'hidden';
+                        i.name = name;
+                        i.value = value;
+                        return i;
+                    }
+                    form.appendChild(input('_token', csrf));
+                    form.appendChild(input('_method', 'PATCH'));
+                    form.appendChild(input('data_vencimento', res.value.vencimento));
+                    form.appendChild(input('valor', res.value.valor));
+                    form.appendChild(input('observacao', res.value.obs || ''));
+
+                    document.body.appendChild(form);
+                    console.info('[renegociar] submetendo form', { action: action });
+                    form.submit();
+                }).catch(function (err) {
+                    console.error('[renegociar] erro no Swal.fire().then()', err);
                 });
             });
         });

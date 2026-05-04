@@ -34,21 +34,25 @@
 @endpush
 
 @section('content')
+    @include('partials.filtro-empresa-listagem')
     @php
-        // ME-010: Caixa Diario opera por uma unica empresa. Se ha multiplas
-        // empresas selecionadas no header, exibimos um aviso ao inves do caixa.
+        // ME-010 v3: Caixa Diario opera por uma unica empresa. Aceita "1 unica"
+        // vinda do contexto da listagem (URL `?empresa_id=X`) OU do header com
+        // 1 empresa selecionada. Se nenhuma das duas: aviso para escolher.
         $empresasAtuais = (array) session('empresas_atuais', []);
+        $contexto = session('empresa_contexto_atual');
+        $temEmpresaUnica = is_int($contexto) || count($empresasAtuais) === 1;
     @endphp
-    @if (count($empresasAtuais) !== 1)
+    @if (! $temEmpresaUnica)
         <div class="card stretch stretch-full">
             <div class="card-body text-center py-5">
                 <div class="mb-3">
                     <i class="feather-alert-circle" style="font-size: 48px; color: #f0ad4e;"></i>
                 </div>
-                <h5 class="mb-2">Selecione exatamente 1 empresa para operar o caixa</h5>
+                <h5 class="mb-2">Selecione 1 empresa para operar o caixa</h5>
                 <p class="text-muted mb-0">
-                    O caixa diario e por empresa. Use o seletor de empresas no topo
-                    da pagina para deixar apenas uma empresa marcada.
+                    O caixa diario e por empresa. Use o filtro acima ou o seletor
+                    do header para definir uma empresa unica.
                 </p>
             </div>
         </div>

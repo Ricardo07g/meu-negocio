@@ -4,8 +4,9 @@ namespace App\Modules\Usuario\Models;
 
 use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
 use App\Modules\Tenant\Models\Empresa;
-use App\Traits\EmpresaTrait;
 use App\Traits\RedeTrait;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -15,7 +16,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class Usuario extends Authenticatable
 {
-    use EmpresaTrait, HasRoles, Notifiable, RedeTrait, SoftDeletes;
+    use HasRoles, Notifiable, RedeTrait, SoftDeletes;
 
     protected $table = 'usuarios';
 
@@ -70,6 +71,38 @@ class Usuario extends Authenticatable
     public function empresas(): BelongsToMany
     {
         return $this->belongsToMany(Empresa::class, 'empresa_usuario')->withTimestamps();
+    }
+
+    /**
+     * Empresa default do usuario (preferencia ao logar). Mantida por compat —
+     * o universo real de acesso vem do pivot `empresas()`. Esta relacao continua
+     * existindo para forms e dashboards que mostram a empresa "principal".
+     */
+    public function empresa(): BelongsTo
+    {
+        return $this->belongsTo(Empresa::class, 'empresa_id');
+    }
+
+    // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
+    // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
+    // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
+    // ╚════██║██║     ██║   ██║██╔═══╝ ██╔══╝  ╚════██║
+    // ███████║╚██████╗╚██████╔╝██║     ███████╗███████║
+    // ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝
+
+    /**
+     * Atendentes que podem operar numa empresa especifica.
+     *
+     * Inclui: usuarios com `atende=true` cuja pivot `empresa_usuario` contem
+     * a empresa OU usuarios com Role 'Admin' (acesso a toda a rede).
+     */
+    public function scopeAtendentesDaEmpresa(Builder $query, int $empresaId): Builder
+    {
+        return $query->where('atende', true)
+            ->where(function (Builder $q) use ($empresaId) {
+                $q->whereHas('empresas', fn (Builder $qq) => $qq->where('empresas.id', $empresaId))
+                    ->orWhereHas('roles', fn (Builder $qq) => $qq->where('name', 'Admin'));
+            });
     }
 
     // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗

@@ -13,9 +13,7 @@ use App\Modules\Despesa\Models\Despesa;
 use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Services\DespesaService;
-use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Modules\Pagamento\Requests\CancelarParcelaRequest;
-use App\Modules\Pagamento\Requests\RenegociarParcelaRequest;
 use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
 use App\Traits\TratamentoErros;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -123,27 +121,19 @@ class DespesaController extends Controller
         }
     }
 
-    public function edit(Despesa $despesa): View|RedirectResponse
+    public function cancelar(Despesa $despesa): RedirectResponse
     {
         try {
             $this->authorize('update', $despesa);
-            $categorias = CategoriaDespesa::ativos()->orderBy('descricao')->get();
+            session(['empresa_criacao_atual' => (int) $despesa->empresa_id]);
 
-            return view('despesa::edit', compact('despesa', 'categorias'));
+            $this->service->cancelarDespesa($despesa);
+
+            return redirect()->route('despesas.index')->with('sucesso', 'Despesa cancelada.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao carregar edição de despesa');
-        }
-    }
-
-    public function update(SalvarDespesaRequest $request, Despesa $despesa): RedirectResponse
-    {
-        try {
-            $this->authorize('update', $despesa);
-            $this->service->atualizar($despesa, $request->validated());
-
-            return redirect()->route('despesas.index')->with('sucesso', 'Despesa atualizada com sucesso.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar despesa');
+            return $this->tratarErro($e, 'Erro ao cancelar despesa');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 
@@ -176,6 +166,8 @@ class DespesaController extends Controller
     public function baixaParcela(SalvarBaixaParcelaRequest $request, ParcelaDespesa $parcela): RedirectResponse
     {
         try {
+            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+
             $this->caixaService->darBaixaParcelaDespesa(
                 $parcela,
                 (float) $request->valor,
@@ -189,35 +181,23 @@ class DespesaController extends Controller
             return redirect()->route('despesas.index')->with('sucesso', 'Pagamento registrado com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar pagamento');
-        }
-    }
-
-    public function renegociarParcela(RenegociarParcelaRequest $request, ParcelaDespesa $parcela): RedirectResponse
-    {
-        try {
-            $this->service->renegociarParcela(
-                $parcela,
-                new RenegociarParcelaData(
-                    data_vencimento: Carbon::parse($request->data_vencimento),
-                    valor: (float) $request->valor,
-                    observacao: $request->observacao,
-                )
-            );
-
-            return redirect()->route('despesas.index')->with('sucesso', 'Parcela renegociada.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao renegociar parcela');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function cancelarParcela(CancelarParcelaRequest $request, ParcelaDespesa $parcela): RedirectResponse
     {
         try {
+            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+
             $this->service->cancelarParcela($parcela, $request->input('motivo'));
 
             return redirect()->route('despesas.index')->with('sucesso', 'Parcela cancelada.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar parcela');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 

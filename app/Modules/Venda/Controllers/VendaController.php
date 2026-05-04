@@ -21,6 +21,7 @@ use App\Modules\Venda\Requests\AtualizarVendaPacoteRequest;
 use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
 use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
+use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -48,7 +49,11 @@ class VendaController extends Controller
                 'atendente_id', 'valor_min', 'valor_max',
             ]);
             $vendas = $this->service->listar($filtros);
-            $atendentes = Usuario::where('atende', true)->orderBy('nome')->get();
+            $empresaId = ContextoEmpresa::resolver();
+            $atendentes = ($empresaId
+                ? Usuario::atendentesDaEmpresa($empresaId)
+                : Usuario::where('atende', true))
+                ->orderBy('nome')->get();
 
             return view('venda::index', compact('vendas', 'filtros', 'atendentes'));
         } catch (\Throwable $e) {
@@ -61,7 +66,11 @@ class VendaController extends Controller
         try {
             $this->authorize('create', Agendamento::class);
 
-            $atendentes = Usuario::where('atende', true)->get();
+            $empresaId = ContextoEmpresa::resolver();
+            $atendentes = ($empresaId
+                ? Usuario::atendentesDaEmpresa($empresaId)
+                : Usuario::where('atende', true))
+                ->orderBy('nome')->get();
 
             $clienteOld = old('cliente_id') ? Cliente::find(old('cliente_id')) : null;
             $servicoOld = old('servico_id') ? Servico::find(old('servico_id')) : null;

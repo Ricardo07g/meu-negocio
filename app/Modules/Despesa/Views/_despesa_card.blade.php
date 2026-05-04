@@ -36,6 +36,7 @@
                 aria-expanded="false"
                 aria-controls="{{ $collapseId }}">
             <div class="text-start px-3 py-2" style="flex: 4 1 0; min-width: 0;">
+                <div class="fs-11 text-muted fw-medium">#{{ $despesa->id }}</div>
                 <div class="fw-semibold text-truncate-1-line">
                     {{ $tituloPrincipal }}
                     @if($subtitulo)
@@ -53,7 +54,7 @@
                 <div>
                     Emissão: {{ $despesa->data_emissao?->format('d/m/Y') ?? '—' }}
                 </div>
-                @if($saldo > 0)
+                @if($saldo > 0 && $algumaVencida)
                     <div class="text-danger mt-1">
                         A pagar: <span class="fw-semibold">R$ {{ number_format($saldo, 2, ',', '.') }}</span>
                     </div>
@@ -86,23 +87,30 @@
                             </a>
                         </li>
                     @endif
-                    @can('despesa.editar')
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a href="{{ route('despesas.edit', $despesa) }}" class="dropdown-item">
-                                <i class="feather-edit-3 me-2"></i>Editar
-                            </a>
-                        </li>
-                    @endcan
+                    @if (! in_array($status, [\App\Enums\StatusDespesa::Paga, \App\Enums\StatusDespesa::Cancelada]))
+                        @can('despesa.editar')
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{{ route('despesas.cancelar', $despesa) }}" method="POST" data-confirm="Cancelar esta despesa? Todas as parcelas em aberto serão canceladas.">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="dropdown-item text-warning">
+                                        <i class="feather-x-circle me-2"></i>Cancelar despesa
+                                    </button>
+                                </form>
+                            </li>
+                        @endcan
+                    @endif
                     @can('despesa.excluir')
-                        <li>
-                            <form action="{{ route('despesas.destroy', $despesa) }}" method="POST" data-confirm="Excluir esta despesa?">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="dropdown-item text-danger">
-                                    <i class="feather-trash-2 me-2"></i>Excluir
-                                </button>
-                            </form>
-                        </li>
+                        @if ($status === \App\Enums\StatusDespesa::Pendente && $valorPago == 0)
+                            <li>
+                                <form action="{{ route('despesas.destroy', $despesa) }}" method="POST" data-confirm="Excluir esta despesa? Esta acao e irreversivel.">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="feather-trash-2 me-2"></i>Excluir
+                                    </button>
+                                </form>
+                            </li>
+                        @endif
                     @endcan
                 </ul>
             </div>
@@ -205,7 +213,7 @@
                                         <th class="text-end">Desconto</th>
                                         <th class="text-end">Multa</th>
                                         <th class="text-end">Juros</th>
-                                        <th class="text-end">Ações</th>
+                                        <th class="text-center">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -237,9 +245,9 @@
                                             <td class="text-end {{ $jurosTotal > 0 ? 'text-warning' : 'text-muted' }}">
                                                 {{ $jurosTotal > 0 ? 'R$ ' . number_format($jurosTotal, 2, ',', '.') : '—' }}
                                             </td>
-                                            <td class="text-end">
+                                            <td class="text-center">
                                                 @if($podeBaixar || $podeRenegociar || $podeCancelar)
-                                                    <div class="dropdown">
+                                                    <div class="dropdown d-inline-block">
                                                         <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown">
                                                             <i class="feather-more-horizontal"></i>
                                                         </a>
@@ -248,16 +256,6 @@
                                                             <li>
                                                                 <a href="{{ route('parcelas-despesa.baixa-form', $parcela) }}" class="dropdown-item text-primary">
                                                                     <i class="feather-plus-circle me-2"></i>Pagar
-                                                                </a>
-                                                            </li>
-                                                            @endif
-                                                            @if($podeRenegociar)
-                                                            <li>
-                                                                <a href="javascript:void(0);" class="dropdown-item js-renegociar-parcela"
-                                                                   data-action="{{ route('parcelas-despesa.renegociar', $parcela) }}"
-                                                                   data-valor="{{ $parcela->valor }}"
-                                                                   data-vencimento="{{ $parcela->data_vencimento->format('Y-m-d') }}">
-                                                                    <i class="feather-refresh-cw me-2"></i>Renegociar
                                                                 </a>
                                                             </li>
                                                             @endif

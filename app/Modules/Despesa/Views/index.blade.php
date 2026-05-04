@@ -22,7 +22,10 @@
         <div class="card-body">
             <form method="GET" action="{{ route('despesas.index') }}">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-12">
+                    {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
+                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-md-3'])
+
+                    <div class="col-md-9">
                         <label class="form-label">Buscar</label>
                         <input type="text" name="q" class="form-control" placeholder="Nome, fornecedor, documento ou ID..." value="{{ request('q') }}">
                     </div>

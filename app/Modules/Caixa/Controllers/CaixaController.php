@@ -38,11 +38,14 @@ class CaixaController extends Controller
             $totalReforcos = 0;
             $saldoAtual = 0;
 
-            // ME-010: Caixa Diario opera por uma unica empresa. Com mais de
-            // uma empresa selecionada na sessao, a view exibe um aviso e
-            // pulamos a consulta para evitar misturar caixas de empresas
-            // diferentes na tela.
-            $multiplasEmpresas = count((array) session('empresas_atuais', [])) !== 1;
+            // ME-010 v3: Caixa Diario opera por uma unica empresa. A "empresa
+            // unica" pode vir do contexto de listagem (URL `?empresa_id=X`)
+            // ou do header com 1 empresa selecionada. Com varias no header
+            // sem contexto, exibe aviso pedindo escolha.
+            $contexto = session('empresa_contexto_atual');
+            $empresasAtuais = (array) session('empresas_atuais', []);
+            $temEmpresaUnica = is_int($contexto) || count($empresasAtuais) === 1;
+            $multiplasEmpresas = ! $temEmpresaUnica;
             $caixa = $multiplasEmpresas ? null : $this->service->caixaDoDia($data);
 
             if ($caixa) {

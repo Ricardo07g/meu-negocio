@@ -27,7 +27,16 @@ class UsuarioController extends Controller
             $this->authorize('viewAny', Usuario::class);
             $usuarios = $this->service->listar();
 
-            return view('usuario::index', compact('usuarios'));
+            $rede = auth()->user()->rede;
+            $maxUsuarios = (int) ($rede->plano->max_usuarios ?? 0);
+            $atualUsuarios = $rede->usuarios()->count();
+            $limite = [
+                'atual' => $atualUsuarios,
+                'maximo' => $maxUsuarios,
+                'atingido' => $maxUsuarios !== 0 && $atualUsuarios >= $maxUsuarios,
+            ];
+
+            return view('usuario::index', compact('usuarios', 'limite'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar usuários');
         }

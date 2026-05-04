@@ -11,11 +11,6 @@
         <h5 class="card-title">{{ $isCreate ? 'Cadastrar' : 'Editar' }} Despesa</h5>
     </div>
     <div class="card-body">
-        @if ($isCreate)
-            <div class="row g-3">
-                @include('partials.sub-seletor-empresa', ['valorAtual' => null, 'colunaCss' => 'col-md-6'])
-            </div>
-        @endif
         <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="form-label">Nome / Descrição <span class="text-danger">*</span></label>
@@ -254,13 +249,14 @@ document.addEventListener('DOMContentLoaded', function () {
         previewBadge.textContent = n + ' parcelas';
 
         const baseVenc = new Date(vencRaw + 'T12:00:00');
-        const mesRefDefault = mesReferencia?.value || vencRaw.substring(0, 7);
         const linhas = [];
         for (let i = 1; i <= n; i++) {
             const venc = adicionarMeses(baseVenc, i - 1);
             const vencIso = venc.getFullYear() + '-' +
                 String(venc.getMonth() + 1).padStart(2, '0') + '-' +
                 String(venc.getDate()).padStart(2, '0');
+            // Competencia da parcela = mes do seu vencimento.
+            const mesRefParcela = vencIso.substring(0, 7);
             const val = i === n ? ultima : porParcela;
             const idx = i - 1;
             linhas.push(
@@ -270,9 +266,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 '<input type="hidden" name="parcelas[' + idx + '][total]" value="' + n + '">' +
                 '</td>' +
                 '<td><input type="date" name="parcelas[' + idx + '][data_vencimento]" ' +
-                '       class="form-control form-control-sm" value="' + vencIso + '" required></td>' +
+                '       class="form-control form-control-sm" data-parcela-vencimento value="' + vencIso + '" required></td>' +
                 '<td><input type="month" name="parcelas[' + idx + '][mes_referencia]" ' +
-                '       class="form-control form-control-sm" value="' + mesRefDefault + '" required></td>' +
+                '       class="form-control form-control-sm" data-parcela-mes-ref value="' + mesRefParcela + '" required></td>' +
                 '<td class="text-end"><input type="number" step="0.01" min="0.01" data-parcela-valor ' +
                 '       name="parcelas[' + idx + '][valor]" ' +
                 '       class="form-control form-control-sm text-end" value="' + val.toFixed(2) + '" required></td>' +
@@ -283,6 +279,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         previewTbody.querySelectorAll('input[data-parcela-valor]').forEach(function (el) {
             el.addEventListener('input', recalcularSoma);
+        });
+
+        // Vencimento -> sincroniza competencia da parcela
+        previewTbody.querySelectorAll('input[data-parcela-vencimento]').forEach(function (el) {
+            el.addEventListener('change', function () {
+                const tr = el.closest('tr');
+                const mesRefInput = tr.querySelector('input[data-parcela-mes-ref]');
+                if (mesRefInput && el.value) {
+                    mesRefInput.value = el.value.substring(0, 7);
+                }
+            });
         });
 
         recalcularSoma();

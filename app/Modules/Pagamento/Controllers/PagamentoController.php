@@ -59,6 +59,8 @@ class PagamentoController extends Controller
     public function baixaParcela(SalvarBaixaParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
+            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+
             $this->caixaService->darBaixaParcelaPagamento(
                 $parcela,
                 (float) $request->valor,
@@ -72,12 +74,16 @@ class PagamentoController extends Controller
             return redirect()->route('pagamentos.index')->with('sucesso', 'Recebimento registrado.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar recebimento');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function renegociarParcela(RenegociarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
+            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+
             $this->service->renegociarParcela(
                 $parcela,
                 new RenegociarParcelaData(
@@ -90,17 +96,23 @@ class PagamentoController extends Controller
             return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela renegociada.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao renegociar parcela');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function cancelarParcela(CancelarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
+            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+
             $this->service->cancelarParcela($parcela, $request->input('motivo'));
 
             return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela cancelada.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar parcela');
+        } finally {
+            session()->forget('empresa_criacao_atual');
         }
     }
 

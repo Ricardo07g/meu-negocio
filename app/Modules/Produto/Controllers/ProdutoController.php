@@ -62,7 +62,7 @@ class ProdutoController extends Controller
     {
         try {
             $this->authorize('view', $produto);
-            $movimentos = $this->estoqueService->listarMovimentos($produto->id);
+            $movimentos = $this->estoqueService->listarMovimentos(['produto_id' => $produto->id]);
 
             return view('produto::show', compact('produto', 'movimentos'));
         } catch (\Throwable $e) {
