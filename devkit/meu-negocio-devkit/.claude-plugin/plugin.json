@@ -1,0 +1,17 @@
+{
+  "name": "meu-negocio-devkit",
+  "version": "0.1.0",
+  "description": "Devkit de automacao do projeto Meu Negocio (Laravel 13 multi-tenant): subagents, skills, hooks e slash commands para desenvolver com qualidade e isolamento de tenancy garantido.",
+  "author": {
+    "name": "Ricardo Pereira"
+  },
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "multi-tenant",
+    "testing",
+    "pint",
+    "phpstan",
+    "pt-br"
+  ]
+}
