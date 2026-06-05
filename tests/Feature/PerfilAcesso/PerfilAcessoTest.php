@@ -118,6 +118,40 @@ class PerfilAcessoTest extends TestCase
         $this->assertDatabaseMissing('roles', ['name' => 'Nome Antigo']);
     }
 
+    public function test_perfil_admin_nao_pode_ser_editado(): void
+    {
+        $this->criarRedeAutenticada();
+        $admin = Role::where('name', 'Admin')->firstOrFail();
+
+        $response = $this->get(route('perfis-acesso.edit', $admin));
+
+        $response->assertForbidden();
+    }
+
+    public function test_perfil_admin_nao_pode_ser_atualizado(): void
+    {
+        $this->criarRedeAutenticada();
+        $admin = Role::where('name', 'Admin')->firstOrFail();
+
+        $response = $this->put(route('perfis-acesso.update', $admin), [
+            'name' => 'Admin',
+            'permissoes' => ['cliente.ver'],
+        ]);
+
+        $response->assertForbidden();
+    }
+
+    public function test_perfil_admin_nao_pode_ser_excluido(): void
+    {
+        $this->criarRedeAutenticada();
+        $admin = Role::where('name', 'Admin')->firstOrFail();
+
+        $response = $this->delete(route('perfis-acesso.destroy', $admin));
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('roles', ['id' => $admin->id, 'name' => 'Admin']);
+    }
+
     public function test_nome_duplicado_e_rejeitado_na_criacao(): void
     {
         $this->criarRedeAutenticada();

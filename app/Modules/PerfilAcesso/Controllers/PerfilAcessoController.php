@@ -86,6 +86,7 @@ class PerfilAcessoController extends Controller
     public function update(SalvarPerfilAcessoRequest $request, Role $perfilAcesso): RedirectResponse
     {
         try {
+            $this->authorize('update', $perfilAcesso);
             $this->service->atualizar(
                 $perfilAcesso,
                 $request->validated('name'),

@@ -69,17 +69,6 @@ class UsuarioController extends Controller
         }
     }
 
-    public function show(Usuario $usuario): View|RedirectResponse
-    {
-        try {
-            $this->authorize('view', $usuario);
-
-            return view('usuario::show', compact('usuario'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir usuário');
-        }
-    }
-
     public function edit(Usuario $usuario): View|RedirectResponse
     {
         try {

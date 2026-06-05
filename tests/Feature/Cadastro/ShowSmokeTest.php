@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Cadastro;
 
-use App\Modules\Usuario\Models\Usuario;
 use Database\Factories\{ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -13,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * Smoke dos GET show das entidades de cadastro: Cliente, Servico, Produto,
- * PerfilAcesso (Role) e Usuario. As views de show carregam relacoes que
+ * PerfilAcesso (Role). As views de show carregam relacoes que
  * passaram pelo refactor pacote->etapas (ex.: ClienteController::show faz
  * load de 'vendasEtapas.servico'; ServicoController::show usa isEtapas() e
  * vendasEtapas()). Asserta 200 + view correta; tratarErro converteria um
@@ -78,17 +77,5 @@ class ShowSmokeTest extends TestCase
 
         $resp->assertOk();
         $resp->assertViewIs('perfilacesso::show');
-    }
-
-    public function test_show_de_usuario(): void
-    {
-        $contexto = $this->criarRedeAutenticada();
-        $usuario = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa']);
-
-        $resp = $this->get(route('usuarios.show', $usuario));
-
-        $resp->assertOk();
-        $resp->assertViewIs('usuario::show');
-        $resp->assertViewHas('usuario', fn (Usuario $u) => $u->is($usuario));
     }
 }
