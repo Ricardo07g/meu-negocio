@@ -55,3 +55,10 @@ A tabela completa de "para escrever X, copie o arquivo Y" esta em
 [references/blueprints.md](references/blueprints.md). Abra-o quando precisar do formato exato de um
 artefato. Para testes/factories, veja a skill `gerar-teste-model`; para montar um modulo inteiro, a
 skill `scaffold-modulo`.
+
+## Conhecimento de dominio (lazy)
+
+O dominio de cada modulo (entidades, status, regras, gotchas) vive em
+`.claude/rules/modulos/{modulo}.md` e carrega sozinho ao editar o modulo; convencoes transversais em
+`.claude/rules/{multi-tenant-seguranca,modelo-financeiro,banco-de-dados,ui-duralux}.md`. Skills
+relacionadas: `criar-migration`, `adicionar-permissao`, `revisar-codigo`, `validar-implementacao`.
