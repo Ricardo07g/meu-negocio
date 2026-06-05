@@ -92,11 +92,12 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 `app/Modules/{NomeModulo}/` com Controllers, Services, Actions, DTOs, Requests, Policies, Models, Views, Migrations.
 
 ### Padroes de Codigo
-- Controller: request/response apenas, chama service
-- Service: regra de negocio
+- Controller: request/response apenas, chama service. `try/catch` explicito por metodo via `tratarErro`; escrita transacional multi-empresa envolta em `comEmpresaDeCriacao(...)`
+- Service: regra de negocio; transacao/rollback via `DB::transaction(fn)` (nunca `DB::` no controller)
 - **Requests unificados**: `SalvarXxxRequest` (isMethod('post') para criar/editar)
 - **DTOs unificados**: `XxxData` (um para criar e atualizar)
 - **Views com partial**: `_form.blade.php` + `@php $entidade = $entidade ?? null; @endphp`
+- **Formatacao**: `pint.json` versionado — `declare(strict_types=1)` em todo arquivo de classe + imports do mesmo namespace agrupados (`use App\X\{A, B};`). Rode `vendor/bin/pint`
 
 ---
 
@@ -162,7 +163,8 @@ planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etap
 | RedeTrait | Global scope rede_id (via BaseModel) |
 | EmpresaTrait | Global scope empresa_id (Admin ve tudo) |
 | RegistraAtividade | Spatie ActivityLog |
-| TratamentoErros | Error handling controllers |
+| TratamentoErros | Error handling controllers (`tratarErro`) |
+| DefineEmpresaDeCriacao | Helper `comEmpresaDeCriacao` (contexto ME-010 em escrita) |
 
 ---
 
