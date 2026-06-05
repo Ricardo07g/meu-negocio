@@ -1,12 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusDespesa;
-use App\Enums\StatusParcela;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusDespesa, StatusParcela};
 use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Services\DespesaService;
 use Carbon\Carbon;

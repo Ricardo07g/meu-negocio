@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Tenant\Actions\TransicionarPlanoAction;
-use App\Modules\Tenant\Models\Fatura;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Fatura, Plano, Rede};
 use App\Modules\Tenant\Requests\TransicionarPlanoRequest;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\TratamentoErros;

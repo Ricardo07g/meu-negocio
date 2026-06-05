@@ -1,14 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Servico\Models;
 
 use App\Enums\TipoServico;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Venda\Models\VendaEtapas;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**

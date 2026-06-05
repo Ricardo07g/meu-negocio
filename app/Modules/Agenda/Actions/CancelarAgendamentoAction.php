@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Agenda\Actions;
 
-use App\Enums\StatusAgendamento;
-use App\Enums\StatusPagamento;
+use App\Enums\{StatusAgendamento, StatusPagamento};
 use App\Modules\Agenda\Models\Agendamento;
 use Illuminate\Validation\ValidationException;
 

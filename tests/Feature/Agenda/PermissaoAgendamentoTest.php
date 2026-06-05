@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Agenda;
 
 use App\Modules\Agenda\Models\Agendamento;
-use Database\Factories\AgendamentoFactory;
-use Database\Factories\ClienteFactory;
-use Database\Factories\ServicoFactory;
+use Database\Factories\{AgendamentoFactory, ClienteFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;

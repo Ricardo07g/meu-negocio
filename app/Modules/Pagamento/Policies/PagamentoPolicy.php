@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Pagamento\Policies;
 
 use App\Modules\Pagamento\Models\Pagamento;

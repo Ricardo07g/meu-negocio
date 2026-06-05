@@ -1,22 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Caixa\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Caixa\DTOs\AbrirCaixaData;
-use App\Modules\Caixa\DTOs\FecharCaixaData;
-use App\Modules\Caixa\DTOs\MovimentoCaixaData;
-use App\Modules\Caixa\DTOs\ReabrirCaixaData;
+use App\Modules\Caixa\DTOs\{AbrirCaixaData, FecharCaixaData, MovimentoCaixaData, ReabrirCaixaData};
 use App\Modules\Caixa\Models\Caixa;
-use App\Modules\Caixa\Requests\AbrirCaixaRequest;
-use App\Modules\Caixa\Requests\FecharCaixaRequest;
-use App\Modules\Caixa\Requests\MovimentoCaixaRequest;
-use App\Modules\Caixa\Requests\ReabrirCaixaRequest;
+use App\Modules\Caixa\Requests\{AbrirCaixaRequest, FecharCaixaRequest, MovimentoCaixaRequest, ReabrirCaixaRequest};
 use App\Modules\Caixa\Services\CaixaService;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class CaixaController extends Controller

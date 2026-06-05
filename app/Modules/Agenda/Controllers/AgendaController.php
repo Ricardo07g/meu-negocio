@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Agenda\Controllers;
 
 use App\Enums\StatusAgendamento;
@@ -16,9 +18,7 @@ use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 

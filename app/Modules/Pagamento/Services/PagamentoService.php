@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Pagamento\Services;
 
 use App\Enums\StatusParcela;
 use App\Exceptions\NegocioException;
 use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 

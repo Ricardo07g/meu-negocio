@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Agenda\Models;
 
 use App\Enums\StatusAgendamento;
@@ -9,10 +11,8 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Venda\Models\VendaEtapas;
-use App\Traits\EmpresaTrait;
-use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Traits\{EmpresaTrait, RegistraAtividade};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasOne};
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
