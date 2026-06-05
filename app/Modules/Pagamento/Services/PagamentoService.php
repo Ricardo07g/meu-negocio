@@ -17,7 +17,7 @@ class PagamentoService
         $query = Pagamento::with([
             'cliente',
             'agendamento.servico',
-            'vendaPacote.servico',
+            'vendaEtapas.servico',
             'vendaProduto.itens',
             'parcelas.baixas',
         ])->orderByDesc('created_at');

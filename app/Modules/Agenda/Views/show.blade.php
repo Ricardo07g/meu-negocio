@@ -29,9 +29,9 @@
                 @if($agendamento->observacoes)
                 <div class="col-12 mb-3"><strong>Observações:</strong> {{ $agendamento->observacoes }}</div>
                 @endif
-                @if($agendamento->vendaPacote)
+                @if($agendamento->vendaEtapas)
                 <div class="col-md-6 mb-3">
-                    <strong>Pacote:</strong> #{{ $agendamento->vendaPacote->id }}
+                    <strong>Etapas:</strong> #{{ $agendamento->vendaEtapas->id }}
                 </div>
                 @endif
             </div>
