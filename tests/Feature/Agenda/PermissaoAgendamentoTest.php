@@ -61,16 +61,11 @@ class PermissaoAgendamentoTest extends TestCase
             'inicio' => now()->addDay()->format('Y-m-d H:i:s'),
         ]);
 
-        // COMPORTAMENTO ATUAL (documentado, nao um 403 limpo):
-        // criarRapido() envolve `$this->authorize('create', ...)` num
-        // try/catch (\Throwable) que devolve `json([...], 500)`. A
-        // AuthorizationException, que normalmente viraria 403, e engolida
-        // pelo catch generico e o cliente recebe 500. O bloqueio em si
-        // funciona — nenhum agendamento e criado —, mas o status HTTP nao
-        // diferencia "sem permissao" de "erro interno".
-        // (Comparar com agenda.index e agenda.cancelar, que retornam 403.)
-        $resp->assertStatus(500);
-        $this->assertSame(0, Agendamento::query()->count(), 'Usuario sem permissao nao deve criar agendamento, mesmo com o status 500.');
+        // criarRapido() agora trata AuthorizationException com um catch
+        // tipado (antes do catch generico), devolvendo 403 limpo — alinhado
+        // a agenda.index e agenda.cancelar. O bloqueio impede a criacao.
+        $resp->assertStatus(403);
+        $this->assertSame(0, Agendamento::query()->count(), 'Usuario sem permissao nao deve criar agendamento.');
     }
 
     public function test_papel_sem_permissao_recebe_403_ao_cancelar(): void
