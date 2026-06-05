@@ -15,13 +15,16 @@
 </head>
 
 <body>
+    <a href="{{ route('home') }}" class="position-absolute top-0 start-0 m-4 d-inline-flex align-items-center gap-2 text-muted fs-13 fw-medium text-decoration-none" style="z-index:10;">
+        <i class="feather-arrow-left"></i> Voltar ao site
+    </a>
     <main class="auth-minimal-wrapper">
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
                 <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative">
-                    <div class="position-absolute translate-middle top-0 start-50 shadow-lg" style="border-radius:14px;line-height:0;">
+                    <a href="{{ route('home') }}" class="position-absolute translate-middle top-0 start-50 shadow-lg d-inline-block" style="border-radius:14px;line-height:0;" title="Voltar ao site" aria-label="Voltar para a página inicial">
                         @include('partials.logo-mark', ['size' => 52])
-                    </div>
+                    </a>
                     <div class="card-body p-sm-5">
                         @yield('content')
                     </div>
