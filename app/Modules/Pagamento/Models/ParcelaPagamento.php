@@ -7,10 +7,32 @@ use App\Enums\StatusParcela;
 use App\Models\BaseModel;
 use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Traits\EmpresaTrait;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $pagamento_id
+ * @property int $numero
+ * @property int $total
+ * @property float $valor
+ * @property float $valor_pago
+ * @property Carbon $data_vencimento
+ * @property Carbon|null $mes_referencia
+ * @property FormaPagamento|null $forma_pagamento
+ * @property StatusParcela $status
+ * @property string|null $observacao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Pagamento $pagamento
+ * @property-read Collection<int, BaixaPagamento> $baixas
+ */
 class ParcelaPagamento extends BaseModel
 {
     use EmpresaTrait, SoftDeletes;

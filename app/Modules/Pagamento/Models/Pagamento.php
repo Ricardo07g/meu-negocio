@@ -14,11 +14,39 @@ use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int|null $cliente_id
+ * @property int|null $agendamento_id
+ * @property int|null $venda_etapas_id
+ * @property int|null $venda_produto_id
+ * @property float $valor_total
+ * @property float $desconto
+ * @property float $acrescimo
+ * @property CondicaoPagamento $condicao_pagamento
+ * @property FormaRecebimentoPrazo|null $forma_recebimento_prazo
+ * @property Carbon $mes_referencia
+ * @property StatusPagamento $status
+ * @property string|null $descricao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Cliente|null $cliente
+ * @property-read Agendamento|null $agendamento
+ * @property-read VendaEtapas|null $vendaEtapas
+ * @property-read VendaProduto|null $vendaProduto
+ * @property-read Collection<int, ParcelaPagamento> $parcelas
+ * @property-read Collection<int, BaixaPagamento> $baixas
+ */
 class Pagamento extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;

@@ -4,10 +4,33 @@ namespace App\Modules\Produto\Models;
 
 use App\Models\BaseModel;
 use App\Modules\Estoque\Models\MovimentoEstoque;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property string $nome
+ * @property string|null $codigo
+ * @property string|null $codigo_barras
+ * @property string|null $descricao
+ * @property int|null $categoria_produto_id
+ * @property float|null $valor_custo
+ * @property int $quantidade
+ * @property int|null $estoque_minimo
+ * @property string|null $unidade
+ * @property bool $ativo
+ * @property string|null $observacoes
+ * @property float $valor_venda
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read CategoriaProduto|null $categoria
+ * @property-read Collection<int, MovimentoEstoque> $movimentos
+ */
 class Produto extends BaseModel
 {
     use SoftDeletes;

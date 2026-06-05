@@ -6,9 +6,26 @@ use App\Enums\TipoServico;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Venda\Models\VendaEtapas;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property string $nome
+ * @property int $duracao
+ * @property float $valor
+ * @property TipoServico $tipo
+ * @property int|null $qtd_etapas
+ * @property string|null $descricao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Collection<int, Agendamento> $agendamentos
+ * @property-read Collection<int, VendaEtapas> $vendasEtapas
+ */
 class Servico extends BaseModel
 {
     use SoftDeletes;

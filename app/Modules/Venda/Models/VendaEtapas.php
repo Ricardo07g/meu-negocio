@@ -11,11 +11,36 @@ use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $cliente_id
+ * @property int $servico_id
+ * @property int $atendente_id
+ * @property Carbon $data
+ * @property float $valor_total
+ * @property float $desconto
+ * @property float $acrescimo
+ * @property int $qtd_etapas
+ * @property StatusVendaEtapas $status
+ * @property string|null $observacao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Cliente $cliente
+ * @property-read Servico $servico
+ * @property-read Usuario $atendente
+ * @property-read Collection<int, Agendamento> $agendamentos
+ * @property-read Pagamento|null $pagamento
+ */
 class VendaEtapas extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;

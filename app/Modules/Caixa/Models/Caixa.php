@@ -8,9 +8,29 @@ use App\Models\BaseModel;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $usuario_id
+ * @property Carbon $data
+ * @property float $saldo_abertura
+ * @property float|null $saldo_fechamento
+ * @property StatusCaixa $status
+ * @property string|null $observacao
+ * @property Carbon|null $fechado_em
+ * @property int|null $fechado_por
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read Usuario $usuario
+ * @property-read Usuario|null $fechadoPor
+ * @property-read Collection<int, MovimentoCaixa> $movimentos
+ */
 class Caixa extends BaseModel
 {
     use EmpresaTrait;
