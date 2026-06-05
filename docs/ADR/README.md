@@ -14,6 +14,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0004](0004-base-model-traits-tenancy.md) | `BaseModel` + Traits para tenancy | Aceito |
 | [0005](0005-caixa-diario-com-retroativo.md) | Caixa diário com abertura retroativa permitida | Aceito |
 | [0006](0006-foreign-keys-cascade.md) | Comportamento de foreign keys (cascade / null / restrict) | Aceito |
+| [0007](0007-assinatura-faturamento.md) | Assinatura, faturamento mensal e troca de plano pro-rata | Aceito |
 
 ## Como ler
 
