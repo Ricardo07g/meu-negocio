@@ -23,8 +23,8 @@ use App\Modules\Usuario\Controllers\UsuarioController;
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
-// Pagina inicial
-Route::get('/', fn () => redirect()->route('login'));
+// Pagina inicial: landing publica (usuario logado vai direto para o dashboard)
+Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('landing'))->name('home');
 
 // Autenticacao (guest)
 Route::middleware('guest')->group(function () {
