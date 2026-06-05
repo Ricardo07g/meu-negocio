@@ -1,0 +1,16 @@
+{
+  "name": "meu-negocio-marketplace",
+  "owner": {
+    "name": "Ricardo Pereira"
+  },
+  "metadata": {
+    "description": "Marketplace local do projeto Meu Negocio — distribui o devkit de automacao."
+  },
+  "plugins": [
+    {
+      "name": "meu-negocio-devkit",
+      "source": "./meu-negocio-devkit",
+      "description": "Subagents, skills, hooks e slash commands para desenvolver o Meu Negocio com qualidade."
+    }
+  ]
+}
