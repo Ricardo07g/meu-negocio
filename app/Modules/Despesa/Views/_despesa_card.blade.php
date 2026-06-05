@@ -63,7 +63,7 @@
         </button>
         <div class="d-flex align-items-center justify-content-end gap-2 pe-3 py-2" style="flex: 3 1 0;">
             <div class="d-flex flex-column align-items-end gap-1">
-                <span class="badge bg-soft-{{ $cor }} text-{{ $cor }}">{{ $statusLabel }}</span>
+                <x-badge-status :cor="$cor" :label="$statusLabel" />
                 @if($despesa->categoria)
                     <span class="badge bg-soft-primary text-primary">{{ $despesa->categoria->descricao }}</span>
                 @endif
@@ -235,7 +235,7 @@
                                         <tr>
                                             <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                                             <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
-                                            <td><span class="badge bg-soft-{{ $corParcela }} text-{{ $corParcela }}">{{ $statusEfetivo->label() }}</span></td>
+                                            <td><x-badge-status :cor="$corParcela" :label="$statusEfetivo->label()" /></td>
                                             <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
                                             <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                                             <td class="text-end">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>

@@ -55,7 +55,7 @@
         </button>
         <div class="d-flex align-items-center gap-2 pe-3">
             <div class="d-flex flex-column align-items-end gap-1">
-                <span class="badge bg-soft-{{ $venda->cor }} text-{{ $venda->cor }}">{{ $venda->status_label }}</span>
+                <x-badge-status :cor="$venda->cor" :label="$venda->status_label" />
                 <span class="badge {{ $tipoBadge }}">{{ $tipoLabel }}</span>
             </div>
             <div class="dropdown">
@@ -155,7 +155,7 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="fs-12 text-muted">Status pagamento</div>
-                                <span class="badge bg-soft-{{ $pagamento->status->cor() }} text-{{ $pagamento->status->cor() }}">{{ $pagamento->status->label() }}</span>
+                                <x-badge-status :cor="$pagamento->status->cor()" :label="$pagamento->status->label()" />
                             </div>
                             <div class="col-md-3">
                                 <div class="fs-12 text-muted">Recebido (líquido) / Total</div>
@@ -309,7 +309,7 @@
                                             <td>{{ $ag->inicio->format('H:i') }} - {{ $ag->fim->format('H:i') }}</td>
                                             <td>{{ $ag->atendente->nome ?? '—' }}</td>
                                             <td>
-                                                <span class="badge bg-soft-{{ $ag->status->cor() }} text-{{ $ag->status->cor() }}">{{ $ag->status->label() }}</span>
+                                                <x-badge-status :cor="$ag->status->cor()" :label="$ag->status->label()" />
                                             </td>
                                         </tr>
                                     @empty
@@ -342,7 +342,7 @@
                                         <tr>
                                             <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                                             <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
-                                            <td><span class="badge bg-soft-{{ $statusEfetivoP->cor() }} text-{{ $statusEfetivoP->cor() }}">{{ $statusEfetivoP->label() }}</span></td>
+                                            <td><x-badge-status :cor="$statusEfetivoP->cor()" :label="$statusEfetivoP->label()" /></td>
                                             <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
                                             <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                                             <td class="text-end fw-semibold">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
