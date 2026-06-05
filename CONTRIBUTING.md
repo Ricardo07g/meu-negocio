@@ -31,6 +31,16 @@ docker compose exec app vendor/bin/pint --test
 
 Ambos precisam passar antes do PR. Se você tocou em arquivos PHP, rode também `docker compose exec app vendor/bin/pint` (sem `--test`) para auto-corrigir formatação.
 
+## Automação com Claude Code (opcional, acelera o fluxo)
+
+Quem desenvolve com o Claude Code tem atalhos prontos em `.claude/` (detalhes em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md)):
+
+- **Slash commands**: `/testar [filtro]`, `/migrar`, `/pre-pr` (porta de qualidade) e `/auditar-tenancy`.
+- **Skills**: `validar-implementacao` valida uma feature ponta-a-ponta (testes do módulo + Pint + PHPStan + smoke); `revisar-codigo`, `depurar`, `criar-migration`, `adicionar-permissao` e outras guiam tarefas no padrão do projeto.
+- **Knowledge lazy**: regras de domínio em `.claude/rules/` carregam sozinhas conforme o arquivo que você edita.
+
+Não é obrigatório — `composer test` + `pint` cobrem o essencial — mas usar `/pre-pr` antes de abrir o PR reproduz localmente a porta do CI.
+
 ## Padrões de código
 
 O projeto tem convenções fortes e consistentes — siga-as para manter a base coerente. O módulo `app/Modules/Produto/` é a referência mais completa.
