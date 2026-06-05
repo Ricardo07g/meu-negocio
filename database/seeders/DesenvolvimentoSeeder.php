@@ -41,6 +41,7 @@ use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Popula o banco com dados de teste volumosos.
@@ -118,6 +119,7 @@ class DesenvolvimentoSeeder extends Seeder
         DB::transaction(function () {
             $this->criarRedeEEmpresa();
             $this->criarUsuarios();
+            $this->criarPerfisDeAcessoDemo();
             $this->criarCategoriasEProdutos();
             $this->criarServicos();
             $this->criarClientes();
@@ -130,8 +132,11 @@ class DesenvolvimentoSeeder extends Seeder
 
         $this->command->info('');
         $this->command->info('✅ Seed de desenvolvimento concluída!');
-        $this->command->info('   Login:  admin@teste.com');
-        $this->command->info('   Senha:  password');
+        $this->command->info('   Logins de teste (senha: password):');
+        $this->command->info('     Admin ........ admin@teste.com         (acesso total)');
+        $this->command->info('     Recepção ..... recepcao@teste.com      (clientes + agenda)');
+        $this->command->info('     Profissional . profissional@teste.com  (agenda + consultas)');
+        $this->command->info('     Financeiro ... financeiro@teste.com    (pagamentos + despesas + caixa)');
     }
 
     private function criarRedeEEmpresa(): void
@@ -229,6 +234,79 @@ class DesenvolvimentoSeeder extends Seeder
         }
 
         $this->command->info('Usuários: 1 admin + '.count($this->atendentes).' atendentes (com pivot multi-empresa).');
+    }
+
+    /**
+     * Perfis de acesso de exemplo (somente para a demo) + 1 usuario por perfil,
+     * para testar os niveis de permissao. Em producao os papeis nao-Admin sao
+     * criados pelo Admin via /perfis-acesso; aqui ja semeamos prontos para teste.
+     * Cada usuario e vinculado as 3 empresas da rede (pivot empresa_usuario).
+     */
+    private function criarPerfisDeAcessoDemo(): void
+    {
+        $perfis = [
+            'Recepcao' => [
+                'email' => 'recepcao@teste.com',
+                'nome' => 'Recepção Demo',
+                'permissoes' => [
+                    'cliente.ver', 'cliente.criar', 'cliente.editar',
+                    'agendamento.ver', 'agendamento.criar', 'agendamento.editar', 'agendamento.cancelar',
+                    'servico.ver',
+                    'produto.ver',
+                ],
+            ],
+            'Profissional' => [
+                'email' => 'profissional@teste.com',
+                'nome' => 'Profissional Demo',
+                'permissoes' => [
+                    'agendamento.ver', 'agendamento.editar', 'agendamento.cancelar',
+                    'cliente.ver',
+                    'servico.ver',
+                    'produto.ver',
+                ],
+            ],
+            'Financeiro' => [
+                'email' => 'financeiro@teste.com',
+                'nome' => 'Financeiro Demo',
+                'permissoes' => [
+                    'financeiro.ver', 'financeiro.relatorio',
+                    'pagamento.ver', 'pagamento.criar', 'pagamento.editar',
+                    'despesa.ver', 'despesa.criar', 'despesa.editar',
+                    'categoria_despesa.ver', 'categoria_despesa.criar', 'categoria_despesa.editar',
+                    'cliente.ver',
+                    'plano.ver',
+                ],
+            ],
+        ];
+
+        $todasEmpresas = array_merge([$this->empresa], $this->empresasExtras);
+        $pivot = collect($todasEmpresas)
+            ->mapWithKeys(fn ($e) => [$e->id => ['rede_id' => $this->rede->id]])
+            ->all();
+
+        foreach ($perfis as $papel => $dados) {
+            $role = Role::firstOrCreate(['name' => $papel, 'guard_name' => 'web']);
+            $role->syncPermissions($dados['permissoes']);
+
+            $usuario = Usuario::firstOrCreate(
+                ['email' => $dados['email']],
+                [
+                    'rede_id' => $this->rede->id,
+                    'empresa_id' => $this->empresa->id,
+                    'nome' => $dados['nome'],
+                    'password' => 'password',
+                    'ativo' => true,
+                    'atende' => $papel === 'Profissional',
+                ],
+            );
+            $usuario->syncRoles([$role]);
+            $usuario->empresas()->sync($pivot);
+        }
+
+        // Evita cache stale do Spatie ao usar can() logo apos semear os papeis.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->command->info('Perfis de acesso demo: Recepcao, Profissional, Financeiro (1 usuario cada).');
     }
 
     private function criarCategoriasEProdutos(): void
@@ -578,7 +656,7 @@ class DesenvolvimentoSeeder extends Seeder
             'empresa_id' => $this->empresa->id,
             'cliente_id' => $clienteId,
             'agendamento_id' => $agendamentoId,
-            'venda_pacote_id' => $vendaPacoteId,
+            'venda_etapas_id' => $vendaEtapasId,
             'venda_produto_id' => $vendaProdutoId,
             'valor_total' => $valorTotal,
             'condicao_pagamento' => CondicaoPagamento::AVista,
@@ -629,7 +707,7 @@ class DesenvolvimentoSeeder extends Seeder
         Carbon $primeiroVencimento,
         ?int $clienteId = null,
         ?int $agendamentoId = null,
-        ?int $vendaPacoteId = null,
+        ?int $vendaEtapasId = null,
         ?int $vendaProdutoId = null,
     ): void {
         $pagamento = Pagamento::create([
@@ -637,7 +715,7 @@ class DesenvolvimentoSeeder extends Seeder
             'empresa_id' => $this->empresa->id,
             'cliente_id' => $clienteId,
             'agendamento_id' => $agendamentoId,
-            'venda_pacote_id' => $vendaPacoteId,
+            'venda_etapas_id' => $vendaEtapasId,
             'venda_produto_id' => $vendaProdutoId,
             'valor_total' => $valorTotal,
             'condicao_pagamento' => CondicaoPagamento::APrazo,
