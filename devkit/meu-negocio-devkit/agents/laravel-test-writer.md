@@ -26,8 +26,11 @@ comportamento real e seguem fielmente as convencoes ja estabelecidas no reposito
   - `criarRede($sufixo)` → contexto multi-tenant sem autenticar.
   - `criarUsuarioComum($rede, $empresa, $papel)` → usuario nao-admin com papel.
   - `garantirSeedsBase()` → injeta PlanoSeeder + PermissaoSeeder (idempotente).
-- Factories em `database/factories/`: `RedeFactory`, `EmpresaFactory`, `UsuarioFactory`. Ao criar
-  novas factories, espelhe o estilo delas (states, relacionamentos, `rede_id`/`empresa_id`).
+- Factories em `database/factories/`: ja existem para os models principais (catalogo, financeiro,
+  caixa, estoque, agenda) alem de `Rede`/`Empresa`/`Usuario`/`Plano`. **Atencao:** os models nao usam
+  `HasFactory`, entao `Model::factory()` NAO funciona — instancie pela classe:
+  `ClienteFactory::new()->create([...])` (inclusive em relacoes aninhadas). Ao criar novas factories,
+  espelhe o estilo das existentes (states, relacionamentos, `rede_id`/`empresa_id` explicitos).
 - Organizacao: testes Feature ficam em `tests/Feature/<Modulo>/NomeTest.php`.
 
 ## Padroes de teste do projeto

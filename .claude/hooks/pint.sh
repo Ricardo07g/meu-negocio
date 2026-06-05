@@ -11,9 +11,10 @@
 input=$(cat)
 file=$(printf '%s' "$input" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 
-# Sem arquivo ou nao-PHP: nada a fazer.
+# Sem arquivo, template Blade, ou nao-PHP: nada a fazer.
 [ -z "$file" ] && exit 0
 case "$file" in
+  *.blade.php) exit 0 ;;
   *.php) ;;
   *) exit 0 ;;
 esac
