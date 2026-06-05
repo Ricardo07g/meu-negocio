@@ -51,12 +51,6 @@
                                             <i class="feather-more-horizontal"></i>
                                         </a>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('usuarios.show', $usuario) }}">
-                                                    <i class="feather-eye me-3"></i>
-                                                    <span>Ver</span>
-                                                </a>
-                                            </li>
                                             @can('usuario.editar')
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('usuarios.edit', $usuario) }}">

@@ -134,7 +134,7 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Administracao
         Route::resource('empresas', EmpresaController::class)->except('show');
-        Route::resource('usuarios', UsuarioController::class);
+        Route::resource('usuarios', UsuarioController::class)->except(['show']);
         Route::resource('perfis-acesso', PerfilAcessoController::class)->parameters(['perfis-acesso' => 'perfil_acesso']);
         Route::get('minha-assinatura', [AssinaturaController::class, 'index'])->name('assinatura.index');
         Route::post('minha-assinatura/transicionar', [AssinaturaController::class, 'transicionar'])->name('assinatura.transicionar');
