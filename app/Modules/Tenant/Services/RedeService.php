@@ -1,17 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Services;
 
 use App\Enums\StatusRede;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Produto\Models\CategoriaProduto;
-use App\Modules\Produto\Models\Produto;
+use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Tenant\Actions\CriarEmpresaAction;
-use App\Modules\Tenant\DTOs\CriarRedeData;
-use App\Modules\Tenant\DTOs\EmpresaData;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\DTOs\{CriarRedeData, EmpresaData};
+use App\Modules\Tenant\Models\{Plano, Rede};
 use App\Modules\Usuario\Actions\CriarUsuarioAction;
 use App\Modules\Usuario\DTOs\UsuarioData;
 use Illuminate\Support\Facades\DB;

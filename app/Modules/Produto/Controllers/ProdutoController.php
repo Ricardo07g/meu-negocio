@@ -1,18 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\DTOs\ProdutoData;
-use App\Modules\Produto\Models\CategoriaProduto;
-use App\Modules\Produto\Models\Produto;
+use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Produto\Requests\SalvarProdutoRequest;
 use App\Modules\Produto\Services\ProdutoService;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Illuminate\View\View;
 
 class ProdutoController extends Controller

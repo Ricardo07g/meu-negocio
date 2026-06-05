@@ -1,15 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Services;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusParcela;
-use App\Enums\StatusVendaEtapas;
-use App\Enums\StatusVendaProduto;
-use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
-use App\Modules\Agenda\Actions\CriarAgendamentoAction;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusParcela, StatusVendaEtapas, StatusVendaProduto};
+use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
@@ -19,12 +15,9 @@ use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
-use App\Modules\Venda\Actions\CriarVendaProdutoAction;
-use App\Modules\Venda\Actions\SincronizarItensVendaProdutoAction;
-use App\Modules\Venda\Actions\VenderEtapasAction;
+use App\Modules\Venda\Actions\{CriarVendaProdutoAction, SincronizarItensVendaProdutoAction, VenderEtapasAction};
 use App\Modules\Venda\DTOs\VenderEtapasData;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;

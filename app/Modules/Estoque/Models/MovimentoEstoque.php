@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Estoque\Models;
 
 use App\Enums\TipoMovimentoEstoque;
 use App\Models\BaseModel;
 use App\Modules\Produto\Models\Produto;
-use App\Traits\EmpresaTrait;
-use App\Traits\RegistraAtividade;
+use App\Traits\{EmpresaTrait, RegistraAtividade};
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 

@@ -1,13 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Caixa\Models;
 
 use App\Enums\FormaPagamento;
 use App\Models\BaseModel;
 use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Traits\EmpresaTrait;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasOne};
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 

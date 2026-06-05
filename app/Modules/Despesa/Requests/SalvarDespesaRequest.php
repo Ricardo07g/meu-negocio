@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Requests;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
 use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;

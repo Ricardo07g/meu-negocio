@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Actions;
 
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Venda\Models\VendaProdutoItem;
+use App\Modules\Venda\Models\{VendaProduto, VendaProdutoItem};
 
 class SincronizarItensVendaProdutoAction
 {

@@ -1,12 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Venda;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusPagamento;
-use App\Enums\StatusParcela;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusPagamento, StatusParcela};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Services\VendaService;

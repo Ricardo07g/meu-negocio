@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Estoque;
 
 use App\Enums\TipoMovimentoEstoque;
@@ -8,8 +10,7 @@ use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Tenant\Models\Empresa;
-use Database\Factories\MovimentoEstoqueFactory;
-use Database\Factories\ProdutoFactory;
+use Database\Factories\{MovimentoEstoqueFactory, ProdutoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;

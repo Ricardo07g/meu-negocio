@@ -1,11 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\StatusDespesa;
-use App\Enums\StatusVendaProduto;
-use App\Enums\TipoMovimentoEstoque;
+use App\Enums\{CondicaoPagamento, StatusDespesa, StatusVendaProduto, TipoMovimentoEstoque};
 use App\Modules\Despesa\Models\Despesa;
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Produto\Models\Produto;

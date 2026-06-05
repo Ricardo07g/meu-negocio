@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Traits;
 
 use App\Exceptions\NegocioException;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\{JsonResponse, RedirectResponse};
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 

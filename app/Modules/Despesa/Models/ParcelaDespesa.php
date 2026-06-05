@@ -1,16 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Models;
 
-use App\Enums\FormaPagamento;
-use App\Enums\StatusParcela;
+use App\Enums\{FormaPagamento, StatusParcela};
 use App\Models\BaseModel;
 use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Traits\EmpresaTrait;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Support\Carbon;
 
 /**

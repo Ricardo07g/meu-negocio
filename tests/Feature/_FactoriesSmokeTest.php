@@ -1,20 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature;
 
-use Database\Factories\AgendamentoFactory;
-use Database\Factories\CaixaFactory;
-use Database\Factories\CategoriaDespesaFactory;
-use Database\Factories\CategoriaProdutoFactory;
-use Database\Factories\ClienteFactory;
-use Database\Factories\DespesaFactory;
-use Database\Factories\MovimentoCaixaFactory;
-use Database\Factories\MovimentoEstoqueFactory;
-use Database\Factories\PagamentoFactory;
-use Database\Factories\ParcelaDespesaFactory;
-use Database\Factories\ParcelaPagamentoFactory;
-use Database\Factories\ProdutoFactory;
-use Database\Factories\ServicoFactory;
+use Database\Factories\{AgendamentoFactory, CaixaFactory, CategoriaDespesaFactory, CategoriaProdutoFactory, ClienteFactory, DespesaFactory, MovimentoCaixaFactory, MovimentoEstoqueFactory, PagamentoFactory, ParcelaDespesaFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

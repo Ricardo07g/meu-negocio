@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Models;
 
 use App\Enums\StatusVendaEtapas;
@@ -9,13 +11,9 @@ use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Traits\EmpresaTrait;
-use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\{EmpresaTrait, RegistraAtividade};
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
 use Illuminate\Support\Carbon;
 
 /**
