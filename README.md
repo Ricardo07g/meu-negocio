@@ -106,11 +106,9 @@ Saldo de abertura, entradas/saídas, sangria, reforço e fechamento — com nave
 - **Modelo financeiro**: Título (`Pagamento` / `Despesa`) + Parcela + Baixa. `condicao_pagamento` (à vista / à prazo) decide o fluxo, `forma_pagamento` fica na parcela/baixa, não no título.
 - **Permissões dinâmicas**: catálogo de permissions fixo no código (`recurso.acao`), Roles criados pelo Admin via UI (`/perfis-acesso`). Apenas o Admin master é seedado.
 
-### Documentação interna
+### Contexto para IA (e para humanos)
 
-A pasta [`.ai/`](.ai/README.md) contém ~30 arquivos de contexto organizados em `contexto/`, `modulos/`, `fluxos/`, `guias/`, `progresso/` e `regras/`. Foi escrita para acelerar onboarding de assistentes de IA, mas serve igualmente bem para um humano que precise entender uma decisão.
-
-A [`CLAUDE.md`](CLAUDE.md) na raiz é o guia consolidado de convenções do projeto.
+A [`CLAUDE.md`](CLAUDE.md) na raiz é o índice enxuto e sempre-carregado das convenções do projeto. O conhecimento de domínio detalhado vive em [`.claude/rules/`](.claude/rules/) como *path-scoped rules*: cada arquivo declara um `paths:` e só entra em contexto quando se edita um arquivo daquele escopo (ex.: a regra do Pagamento carrega ao mexer em `app/Modules/Pagamento/`). É conhecimento **ativo e lazy** — substitui a antiga pasta `.ai/`, que o assistente nunca lia de fato. Procedimentos repetíveis viram *skills* em [`.claude/skills/`](.claude/skills/). Tudo detalhado em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md).
 
 ### Decisões arquiteturais (ADRs)
 
@@ -185,7 +183,8 @@ Após o `DesenvolvimentoSeeder`:
 
 ```
 meu-negocio/
-├── .ai/                    # Documentação interna (contexto, módulos, fluxos, guias)
+├── .claude/                # Automação de dev com IA: rules (lazy), skills, agents, hooks, commands
+├── bin/sync-devkit.sh      # Gera o devkit/ a partir de .claude/ (CI valida a sincronia)
 ├── app/
 │   ├── Modules/            # 14 módulos: Tenant, Auth, Usuario, Cliente, Servico,
 │   │   │                   # Agenda, Venda, Pagamento, Despesa, Caixa, Estoque,
