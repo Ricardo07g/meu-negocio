@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -7,8 +9,7 @@ use App\Modules\Produto\DTOs\CategoriaProdutoData;
 use App\Modules\Produto\Models\CategoriaProduto;
 use App\Modules\Produto\Requests\SalvarCategoriaProdutoRequest;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class CategoriaProdutoController extends Controller

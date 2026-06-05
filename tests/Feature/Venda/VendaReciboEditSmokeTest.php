@@ -1,18 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Venda;
 
-use App\Enums\StatusVendaEtapas;
-use App\Enums\StatusVendaProduto;
+use App\Enums\{StatusVendaEtapas, StatusVendaProduto};
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
-use Database\Factories\AgendamentoFactory;
-use Database\Factories\ClienteFactory;
-use Database\Factories\PagamentoFactory;
-use Database\Factories\ParcelaPagamentoFactory;
-use Database\Factories\ProdutoFactory;
-use Database\Factories\ServicoFactory;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use Database\Factories\{AgendamentoFactory, ClienteFactory, PagamentoFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;

@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
-use Database\Factories\CategoriaDespesaFactory;
-use Database\Factories\DespesaFactory;
-use Database\Factories\ParcelaDespesaFactory;
+use Database\Factories\{CategoriaDespesaFactory, DespesaFactory, ParcelaDespesaFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;

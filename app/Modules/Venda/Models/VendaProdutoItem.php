@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Models;
 
 use App\Modules\Produto\Models\Produto;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Estoque\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -8,13 +10,13 @@ use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Requests\RegistrarMovimentoRequest;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\Models\Produto;
-use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class MovimentoEstoqueController extends Controller
 {
+    use DefineEmpresaDeCriacao;
     use TratamentoErros;
 
     public function __construct(
@@ -50,17 +52,15 @@ class MovimentoEstoqueController extends Controller
     public function store(RegistrarMovimentoRequest $request): RedirectResponse
     {
         try {
-            if ($request->filled('empresa_id')) {
-                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
-            }
+            $empresaId = $request->filled('empresa_id') ? (int) $request->empresa_id : null;
 
-            $this->service->registrarMovimento(RegistrarMovimentoData::from($request->validated()));
+            return $this->comEmpresaDeCriacao($empresaId, function () use ($request) {
+                $this->service->registrarMovimento(RegistrarMovimentoData::from($request->validated()));
 
-            return redirect()->route('movimentos-estoque.index')->with('sucesso', 'Movimento registrado com sucesso.');
+                return redirect()->route('movimentos-estoque.index')->with('sucesso', 'Movimento registrado com sucesso.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao criar movimento de estoque');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 }

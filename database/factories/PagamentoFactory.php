@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\StatusPagamento;
+use App\Enums\{CondicaoPagamento, StatusPagamento};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Factories\Factory;

@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Agenda\Services;
 
 use App\Enums\StatusAgendamento;
-use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
-use App\Modules\Agenda\Actions\CriarAgendamentoAction;
-use App\Modules\Agenda\Actions\FinalizarAgendamentoAction;
+use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction, FinalizarAgendamentoAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use Carbon\Carbon;

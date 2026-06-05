@@ -1,41 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\StatusAgendamento;
-use App\Enums\StatusCaixa;
-use App\Enums\StatusDespesa;
-use App\Enums\StatusPagamento;
-use App\Enums\StatusParcela;
-use App\Enums\StatusRede;
-use App\Enums\StatusVendaEtapas;
-use App\Enums\StatusVendaProduto;
-use App\Enums\TipoMovimentoCaixa;
-use App\Enums\TipoMovimentoEstoque;
-use App\Enums\TipoServico;
+use App\Enums\{CondicaoPagamento, FormaPagamento, StatusAgendamento, StatusCaixa, StatusDespesa, StatusPagamento, StatusParcela, StatusRede, StatusVendaEtapas, StatusVendaProduto, TipoMovimentoCaixa, TipoMovimentoEstoque, TipoServico};
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Caixa\Models\BaixaDespesa;
-use App\Modules\Caixa\Models\BaixaPagamento;
-use App\Modules\Caixa\Models\Caixa;
-use App\Modules\Caixa\Models\MovimentoCaixa;
+use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Despesa\Models\CategoriaDespesa;
-use App\Modules\Despesa\Models\Despesa;
-use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Estoque\Models\MovimentoEstoque;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
-use App\Modules\Produto\Models\CategoriaProduto;
-use App\Modules\Produto\Models\Produto;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
+use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Servico\Models\Servico;
-use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Carbon\Carbon;
 use Faker\Factory as FakerFactory;
 use Illuminate\Database\Seeder;

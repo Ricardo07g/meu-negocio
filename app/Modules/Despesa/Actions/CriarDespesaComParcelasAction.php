@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Actions;
 
-use App\Enums\StatusDespesa;
-use App\Enums\StatusParcela;
+use App\Enums\{StatusDespesa, StatusParcela};
 use App\Exceptions\NegocioException;
 use App\Modules\Despesa\DTOs\CriarDespesaData;
-use App\Modules\Despesa\Models\Despesa;
-use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\Despesa\Models\{Despesa, ParcelaDespesa};
 use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Support\Facades\DB;
 

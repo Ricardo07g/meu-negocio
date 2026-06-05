@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Actions;
 
 use App\Modules\Tenant\DTOs\EmpresaData;
-use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Empresa, Rede};
 
 class CriarEmpresaAction
 {

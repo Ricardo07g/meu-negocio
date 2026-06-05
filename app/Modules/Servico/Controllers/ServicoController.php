@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Servico\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -8,9 +10,7 @@ use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Services\ServicoService;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Illuminate\View\View;
 
 class ServicoController extends Controller

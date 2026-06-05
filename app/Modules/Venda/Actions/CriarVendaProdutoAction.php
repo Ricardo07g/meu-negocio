@@ -1,18 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Actions;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusVendaProduto;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusVendaProduto};
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Pagamento\Actions\CriarPagamentoComParcelasAction;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
-use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Venda\Models\VendaProdutoItem;
+use App\Modules\Venda\Models\{VendaProduto, VendaProdutoItem};
 use Carbon\Carbon;
 
 class CriarVendaProdutoAction

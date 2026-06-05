@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
 use App\Modules\Despesa\Models\Despesa;

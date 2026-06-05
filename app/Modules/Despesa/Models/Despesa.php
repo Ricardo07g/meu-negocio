@@ -1,20 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Models;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusDespesa;
-use App\Enums\StatusParcela;
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusDespesa, StatusParcela};
 use App\Models\BaseModel;
 use App\Modules\Caixa\Models\BaixaDespesa;
-use App\Traits\EmpresaTrait;
-use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Traits\{EmpresaTrait, RegistraAtividade};
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasManyThrough};
 use Illuminate\Support\Carbon;
 
 /**
