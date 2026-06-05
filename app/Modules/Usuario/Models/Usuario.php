@@ -6,14 +6,32 @@ use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
 use App\Modules\Tenant\Models\Empresa;
 use App\Traits\RedeTrait;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int|null $empresa_id
+ * @property string $nome
+ * @property string $email
+ * @property string $password
+ * @property bool $ativo
+ * @property bool $atende
+ * @property string|null $remember_token
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Collection<int, Empresa> $empresas
+ * @property-read Empresa|null $empresa
+ */
 class Usuario extends Authenticatable
 {
     use HasRoles, Notifiable, RedeTrait, SoftDeletes;

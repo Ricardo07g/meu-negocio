@@ -9,7 +9,28 @@ use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $parcela_despesa_id
+ * @property int|null $caixa_id
+ * @property float $valor
+ * @property float $multa
+ * @property float $juros
+ * @property float $desconto
+ * @property FormaPagamento $forma_pagamento
+ * @property Carbon $data
+ * @property string|null $observacao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read ParcelaDespesa $parcela
+ * @property-read Caixa|null $caixa
+ * @property-read MovimentoCaixa|null $movimentoCaixa
+ */
 class BaixaDespesa extends BaseModel
 {
     use EmpresaTrait, SoftDeletes;

@@ -14,7 +14,29 @@ use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $cliente_id
+ * @property int $servico_id
+ * @property int $atendente_id
+ * @property int|null $venda_etapas_id
+ * @property Carbon $inicio
+ * @property Carbon $fim
+ * @property StatusAgendamento $status
+ * @property string|null $observacoes
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Cliente $cliente
+ * @property-read Servico $servico
+ * @property-read Usuario $atendente
+ * @property-read VendaEtapas|null $vendaEtapas
+ * @property-read Pagamento|null $pagamento
+ */
 class Agendamento extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;

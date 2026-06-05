@@ -10,11 +10,35 @@ use App\Models\BaseModel;
 use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int|null $categoria_despesa_id
+ * @property string $nome
+ * @property string|null $fornecedor_nome
+ * @property string|null $documento
+ * @property string|null $observacoes
+ * @property float $valor_total
+ * @property CondicaoPagamento $condicao_pagamento
+ * @property FormaRecebimentoPrazo|null $forma_recebimento_prazo
+ * @property Carbon $mes_referencia
+ * @property Carbon $data_emissao
+ * @property StatusDespesa $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read CategoriaDespesa|null $categoria
+ * @property-read Collection<int, ParcelaDespesa> $parcelas
+ * @property-read Collection<int, BaixaDespesa> $baixas
+ */
 class Despesa extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;

@@ -5,7 +5,23 @@ namespace App\Modules\Venda\Models;
 use App\Modules\Produto\Models\Produto;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $venda_produto_id
+ * @property int $produto_id
+ * @property string $descricao
+ * @property int $quantidade
+ * @property float $valor_unitario
+ * @property float $desconto
+ * @property float $acrescimo
+ * @property float $subtotal
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property-read VendaProduto $vendaProduto
+ * @property-read Produto $produto
+ */
 class VendaProdutoItem extends Model
 {
     protected $table = 'venda_produto_itens';

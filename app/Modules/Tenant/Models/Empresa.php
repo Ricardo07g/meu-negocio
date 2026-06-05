@@ -10,10 +10,31 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property string $nome
+ * @property string|null $documento
+ * @property string|null $telefone
+ * @property string|null $email
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Collection<int, Usuario> $usuarios
+ * @property-read Collection<int, Usuario> $usuariosDefault
+ * @property-read Collection<int, Cliente> $clientes
+ * @property-read Collection<int, Servico> $servicos
+ * @property-read Collection<int, Agendamento> $agendamentos
+ * @property-read Collection<int, Pagamento> $pagamentos
+ * @property-read Collection<int, Despesa> $despesas
+ * @property-read Collection<int, Produto> $produtos
+ */
 class Empresa extends BaseModel
 {
     use SoftDeletes;

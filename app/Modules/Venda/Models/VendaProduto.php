@@ -9,11 +9,34 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int|null $cliente_id
+ * @property int $usuario_id
+ * @property Carbon $data
+ * @property float $subtotal
+ * @property float $desconto
+ * @property float $acrescimo
+ * @property float $valor_total
+ * @property StatusVendaProduto $status
+ * @property string|null $observacao
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Cliente|null $cliente
+ * @property-read Usuario $usuario
+ * @property-read Collection<int, VendaProdutoItem> $itens
+ * @property-read Pagamento|null $pagamento
+ */
 class VendaProduto extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;
