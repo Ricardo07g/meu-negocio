@@ -23,6 +23,9 @@ class VenderEtapasAction
                 'cliente_id' => $data->cliente_id,
                 'servico_id' => $data->servico_id,
                 'atendente_id' => $data->atendente_id,
+                // Data representativa da venda = primeira sessao (coluna NOT NULL,
+                // exibida no _venda_card). As datas de cada etapa ficam nos agendamentos.
+                'data' => Carbon::parse($data->datas[0]),
                 'valor_total' => $data->valor_total,
                 'qtd_etapas' => count($data->datas),
                 'status' => StatusVendaEtapas::Ativo,

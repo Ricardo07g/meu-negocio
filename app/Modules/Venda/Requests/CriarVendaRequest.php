@@ -97,7 +97,7 @@ class CriarVendaRequest extends FormRequest
         }
 
         $servico = Servico::find($this->input('servico_id'));
-        $isPacote = $servico && $servico->isPacote();
+        $isEtapas = $servico && $servico->isEtapas();
 
         $rules = [
             'tipo_venda' => ['required', 'in:servico,produto'],
@@ -106,7 +106,7 @@ class CriarVendaRequest extends FormRequest
             'atendente_id' => ['required', 'integer', 'exists:usuarios,id'],
         ];
 
-        if ($isPacote) {
+        if ($isEtapas) {
             $rules += [
                 'valor_total' => ['required', 'numeric', 'min:0.01'],
                 'horario' => ['required', 'date_format:H:i'],
