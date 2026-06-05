@@ -13,13 +13,6 @@ class UsuarioPolicy
         return $usuario->can('usuario.ver');
     }
 
-    public function view(Usuario $usuario, Usuario $alvo): bool
-    {
-        return $usuario->rede_id === $alvo->rede_id
-            && $usuario->podeAcessarEmpresa($alvo->empresa_id)
-            && $usuario->can('usuario.ver');
-    }
-
     public function create(Usuario $usuario): bool
     {
         return $usuario->can('usuario.criar');
