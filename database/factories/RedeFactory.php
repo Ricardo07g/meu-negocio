@@ -18,7 +18,7 @@ class RedeFactory extends Factory
     {
         return [
             'nome' => fake('pt_BR')->company(),
-            'plano_id' => Plano::firstWhere('nome', 'free')?->id ?? Plano::factory(),
+            'plano_id' => Plano::firstWhere('nome', 'free')?->id ?? PlanoFactory::new(),
             'status' => StatusRede::Ativa,
         ];
     }

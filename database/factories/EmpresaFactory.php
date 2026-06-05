@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Rede;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,7 +15,7 @@ class EmpresaFactory extends Factory
     public function definition(): array
     {
         return [
-            'rede_id' => Rede::factory(),
+            'rede_id' => RedeFactory::new(),
             'nome' => fake('pt_BR')->company(),
             'documento' => null,
             'telefone' => fake('pt_BR')->cellphoneNumber(false),
