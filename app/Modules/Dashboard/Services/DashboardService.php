@@ -1,14 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Dashboard\Services;
 
-use App\Enums\StatusAgendamento;
-use App\Enums\StatusCaixa;
-use App\Enums\StatusParcela;
+use App\Enums\{StatusAgendamento, StatusCaixa, StatusParcela};
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Caixa\Models\BaixaDespesa;
-use App\Modules\Caixa\Models\BaixaPagamento;
-use App\Modules\Caixa\Models\Caixa;
+use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa};
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Modules\Servico\Models\Servico;

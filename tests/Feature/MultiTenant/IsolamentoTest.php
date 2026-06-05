@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\MultiTenant;
 
 use App\Modules\Cliente\Models\Cliente;

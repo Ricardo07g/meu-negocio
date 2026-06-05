@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Agenda\Policies;
 
 use App\Modules\Agenda\Models\Agendamento;

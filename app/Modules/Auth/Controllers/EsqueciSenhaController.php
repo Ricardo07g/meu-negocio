@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 

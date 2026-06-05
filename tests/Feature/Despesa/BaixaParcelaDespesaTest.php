@@ -1,21 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
-use App\Enums\FormaPagamento;
-use App\Enums\StatusCaixa;
-use App\Enums\StatusDespesa;
-use App\Enums\StatusParcela;
-use App\Enums\TipoMovimentoCaixa;
+use App\Enums\{FormaPagamento, StatusCaixa, StatusDespesa, StatusParcela, TipoMovimentoCaixa};
 use App\Exceptions\NegocioException;
-use App\Modules\Caixa\Models\BaixaDespesa;
-use App\Modules\Caixa\Models\MovimentoCaixa;
+use App\Modules\Caixa\Models\{BaixaDespesa, MovimentoCaixa};
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Despesa\Models\Despesa;
 use Carbon\Carbon;
-use Database\Factories\CaixaFactory;
-use Database\Factories\DespesaFactory;
-use Database\Factories\ParcelaDespesaFactory;
+use Database\Factories\{CaixaFactory, DespesaFactory, ParcelaDespesaFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Tests\TestCase;

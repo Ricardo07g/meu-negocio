@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\StatusParcela;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

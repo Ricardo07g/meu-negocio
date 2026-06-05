@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Cadastro;
 
 use App\Modules\Usuario\Models\Usuario;
-use Database\Factories\ClienteFactory;
-use Database\Factories\ProdutoFactory;
-use Database\Factories\ServicoFactory;
+use Database\Factories\{ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\Concerns\CriaTenant;

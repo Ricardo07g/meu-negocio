@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Actions;
 
-use App\Enums\StatusAgendamento;
-use App\Enums\StatusVendaEtapas;
+use App\Enums\{StatusAgendamento, StatusVendaEtapas};
 use App\Exceptions\ConflitoAgendamentoException;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Servico\Models\Servico;

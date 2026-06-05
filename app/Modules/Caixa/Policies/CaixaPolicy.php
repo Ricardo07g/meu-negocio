@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Caixa\Policies;
 
 use App\Modules\Caixa\Models\Caixa;

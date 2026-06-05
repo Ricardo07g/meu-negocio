@@ -1,10 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Venda\Controllers;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
@@ -14,20 +14,14 @@ use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Venda\DTOs\VenderEtapasData;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Venda\Requests\AtualizarVendaEtapasRequest;
-use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
-use App\Modules\Venda\Requests\AtualizarVendaUnicoRequest;
-use App\Modules\Venda\Requests\CriarVendaRequest;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use App\Modules\Venda\Requests\{AtualizarVendaEtapasRequest, AtualizarVendaProdutoRequest, AtualizarVendaUnicoRequest, CriarVendaRequest};
 use App\Modules\Venda\Services\VendaService;
 use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\{RedirectResponse, Request, Response};
 use Illuminate\View\View;
 
 class VendaController extends Controller

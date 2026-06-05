@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Pagamento;
 
-use Database\Factories\PagamentoFactory;
-use Database\Factories\ParcelaPagamentoFactory;
+use Database\Factories\{PagamentoFactory, ParcelaPagamentoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;

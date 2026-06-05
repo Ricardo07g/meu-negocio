@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Actions;
 
 use App\Exceptions\NegocioException;
-use App\Modules\Tenant\Models\Fatura;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Fatura, Plano, Rede};
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 

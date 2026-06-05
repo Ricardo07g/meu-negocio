@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Agenda;
 
 use App\Enums\StatusAgendamento;
 use App\Modules\Agenda\Models\Agendamento;
-use Database\Factories\ClienteFactory;
-use Database\Factories\ServicoFactory;
+use Database\Factories\{ClienteFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

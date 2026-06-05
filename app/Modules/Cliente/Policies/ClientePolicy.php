@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Cliente\Policies;
 
 use App\Modules\Cliente\Models\Cliente;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Policies;
 
 use App\Modules\Despesa\Models\CategoriaDespesa;

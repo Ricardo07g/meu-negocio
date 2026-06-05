@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
-use App\Enums\FormaPagamento;
-use App\Enums\TipoMovimentoCaixa;
+use App\Enums\{FormaPagamento, TipoMovimentoCaixa};
 use App\Modules\Caixa\Models\MovimentoCaixa;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
