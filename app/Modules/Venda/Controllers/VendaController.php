@@ -18,7 +18,7 @@ use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Requests\{AtualizarVendaEtapasRequest, AtualizarVendaProdutoRequest, AtualizarVendaUnicoRequest, CriarVendaRequest};
 use App\Modules\Venda\Services\VendaService;
 use App\Support\ContextoEmpresa;
-use App\Traits\TratamentoErros;
+use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request, Response};
@@ -26,6 +26,7 @@ use Illuminate\View\View;
 
 class VendaController extends Controller
 {
+    use DefineEmpresaDeCriacao;
     use TratamentoErros;
 
     public function __construct(
@@ -95,94 +96,96 @@ class VendaController extends Controller
     public function store(CriarVendaRequest $request): RedirectResponse
     {
         try {
-            // ME-010: quando ha multiplas empresas selecionadas no header, o
-            // formulario envia empresa_id; setamos como override de criacao
-            // para que toda a cascata (Venda, Pagamento, Parcela, Baixa,
-            // MovimentoCaixa) use a mesma empresa via EmpresaTrait::creating.
-            if ($request->filled('empresa_id')) {
-                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
-            }
+            $empresaId = $request->filled('empresa_id') ? (int) $request->empresa_id : null;
 
-            $condicao = CondicaoPagamento::from($request->condicao_pagamento);
-            $aVista = $condicao === CondicaoPagamento::AVista;
-
-            $forma = $request->forma_pagamento
-                ? FormaPagamento::from($request->forma_pagamento)
-                : null;
-
-            $formaRecebimentoPrazo = $request->forma_recebimento_prazo
-                ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
-                : null;
-
-            $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
-            $primeiroVencimento = $condicao->geraParcelas()
-                ? Carbon::parse($request->primeiro_vencimento)
-                : now();
-            $mesReferencia = Carbon::parse($request->mes_referencia)->startOfMonth();
-
-            $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
-
-            if ($aVista && ! $this->caixaService->caixaAberto()) {
-                return redirect()->back()->withInput()
-                    ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
-            }
-
-            if ($request->tipo_venda === 'produto') {
-                $itens = $request->input('itens', []);
-
-                $this->service->criarVendaProduto(
-                    $request->cliente_id,
-                    $itens,
-                    $condicao,
-                    $mesReferencia,
-                    $forma,
-                    $numeroParcelas,
-                    $primeiroVencimento,
-                    $request->data,
-                    $request->observacao,
-                    $parcelasPersonalizadas,
-                    $formaRecebimentoPrazo,
-                );
-
-                return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
-            }
-
-            $servico = Servico::findOrFail($request->servico_id);
-
-            if ($servico->isEtapas()) {
-                $this->service->criarEtapas(
-                    VenderEtapasData::from($request->validated()),
-                    $condicao,
-                    $mesReferencia,
-                    $forma,
-                    $numeroParcelas,
-                    $primeiroVencimento,
-                    $parcelasPersonalizadas,
-                    $formaRecebimentoPrazo,
-                );
-                $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
-            } else {
-                $payload = $request->validated();
-                $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'].' '.$payload['horario']);
-                $this->service->criarUnico(
-                    AgendamentoData::from($payload),
-                    $condicao,
-                    $mesReferencia,
-                    $forma,
-                    $numeroParcelas,
-                    $primeiroVencimento,
-                    $parcelasPersonalizadas,
-                    $formaRecebimentoPrazo,
-                );
-                $msg = 'Agendamento criado com sucesso.';
-            }
-
-            return redirect()->route('vendas.index')->with('sucesso', $msg);
+            return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
+    }
+
+    /**
+     * Converte os dados do request, valida pre-requisitos (caixa aberto para
+     * vendas a vista) e delega a criacao ao service conforme o tipo de venda:
+     * produto, servico em etapas ou agendamento unico.
+     */
+    private function processarVenda(CriarVendaRequest $request): RedirectResponse
+    {
+        $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+        $aVista = $condicao === CondicaoPagamento::AVista;
+
+        $forma = $request->forma_pagamento
+            ? FormaPagamento::from($request->forma_pagamento)
+            : null;
+
+        $formaRecebimentoPrazo = $request->forma_recebimento_prazo
+            ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
+            : null;
+
+        $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
+        $primeiroVencimento = $condicao->geraParcelas()
+            ? Carbon::parse($request->primeiro_vencimento)
+            : now();
+        $mesReferencia = Carbon::parse($request->mes_referencia)->startOfMonth();
+
+        $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
+
+        if ($aVista && ! $this->caixaService->caixaAberto()) {
+            return redirect()->back()->withInput()
+                ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
+        }
+
+        if ($request->tipo_venda === 'produto') {
+            $itens = $request->input('itens', []);
+
+            $this->service->criarVendaProduto(
+                $request->cliente_id,
+                $itens,
+                $condicao,
+                $mesReferencia,
+                $forma,
+                $numeroParcelas,
+                $primeiroVencimento,
+                $request->data,
+                $request->observacao,
+                $parcelasPersonalizadas,
+                $formaRecebimentoPrazo,
+            );
+
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
+        }
+
+        $servico = Servico::findOrFail($request->servico_id);
+
+        if ($servico->isEtapas()) {
+            $this->service->criarEtapas(
+                VenderEtapasData::from($request->validated()),
+                $condicao,
+                $mesReferencia,
+                $forma,
+                $numeroParcelas,
+                $primeiroVencimento,
+                $parcelasPersonalizadas,
+                $formaRecebimentoPrazo,
+            );
+            $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
+        } else {
+            $payload = $request->validated();
+            $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'].' '.$payload['horario']);
+            $this->service->criarUnico(
+                AgendamentoData::from($payload),
+                $condicao,
+                $mesReferencia,
+                $forma,
+                $numeroParcelas,
+                $primeiroVencimento,
+                $parcelasPersonalizadas,
+                $formaRecebimentoPrazo,
+            );
+            $msg = 'Agendamento criado com sucesso.';
+        }
+
+        return redirect()->route('vendas.index')->with('sucesso', $msg);
     }
 
     /**

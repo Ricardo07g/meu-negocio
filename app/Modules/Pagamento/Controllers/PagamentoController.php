@@ -11,7 +11,7 @@ use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, RenegociarParcelaRequest, SalvarBaixaParcelaRequest};
 use App\Modules\Pagamento\Services\PagamentoService;
-use App\Traits\TratamentoErros;
+use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request, Response};
@@ -19,6 +19,7 @@ use Illuminate\View\View;
 
 class PagamentoController extends Controller
 {
+    use DefineEmpresaDeCriacao;
     use TratamentoErros;
 
     public function __construct(
@@ -56,60 +57,54 @@ class PagamentoController extends Controller
     public function baixaParcela(SalvarBaixaParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+            return $this->comEmpresaDeCriacao((int) $parcela->empresa_id, function () use ($request, $parcela) {
+                $this->caixaService->darBaixaParcelaPagamento(
+                    $parcela,
+                    (float) $request->valor,
+                    FormaPagamento::from($request->forma_pagamento),
+                    $request->observacao,
+                    (float) ($request->multa ?? 0),
+                    (float) ($request->juros ?? 0),
+                    (float) ($request->desconto ?? 0),
+                );
 
-            $this->caixaService->darBaixaParcelaPagamento(
-                $parcela,
-                (float) $request->valor,
-                FormaPagamento::from($request->forma_pagamento),
-                $request->observacao,
-                (float) ($request->multa ?? 0),
-                (float) ($request->juros ?? 0),
-                (float) ($request->desconto ?? 0),
-            );
-
-            return redirect()->route('pagamentos.index')->with('sucesso', 'Recebimento registrado.');
+                return redirect()->route('pagamentos.index')->with('sucesso', 'Recebimento registrado.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar recebimento');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function renegociarParcela(RenegociarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+            return $this->comEmpresaDeCriacao((int) $parcela->empresa_id, function () use ($request, $parcela) {
+                $this->service->renegociarParcela(
+                    $parcela,
+                    new RenegociarParcelaData(
+                        data_vencimento: Carbon::parse($request->data_vencimento),
+                        valor: (float) $request->valor,
+                        observacao: $request->observacao,
+                    )
+                );
 
-            $this->service->renegociarParcela(
-                $parcela,
-                new RenegociarParcelaData(
-                    data_vencimento: Carbon::parse($request->data_vencimento),
-                    valor: (float) $request->valor,
-                    observacao: $request->observacao,
-                )
-            );
-
-            return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela renegociada.');
+                return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela renegociada.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao renegociar parcela');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function cancelarParcela(CancelarParcelaRequest $request, ParcelaPagamento $parcela): RedirectResponse
     {
         try {
-            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+            return $this->comEmpresaDeCriacao((int) $parcela->empresa_id, function () use ($request, $parcela) {
+                $this->service->cancelarParcela($parcela, $request->input('motivo'));
 
-            $this->service->cancelarParcela($parcela, $request->input('motivo'));
-
-            return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela cancelada.');
+                return redirect()->route('pagamentos.index')->with('sucesso', 'Parcela cancelada.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar parcela');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
