@@ -32,7 +32,7 @@ Projeto de **portfólio**: foco em demonstrar arquitetura modular, multi-tenancy
 Donas de pequenos salões, clínicas e profissionais autônomos costumam viver com planilha + WhatsApp + bloco de papel. **Meu Negócio** consolida o operacional do dia-a-dia em uma só ferramenta:
 
 - **Agenda** com bloqueio de conflito de horário e múltiplos atendentes (calendário Toast UI).
-- **Vendas** de serviços avulsos, pacotes (várias sessões) e produtos físicos, com carrinho multi-item.
+- **Vendas** de serviços únicos, serviços em etapas (várias sessões) e produtos físicos, com carrinho multi-item.
 - **Financeiro** modelado como Título + Parcela + Baixa: aceita pagamento à vista, à prazo, parcial e renegociação.
 - **Caixa diário** com abertura/fechamento, sangria, reforço e estorno automático ao cancelar venda.
 - **Estoque** com movimentos de entrada/saída/ajuste vinculados a vendas de produto.
@@ -46,15 +46,32 @@ Stack moderna (PHP 8.3 + Laravel 13), código em português, padrões consistent
 
 Imagens capturadas após rodar o `DesenvolvimentoSeeder` (rede demo com 500 clientes, 600 agendamentos, 100 vendas e 45 dias de caixa retroativo).
 
-> Os screenshots ficam em [`docs/screenshots/`](docs/screenshots/). Para capturá-los localmente, suba o ambiente com Docker, execute o seed de desenvolvimento e siga as instruções em [`docs/screenshots/README.md`](docs/screenshots/README.md).
+### Dashboard
+Cards de agendamentos do dia, clientes, receita e contas a receber, com fluxo financeiro (6 meses) e agendamentos por status.
 
-| Tela | Descrição |
-|------|-----------|
-| Dashboard | Cards de agendamentos do dia, clientes, receita, contas a receber e situação do caixa |
-| Agenda | Calendário semanal com cores por atendente e detalhamento de cada slot |
-| Venda em andamento | Carrinho com produtos, total, cliente e condição de pagamento (à vista / à prazo) |
-| Contas a Receber | Lista de parcelas pendentes com baixa parcial e renegociação |
-| Caixa diário | Movimentos do dia, sangrias, reforços e baixas |
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Agenda
+Calendário semanal (Toast UI) com cores por atendente e múltiplas empresas.
+
+![Agenda](docs/screenshots/agenda.png)
+
+### Nova venda
+Fluxo de venda — serviço único, serviço em etapas ou produto — com busca AJAX de cliente/serviço/produto e condição de pagamento (à vista / à prazo).
+
+![Nova venda](docs/screenshots/venda.png)
+
+### Contas a Receber
+Parcelas pendentes com filtros por empresa/status/competência, badges de situação, baixa parcial e renegociação.
+
+![Contas a Receber](docs/screenshots/contas-a-receber.png)
+
+### Caixa diário
+Saldo de abertura, entradas/saídas, sangria, reforço e fechamento — com navegação por dia e abertura retroativa.
+
+![Caixa diário](docs/screenshots/caixa.png)
+
+> Para recapturar localmente: suba o ambiente, rode o `DesenvolvimentoSeeder` e siga [`docs/screenshots/README.md`](docs/screenshots/README.md).
 
 ---
 
@@ -197,7 +214,10 @@ meu-negocio/
 │       └── DesenvolvimentoSeeder   # Dados volumosos para demonstração
 ├── docker/                 # Dockerfiles (php, nginx, mysql)
 ├── docker-compose.yml
+├── CHANGELOG.md            # Histórico de versões (Keep a Changelog)
 ├── docs/
+│   ├── ADR/                        # Architecture Decision Records (decisões marcantes)
+│   ├── AUTOMACAO.md                # Automação de dev (Claude Code): hooks, subagents, skills
 │   ├── FECHAMENTO_PORTFOLIO.md     # Backlog técnico de fechamento de escopo
 │   └── screenshots/                # Imagens da UI
 ├── resources/
