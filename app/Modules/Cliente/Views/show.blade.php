@@ -236,7 +236,7 @@
                                 <tbody>
                                     @forelse($cliente->pagamentos->sortByDesc('created_at') as $pagamento)
                                     <tr>
-                                        <td>{{ $pagamento->agendamento->servico->nome ?? $pagamento->vendaPacote->servico->nome ?? ($pagamento->vendaProduto ? 'Venda de produto' : '-') }}</td>
+                                        <td>{{ $pagamento->agendamento->servico->nome ?? $pagamento->vendaEtapas->servico->nome ?? ($pagamento->vendaProduto ? 'Venda de produto' : '-') }}</td>
                                         <td>R$ {{ number_format($pagamento->valor_total, 2, ',', '.') }}</td>
                                         <td>{{ $pagamento->condicao_pagamento->label() }}</td>
                                         <td>
