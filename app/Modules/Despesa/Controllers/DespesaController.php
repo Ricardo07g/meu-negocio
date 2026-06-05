@@ -1,26 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Controllers;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Despesa\DTOs\CriarDespesaData;
-use App\Modules\Despesa\Models\CategoriaDespesa;
-use App\Modules\Despesa\Models\Despesa;
-use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Services\DespesaService;
-use App\Modules\Pagamento\Requests\CancelarParcelaRequest;
-use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
+use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, SalvarBaixaParcelaRequest};
 use App\Traits\TratamentoErros;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\{RedirectResponse, Request, Response};
 use Illuminate\View\View;
 
 class DespesaController extends Controller

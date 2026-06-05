@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Enums\StatusParcela;
-use App\Modules\Despesa\Models\Despesa;
-use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\Despesa\Models\{Despesa, ParcelaDespesa};
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

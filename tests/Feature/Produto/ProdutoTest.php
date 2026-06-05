@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Produto;
 
 use App\Modules\Produto\Models\Produto;

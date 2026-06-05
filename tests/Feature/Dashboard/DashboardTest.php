@@ -1,15 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Dashboard;
 
-use App\Enums\StatusAgendamento;
-use App\Enums\StatusParcela;
+use App\Enums\{StatusAgendamento, StatusParcela};
 use App\Modules\Dashboard\Services\DashboardService;
-use Database\Factories\AgendamentoFactory;
-use Database\Factories\ClienteFactory;
-use Database\Factories\PagamentoFactory;
-use Database\Factories\ParcelaPagamentoFactory;
-use Database\Factories\ServicoFactory;
+use Database\Factories\{AgendamentoFactory, ClienteFactory, PagamentoFactory, ParcelaPagamentoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

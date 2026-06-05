@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
-use App\Enums\StatusDespesa;
-use App\Enums\StatusParcela;
+use App\Enums\{StatusDespesa, StatusParcela};
 use App\Exceptions\NegocioException;
 use App\Modules\Despesa\Services\DespesaService;
-use Database\Factories\DespesaFactory;
-use Database\Factories\ParcelaDespesaFactory;
+use Database\Factories\{DespesaFactory, ParcelaDespesaFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Tenant;
 
-use App\Modules\Tenant\Models\Fatura;
-use App\Modules\Tenant\Models\Plano;
+use App\Modules\Tenant\Models\{Fatura, Plano};
 use Carbon\Carbon;
-use Database\Factories\EmpresaFactory;
-use Database\Factories\PlanoFactory;
+use Database\Factories\{EmpresaFactory, PlanoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CriaTenant;

@@ -1,20 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Caixa\Services;
 
-use App\Enums\FormaPagamento;
-use App\Enums\StatusCaixa;
-use App\Enums\StatusPagamento;
-use App\Enums\StatusParcela;
-use App\Enums\TipoMovimentoCaixa;
+use App\Enums\{FormaPagamento, StatusCaixa, StatusPagamento, StatusParcela, TipoMovimentoCaixa};
 use App\Exceptions\NegocioException;
-use App\Modules\Caixa\Models\BaixaDespesa;
-use App\Modules\Caixa\Models\BaixaPagamento;
-use App\Modules\Caixa\Models\Caixa;
-use App\Modules\Caixa\Models\MovimentoCaixa;
+use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
 use App\Modules\Despesa\Models\ParcelaDespesa;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use Illuminate\Support\Facades\DB;
 
 class CaixaService

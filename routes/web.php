@@ -1,25 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Modules\Agenda\Controllers\AgendaController;
-use App\Modules\Auth\Controllers\EsqueciSenhaController;
-use App\Modules\Auth\Controllers\LoginController;
-use App\Modules\Auth\Controllers\RedefinirSenhaController;
-use App\Modules\Auth\Controllers\RegistrarController;
+use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController};
 use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\ClienteController;
 use App\Modules\Dashboard\Controllers\DashboardController;
-use App\Modules\Despesa\Controllers\CategoriaDespesaController;
-use App\Modules\Despesa\Controllers\DespesaController;
+use App\Modules\Despesa\Controllers\{CategoriaDespesaController, DespesaController};
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
 use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
-use App\Modules\Produto\Controllers\CategoriaProdutoController;
-use App\Modules\Produto\Controllers\ProdutoController;
+use App\Modules\Produto\Controllers\{CategoriaProdutoController, ProdutoController};
 use App\Modules\Servico\Controllers\ServicoController;
-use App\Modules\Tenant\Controllers\AssinaturaController;
-use App\Modules\Tenant\Controllers\EmpresaController;
-use App\Modules\Usuario\Controllers\PerfilController;
-use App\Modules\Usuario\Controllers\UsuarioController;
+use App\Modules\Tenant\Controllers\{AssinaturaController, EmpresaController};
+use App\Modules\Usuario\Controllers\{PerfilController, UsuarioController};
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 

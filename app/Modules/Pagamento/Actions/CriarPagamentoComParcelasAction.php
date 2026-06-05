@@ -1,13 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Pagamento\Actions;
 
-use App\Enums\StatusPagamento;
-use App\Enums\StatusParcela;
+use App\Enums\{StatusPagamento, StatusParcela};
 use App\Exceptions\NegocioException;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Support\Facades\DB;
 

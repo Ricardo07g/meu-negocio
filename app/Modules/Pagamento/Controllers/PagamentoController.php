@@ -1,23 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Pagamento\Controllers;
 
 use App\Enums\FormaPagamento;
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
-use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Pagamento\Models\ParcelaPagamento;
-use App\Modules\Pagamento\Requests\CancelarParcelaRequest;
-use App\Modules\Pagamento\Requests\RenegociarParcelaRequest;
-use App\Modules\Pagamento\Requests\SalvarBaixaParcelaRequest;
+use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
+use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, RenegociarParcelaRequest, SalvarBaixaParcelaRequest};
 use App\Modules\Pagamento\Services\PagamentoService;
 use App\Traits\TratamentoErros;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Illuminate\Http\{RedirectResponse, Request, Response};
 use Illuminate\View\View;
 
 class PagamentoController extends Controller

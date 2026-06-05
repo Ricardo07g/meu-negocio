@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Estoque\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -9,8 +11,7 @@ use App\Modules\Estoque\Requests\RegistrarMovimentoRequest;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\Models\Produto;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class MovimentoEstoqueController extends Controller

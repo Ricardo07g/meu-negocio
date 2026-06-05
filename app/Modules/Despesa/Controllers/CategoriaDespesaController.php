@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Despesa\Controllers;
 
 use App\Http\Controllers\Controller;
@@ -7,8 +9,7 @@ use App\Modules\Despesa\DTOs\CategoriaDespesaData;
 use App\Modules\Despesa\Models\CategoriaDespesa;
 use App\Modules\Despesa\Requests\SalvarCategoriaDespesaRequest;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
 
 class CategoriaDespesaController extends Controller

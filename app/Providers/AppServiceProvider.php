@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Modules\Agenda\Models\Agendamento;
@@ -8,32 +10,25 @@ use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Policies\CaixaPolicy;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Policies\ClientePolicy;
-use App\Modules\Despesa\Models\CategoriaDespesa;
-use App\Modules\Despesa\Models\Despesa;
-use App\Modules\Despesa\Policies\CategoriaDespesaPolicy;
-use App\Modules\Despesa\Policies\DespesaPolicy;
+use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa};
+use App\Modules\Despesa\Policies\{CategoriaDespesaPolicy, DespesaPolicy};
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Policies\MovimentoEstoquePolicy;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Policies\PagamentoPolicy;
 use App\Modules\PerfilAcesso\Policies\PerfilAcessoPolicy;
-use App\Modules\Produto\Models\CategoriaProduto;
-use App\Modules\Produto\Models\Produto;
-use App\Modules\Produto\Policies\CategoriaProdutoPolicy;
-use App\Modules\Produto\Policies\ProdutoPolicy;
+use App\Modules\Produto\Models\{CategoriaProduto, Produto};
+use App\Modules\Produto\Policies\{CategoriaProdutoPolicy, ProdutoPolicy};
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Policies\ServicoPolicy;
-use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Fatura;
-use App\Modules\Tenant\Policies\EmpresaPolicy;
-use App\Modules\Tenant\Policies\FaturaPolicy;
+use App\Modules\Tenant\Models\{Empresa, Fatura};
+use App\Modules\Tenant\Policies\{EmpresaPolicy, FaturaPolicy};
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Policies\VendaEtapasPolicy;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\{Gate, Route};
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
 

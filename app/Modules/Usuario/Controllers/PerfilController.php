@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Usuario\Requests\AtualizarPerfilRequest;
-use App\Modules\Usuario\Requests\AtualizarSenhaPerfilRequest;
+use App\Modules\Usuario\Requests\{AtualizarPerfilRequest, AtualizarSenhaPerfilRequest};
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;

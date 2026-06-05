@@ -1,12 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Despesa;
 
 use App\Enums\FormaPagamento;
 use App\Modules\Despesa\Models\Despesa;
-use Database\Factories\CaixaFactory;
-use Database\Factories\DespesaFactory;
-use Database\Factories\ParcelaDespesaFactory;
+use Database\Factories\{CaixaFactory, DespesaFactory, ParcelaDespesaFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
