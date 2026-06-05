@@ -45,3 +45,17 @@ Apos capturar, salvar nesta pasta e referenciar do `README.md`:
 ```markdown
 ![Dashboard](docs/screenshots/dashboard.png)
 ```
+
+## Recaptura automatizada (headless)
+
+Com o ambiente Docker no ar e dados do `DesenvolvimentoSeeder`, dá para recapturar as 5 telas de uma
+vez via Chrome headless (no **host**; requer `google-chrome` + `puppeteer-core`):
+
+```bash
+npm install --no-save puppeteer-core
+node bin/capturar-screenshots.cjs
+```
+
+O script loga como `admin@teste.com`, navega pelas 5 telas (dashboard, agenda, nova venda, contas a
+receber, caixa) a 1920px e sobrescreve os PNGs desta pasta. Variáveis opcionais: `BASE_URL`,
+`MN_EMAIL`, `MN_PASSWORD`, `OUT_DIR`, `CHROME_BIN`.

@@ -10,7 +10,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Projeto de **portfólio**: foco em demonstrar arquitetura modular, multi-tenancy single-DB, padrão Título + Parcela + Baixa, Service/Action layer, DTOs unificados (Spatie Laravel Data) e Policies de autorização. Não há gateway de pagamento real, observabilidade avançada ou app mobile (ver [Roadmap](#roadmap)).
+Projeto de **portfólio**: foco em demonstrar arquitetura modular, multi-tenancy single-DB, padrão Título + Parcela + Baixa, Service/Action layer, DTOs unificados (Spatie Laravel Data) e Policies de autorização. A evolução planejada — gateway de pagamento, relatórios, notificações e API — está no [Roadmap](#roadmap).
 
 ---
 
@@ -44,7 +44,7 @@ Stack moderna (PHP 8.3 + Laravel 13), código em português, padrões consistent
 
 ## Screenshots
 
-Imagens capturadas após rodar o `DesenvolvimentoSeeder` (rede demo com 500 clientes, 600 agendamentos, 100 vendas e 45 dias de caixa retroativo).
+Imagens capturadas após rodar o `DesenvolvimentoSeeder` (rede demo com 500 clientes, 600 agendamentos, 160 vendas e 45 dias de caixa retroativo).
 
 ### Dashboard
 Cards de agendamentos do dia, clientes, receita e contas a receber, com fluxo financeiro (6 meses) e agendamentos por status.
@@ -190,45 +190,22 @@ Após o `DesenvolvimentoSeeder`:
 
 ```
 meu-negocio/
-├── .claude/                # Automação de dev com IA: rules (lazy), skills, agents, hooks, commands
+├── .claude/                # Automação de dev com IA: rules (lazy), skills, agents, hooks
 ├── bin/sync-devkit.sh      # Gera o devkit/ a partir de .claude/ (CI valida a sincronia)
 ├── app/
-│   ├── Modules/            # 14 módulos: Tenant, Auth, Usuario, Cliente, Servico,
-│   │   │                   # Agenda, Venda, Pagamento, Despesa, Caixa, Estoque,
-│   │   │                   # Produto, PerfilAcesso, Dashboard
-│   │   └── {Modulo}/
-│   │       ├── Controllers/
-│   │       ├── Services/
-│   │       ├── Actions/
-│   │       ├── DTOs/
-│   │       ├── Requests/
-│   │       ├── Policies/
-│   │       ├── Models/
-│   │       ├── Views/      # Namespace de view: {modulo}::nome
-│   │       └── Migrations/ # Carregadas pelo ModuleServiceProvider
-│   ├── Enums/              # Enums de status do domínio
+│   ├── Modules/{Modulo}/   # 14 módulos (Tenant, Auth, Usuario, Cliente, Servico, Agenda,
+│   │                       # Venda, Pagamento, Despesa, Caixa, Estoque, Produto, PerfilAcesso,
+│   │                       # Dashboard); cada um com Controllers, Services, Actions, DTOs,
+│   │                       # Requests, Policies, Models, Views ({modulo}::nome) e Migrations
+│   ├── Enums/              # Status do domínio
 │   ├── Http/Middleware/    # verificar.rede, verificar.empresa, verificar.plano
 │   ├── Models/BaseModel    # Eloquent base com RedeTrait
-│   ├── Providers/          # AppServiceProvider, ModuleServiceProvider
 │   ├── Support/            # CalculadoraParcelas e helpers do domínio
 │   └── Traits/             # RedeTrait, EmpresaTrait, RegistraAtividade, TratamentoErros
-├── database/
-│   ├── migrations/         # Migrations transversais (cache, jobs, soft-deletes, etc.)
-│   └── seeders/
-│       ├── PlanoSeeder
-│       ├── PermissaoSeeder         # Catálogo de permissions + Admin master
-│       └── DesenvolvimentoSeeder   # Dados volumosos para demonstração
-├── docker/                 # Dockerfiles (php, nginx, mysql)
-├── docker-compose.yml
-├── CHANGELOG.md            # Histórico de versões (Keep a Changelog)
-├── docs/
-│   ├── ADR/                        # Architecture Decision Records (decisões marcantes)
-│   ├── AUTOMACAO.md                # Automação de dev (Claude Code): hooks, subagents, skills
-│   ├── FECHAMENTO_PORTFOLIO.md     # Backlog técnico de fechamento de escopo
-│   └── screenshots/                # Imagens da UI
-├── resources/
-│   ├── js/calendar.js              # Toast UI Calendar
-│   └── views/layouts/              # auth.blade.php, app.blade.php (Duralux)
+├── database/seeders/       # PlanoSeeder, PermissaoSeeder (+ Admin master), DesenvolvimentoSeeder (demo)
+├── docker/, docker-compose.yml
+├── docs/                   # ADR/, AUTOMACAO.md, FECHAMENTO_PORTFOLIO.md, screenshots/
+├── resources/              # views/layouts/ (Duralux), js/calendar.js (Toast UI)
 └── routes/web.php
 ```
 
@@ -236,26 +213,26 @@ meu-negocio/
 
 ## Roadmap
 
-Itens **intencionalmente fora de escopo** deste portfólio. Cada um é grande e o objetivo aqui é demonstrar arquitetura, não construir um produto comercial completo.
+Próximas evoluções planejadas, em ordem de prioridade. A base modular (Service/Action, DTOs, Policies, multi-tenancy) foi pensada para absorver cada uma sem reescrita.
 
-| Tema | Por que ficou de fora |
-|------|----------------------|
-| **Módulo de Relatórios** (BI, gráficos, exportação) | Esforço alto para algo decorativo no contexto de portfólio |
-| **2FA / autenticação multi-fator** | Reset de senha já cobre o gap visível em auth |
-| **Verificação de email no registro** | Mesmo motivo do 2FA |
-| **Gateway de pagamento** (Stripe/MercadoPago/Asaas) | Exige sandbox real e env vars de produção |
-| **API REST/GraphQL** | Não há frontend mobile que justifique a superfície adicional |
-| **Observability** (Sentry, NewRelic, métricas) | Overhead operacional sem retorno em portfólio |
-| **i18n real** | Projeto é PT-BR by design |
-| **WebSockets / atualizações em tempo real** | Complexidade alta vs. valor incremental |
+| # | Evolução | O que entrega |
+|---|----------|---------------|
+| 1 | **Notificações & lembretes de agendamento** | Lembrete por e-mail/WhatsApp via fila — reduz no-show, com confirmação/cancelamento pelo cliente. |
+| 2 | **Relatórios & exportações** | Faturamento, contas, ranking de serviços e comissões; exportação em CSV/PDF. |
+| 3 | **Gateway de pagamento** (Stripe / Mercado Pago / Asaas) | Cobrança online e PIX, com conciliação automática das baixas. |
+| 4 | **API REST + tokens (Sanctum)** | Superfície para integrações e um futuro app mobile. |
+| 5 | **2FA + verificação de e-mail no registro** | Hardening de conta (o fluxo de reset de senha já existe). |
+| 6 | **Observabilidade** (Sentry + métricas) | Rastreio de erros e saúde da aplicação em produção. |
+| 7 | **Tempo real** (WebSockets) | Agenda colaborativa e atualização ao vivo entre atendentes. |
+| 8 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |
 
-Considerações de produção (auto-hospedagem do projeto): adicionar APP_KEY real, fila de jobs com supervisor, MAIL_MAILER SMTP, backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
+> **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, `MAIL_MAILER` SMTP, backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
 
 ---
 
 ## Licença
 
-Este projeto está sob a licença MIT — ver [`LICENSE`](LICENSE).
+Este projeto está sob a licença MIT — ver [`LICENSE`](LICENSE). O MIT cobre **o código da aplicação**; os assets em `public/assets/**` (template Duralux Admin + bibliotecas de terceiros) seguem suas próprias licenças — ver [`NOTICE.md`](NOTICE.md).
 
 ---
 
