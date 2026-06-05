@@ -57,3 +57,8 @@ jobs:
 
       - name: Check code style (Pint)
         run: vendor/bin/pint --test
+
+      # O devkit/ (plugin distribuivel) e gerado a partir de .claude/. Este passo
+      # garante que ninguem editou um sem re-sincronizar o outro (sem drift).
+      - name: Devkit sincronizado com .claude/
+        run: bash bin/sync-devkit.sh --check
