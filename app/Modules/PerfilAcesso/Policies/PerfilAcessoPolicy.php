@@ -26,11 +26,13 @@ class PerfilAcessoPolicy
 
     public function update(Usuario $usuario, Role $perfil): bool
     {
-        return $usuario->can('papel.editar');
+        // O perfil "Admin" e do sistema: somente leitura (nao editavel pela UI).
+        return $usuario->can('papel.editar') && $perfil->name !== 'Admin';
     }
 
     public function delete(Usuario $usuario, Role $perfil): bool
     {
-        return $usuario->can('papel.excluir');
+        // O perfil "Admin" nao pode ser excluido.
+        return $usuario->can('papel.excluir') && $perfil->name !== 'Admin';
     }
 }

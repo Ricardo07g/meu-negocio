@@ -47,7 +47,15 @@
                                             <i class="feather-more-horizontal"></i>
                                         </a>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            @can('papel.editar')
+                                            @can('view', $perfil)
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('perfis-acesso.show', $perfil) }}">
+                                                    <i class="feather-eye me-3"></i>
+                                                    <span>Ver</span>
+                                                </a>
+                                            </li>
+                                            @endcan
+                                            @can('update', $perfil)
                                             <li>
                                                 <a class="dropdown-item" href="{{ route('perfis-acesso.edit', $perfil) }}">
                                                     <i class="feather-edit-3 me-3"></i>
@@ -55,8 +63,7 @@
                                                 </a>
                                             </li>
                                             @endcan
-                                            @can('papel.excluir')
-                                            @if($perfil->name !== 'Admin')
+                                            @can('delete', $perfil)
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <form action="{{ route('perfis-acesso.destroy', $perfil) }}" method="POST" data-confirm="Excluir este perfil de acesso?">
@@ -67,7 +74,6 @@
                                                     </button>
                                                 </form>
                                             </li>
-                                            @endif
                                             @endcan
                                         </ul>
                                     </div>
