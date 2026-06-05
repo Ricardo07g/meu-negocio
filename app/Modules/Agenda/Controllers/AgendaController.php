@@ -15,6 +15,7 @@ use App\Modules\Usuario\Models\Usuario;
 use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -125,6 +126,8 @@ class AgendaController extends Controller
             return response()->json(['id' => $agendamento->id], 201);
         } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
+        } catch (AuthorizationException $e) {
+            return response()->json(['message' => 'Você não tem permissão para esta ação.'], 403);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
@@ -148,6 +151,8 @@ class AgendaController extends Controller
             return response()->json(['ok' => true]);
         } catch (ValidationException $e) {
             return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
+        } catch (AuthorizationException $e) {
+            return response()->json(['message' => 'Você não tem permissão para esta ação.'], 403);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
