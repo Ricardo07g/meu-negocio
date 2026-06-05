@@ -5,6 +5,16 @@ namespace App\Modules\Tenant\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $nome
+ * @property float $preco_mensal
+ * @property string|null $descricao
+ * @property int $max_empresas
+ * @property int $max_usuarios
+ * @property bool $tem_estoque
+ * @property bool $tem_financeiro
+ */
 class Plano extends Model
 {
     protected $table = 'planos';
