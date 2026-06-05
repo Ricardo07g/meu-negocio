@@ -55,7 +55,7 @@ class LoginController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login');
+            return redirect()->route('home');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao realizar logout');
         }
