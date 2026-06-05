@@ -1,15 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Caixa;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\StatusCaixa;
-use App\Enums\StatusPagamento;
-use App\Enums\StatusVendaProduto;
-use App\Enums\TipoMovimentoCaixa;
-use App\Modules\Caixa\Models\Caixa;
-use App\Modules\Caixa\Models\MovimentoCaixa;
+use App\Enums\{CondicaoPagamento, FormaPagamento, StatusCaixa, StatusPagamento, StatusVendaProduto, TipoMovimentoCaixa};
+use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Models\VendaProduto;

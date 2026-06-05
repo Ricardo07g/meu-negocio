@@ -1,14 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Venda;
 
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
-use Database\Factories\CaixaFactory;
-use Database\Factories\ClienteFactory;
-use Database\Factories\ProdutoFactory;
-use Database\Factories\ServicoFactory;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use Database\Factories\{CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;

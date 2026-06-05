@@ -1,24 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Pagamento\Models;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusPagamento;
-use App\Enums\StatusParcela;
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusPagamento, StatusParcela};
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Models\VendaProduto;
-use App\Traits\EmpresaTrait;
-use App\Traits\RegistraAtividade;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use App\Traits\{EmpresaTrait, RegistraAtividade};
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasManyThrough};
 use Illuminate\Support\Carbon;
 
 /**

@@ -11,8 +11,19 @@ divergencia e mantem a base coerente. O modulo `app/Modules/Produto/` e a refere
 
 ## Regras-chave (o porque importa)
 
+- **Formatacao versionada (`pint.json`)**: rode `vendor/bin/pint`, nunca formate no olho. Preset
+  `laravel` + `declare(strict_types=1)` em todo arquivo de classe (Blade e skeleton ficam de fora),
+  imports do mesmo namespace agrupados com chaves (`use App\X\{A, B};`), ordenados e sem nao-usados.
+  Cuidado: como imports nao usados sao removidos, **adicione import e uso na mesma alteracao**.
 - **Controller fino**: so request/response + `$this->authorize(...)`, delega a Service/Action. Manter
-  o controller magro deixa a regra de negocio testavel sem HTTP.
+  o controller magro deixa a regra de negocio testavel sem HTTP. Conversao de enums/datas e montagem
+  de DTO podem virar metodos privados (`montarDados`, `processarVenda`) para encurtar o metodo de rota.
+- **Tratamento de erros**: `try/catch` explicito por metodo. Erro inesperado flui por
+  `$this->tratarErro($e, 'Contexto')` (trait `TratamentoErros`); pre-requisitos de negocio retornam
+  cedo com `redirect()->back()->withInput()->with('erro', ...)`. Em escrita transacional multi-empresa,
+  envolva em `$this->comEmpresaDeCriacao($empresaId, fn () => ...)` (trait `DefineEmpresaDeCriacao`) —
+  nunca mexa na chave de sessao `empresa_criacao_atual` na mao. Transacao/rollback so nas Services
+  via `DB::transaction(fn)`; nunca `DB::` no controller.
 - **Service x Action**: Service concentra regra de negocio do modulo; Action isola uma operacao
   complexa de escrita (ex.: `VenderEtapasAction`). Use Action quando a operacao tem varios passos
   transacionais reaproveitaveis.

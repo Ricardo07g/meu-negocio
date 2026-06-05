@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Requests;
 
 use App\Modules\Tenant\Models\Fatura;

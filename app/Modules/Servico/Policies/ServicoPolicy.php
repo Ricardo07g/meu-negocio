@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Servico\Policies;
 
 use App\Modules\Servico\Models\Servico;

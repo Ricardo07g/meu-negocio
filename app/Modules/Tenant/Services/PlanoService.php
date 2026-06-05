@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Services;
 
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Plano, Rede};
 use Illuminate\Database\Eloquent\Collection;
 
 class PlanoService

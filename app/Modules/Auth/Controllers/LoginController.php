@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\LoginRequest;
 use App\Traits\TratamentoErros;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -55,7 +56,7 @@ class LoginController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login');
+            return redirect()->route('home');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao realizar logout');
         }

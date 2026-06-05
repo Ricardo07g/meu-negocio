@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\MultiEmpresa;
 
-use App\Enums\StatusCaixa;
-use App\Enums\TipoMovimentoEstoque;
+use App\Enums\{StatusCaixa, TipoMovimentoEstoque};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Produto\Models\Produto;

@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Auth;
 
-use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Empresa, Rede};
 use App\Modules\Usuario\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

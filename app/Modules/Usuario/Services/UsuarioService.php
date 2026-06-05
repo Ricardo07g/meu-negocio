@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Usuario\Services;
 
 use App\Modules\Tenant\Models\Rede;

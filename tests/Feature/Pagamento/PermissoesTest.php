@@ -1,11 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Pagamento;
 
-use App\Enums\CondicaoPagamento;
-use App\Enums\FormaPagamento;
-use App\Enums\FormaRecebimentoPrazo;
-use App\Enums\StatusCaixa;
+use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusCaixa};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;

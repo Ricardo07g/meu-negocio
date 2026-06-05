@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Produto\Services;
 
 use App\Modules\Produto\DTOs\ProdutoData;

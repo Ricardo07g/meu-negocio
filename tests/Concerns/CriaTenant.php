@@ -1,14 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Concerns;
 
 use App\Enums\StatusRede;
-use App\Modules\Tenant\Models\Empresa;
-use App\Modules\Tenant\Models\Plano;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
 use App\Modules\Usuario\Models\Usuario;
-use Database\Seeders\PermissaoSeeder;
-use Database\Seeders\PlanoSeeder;
+use Database\Seeders\{PermissaoSeeder, PlanoSeeder};
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;

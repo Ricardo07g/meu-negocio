@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Tenant\Models;
 
 use App\Models\BaseModel;
@@ -10,10 +12,8 @@ use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
+use Illuminate\Database\Eloquent\Relations\{BelongsToMany, HasMany};
 use Illuminate\Support\Carbon;
 
 /**
