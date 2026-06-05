@@ -76,7 +76,7 @@ class ClienteService
             $desde = now()->subDays(30);
             $query->where(fn ($q) => $q
                 ->whereHas('agendamentos', fn ($sq) => $sq->where('inicio', '>=', $desde))
-                ->orWhereHas('vendasPacote', fn ($sq) => $sq->where('created_at', '>=', $desde))
+                ->orWhereHas('vendasEtapas', fn ($sq) => $sq->where('created_at', '>=', $desde))
                 ->orWhereHas('vendasProduto', fn ($sq) => $sq->where('created_at', '>=', $desde))
             );
 
@@ -91,7 +91,7 @@ class ClienteService
             }
             $desde = now()->subDays($dias);
             $query->whereDoesntHave('agendamentos', fn ($q) => $q->where('inicio', '>=', $desde))
-                ->whereDoesntHave('vendasPacote', fn ($q) => $q->where('created_at', '>=', $desde))
+                ->whereDoesntHave('vendasEtapas', fn ($q) => $q->where('created_at', '>=', $desde))
                 ->whereDoesntHave('vendasProduto', fn ($q) => $q->where('created_at', '>=', $desde));
         }
     }

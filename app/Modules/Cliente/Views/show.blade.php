@@ -128,8 +128,8 @@
                 <div class="card-header p-0">
                     <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs" id="clienteTabs" role="tablist">
                         <li class="nav-item flex-fill border-top" role="presentation">
-                            <a href="javascript:void(0);" class="nav-link active" data-bs-toggle="tab" data-bs-target="#pacotesTab" role="tab">
-                                <i class="feather-package me-2"></i>Pacotes
+                            <a href="javascript:void(0);" class="nav-link active" data-bs-toggle="tab" data-bs-target="#etapasTab" role="tab">
+                                <i class="feather-layers me-2"></i>Serviços em Etapas
                             </a>
                         </li>
                         <li class="nav-item flex-fill border-top" role="presentation">
@@ -145,8 +145,8 @@
                     </ul>
                 </div>
                 <div class="tab-content">
-                    {{-- Aba Pacotes --}}
-                    <div class="tab-pane fade show active p-0" id="pacotesTab" role="tabpanel">
+                    {{-- Aba Servicos em Etapas --}}
+                    <div class="tab-pane fade show active p-0" id="etapasTab" role="tabpanel">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead>
@@ -154,18 +154,18 @@
                                         <th>Servico</th>
                                         <th>Atendente</th>
                                         <th>Valor Total</th>
-                                        <th>Sessoes</th>
+                                        <th>Etapas</th>
                                         <th>Status</th>
                                         <th>Data</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($cliente->vendasPacote->sortByDesc('created_at') as $venda)
+                                    @forelse($cliente->vendasEtapas->sortByDesc('created_at') as $venda)
                                     <tr>
                                         <td>{{ $venda->servico->nome }}</td>
                                         <td>{{ $venda->atendente->nome }}</td>
                                         <td>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</td>
-                                        <td>{{ $venda->sessoesRealizadas() }}/{{ $venda->qtd_sessoes }}</td>
+                                        <td>{{ $venda->etapasRealizadas() }}/{{ $venda->qtd_etapas }}</td>
                                         <td>
                                             @switch($venda->status->value)
                                                 @case('ativo') <span class="badge bg-success">Ativo</span> @break
@@ -176,7 +176,7 @@
                                         <td>{{ $venda->created_at->format('d/m/Y') }}</td>
                                     </tr>
                                     @empty
-                                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum pacote contratado.</td></tr>
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum serviço em etapas contratado.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

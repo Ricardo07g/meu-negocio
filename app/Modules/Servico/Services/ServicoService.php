@@ -55,7 +55,7 @@ class ServicoService
             'duracao' => $data->duracao,
             'valor' => $data->valor,
             'tipo' => $data->tipo,
-            'qtd_sessoes' => $data->qtd_sessoes,
+            'qtd_etapas' => $data->qtd_etapas,
             'descricao' => $data->descricao,
         ]);
     }
@@ -67,7 +67,7 @@ class ServicoService
             'duracao' => $data->duracao,
             'valor' => $data->valor,
             'tipo' => $data->tipo,
-            'qtd_sessoes' => $data->qtd_sessoes,
+            'qtd_etapas' => $data->qtd_etapas,
             'descricao' => $data->descricao,
         ]);
 

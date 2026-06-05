@@ -28,7 +28,7 @@ class CriarPagamentoData extends Data
         public Carbon $mes_referencia,
         public ?int $cliente_id = null,
         public ?int $agendamento_id = null,
-        public ?int $venda_pacote_id = null,
+        public ?int $venda_etapas_id = null,
         public ?int $venda_produto_id = null,
         public ?int $numero_parcelas = null,
         public ?Carbon $primeiro_vencimento = null,

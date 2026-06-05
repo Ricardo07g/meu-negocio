@@ -11,6 +11,8 @@ class Plano extends Model
 
     protected $fillable = [
         'nome',
+        'preco_mensal',
+        'descricao',
         'max_empresas',
         'max_usuarios',
         'tem_estoque',
@@ -20,6 +22,7 @@ class Plano extends Model
     protected function casts(): array
     {
         return [
+            'preco_mensal' => 'decimal:2',
             'tem_estoque' => 'boolean',
             'tem_financeiro' => 'boolean',
         ];

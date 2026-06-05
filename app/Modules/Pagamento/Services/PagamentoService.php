@@ -37,8 +37,8 @@ class PagamentoService
 
         if (! empty($filtros['origem'])) {
             match ($filtros['origem']) {
-                'avulso' => $query->whereNotNull('agendamento_id'),
-                'pacote' => $query->whereNotNull('venda_pacote_id'),
+                'unico' => $query->whereNotNull('agendamento_id'),
+                'etapas' => $query->whereNotNull('venda_etapas_id'),
                 'produto' => $query->whereNotNull('venda_produto_id'),
                 default => null,
             };

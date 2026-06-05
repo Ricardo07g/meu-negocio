@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum StatusVendaPacote: string
+enum StatusVendaEtapas: string
 {
     case Ativo = 'ativo';
     case Concluido = 'concluido';

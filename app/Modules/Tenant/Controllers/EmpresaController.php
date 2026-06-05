@@ -63,17 +63,6 @@ class EmpresaController extends Controller
         }
     }
 
-    public function show(Empresa $empresa): View|RedirectResponse
-    {
-        try {
-            $this->authorize('view', $empresa);
-
-            return view('tenant::show', compact('empresa'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao exibir empresa');
-        }
-    }
-
     public function edit(Empresa $empresa): View|RedirectResponse
     {
         try {

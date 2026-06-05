@@ -2,7 +2,7 @@
 
 namespace App\Modules\Venda\Models;
 
-use App\Enums\StatusVendaPacote;
+use App\Enums\StatusVendaEtapas;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Cliente\Models\Cliente;
@@ -16,11 +16,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class VendaPacote extends BaseModel
+class VendaEtapas extends BaseModel
 {
     use EmpresaTrait, RegistraAtividade, SoftDeletes;
 
-    protected $table = 'vendas_pacote';
+    protected $table = 'vendas_etapas';
 
     protected $fillable = [
         'rede_id',
@@ -32,7 +32,7 @@ class VendaPacote extends BaseModel
         'valor_total',
         'desconto',
         'acrescimo',
-        'qtd_sessoes',
+        'qtd_etapas',
         'status',
         'observacao',
     ];
@@ -44,7 +44,7 @@ class VendaPacote extends BaseModel
             'valor_total' => 'decimal:2',
             'desconto' => 'decimal:2',
             'acrescimo' => 'decimal:2',
-            'status' => StatusVendaPacote::class,
+            'status' => StatusVendaEtapas::class,
         ];
     }
 
@@ -72,12 +72,12 @@ class VendaPacote extends BaseModel
 
     public function agendamentos(): HasMany
     {
-        return $this->hasMany(Agendamento::class, 'venda_pacote_id');
+        return $this->hasMany(Agendamento::class, 'venda_etapas_id');
     }
 
     public function pagamento(): HasOne
     {
-        return $this->hasOne(Pagamento::class, 'venda_pacote_id');
+        return $this->hasOne(Pagamento::class, 'venda_etapas_id');
     }
 
     // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
@@ -87,14 +87,14 @@ class VendaPacote extends BaseModel
     // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
     // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
-    public function sessoesRealizadas(): int
+    public function etapasRealizadas(): int
     {
         return $this->agendamentos()
             ->where('status', 'finalizado')
             ->count();
     }
 
-    public function sessoesPendentes(): int
+    public function etapasPendentes(): int
     {
         return $this->agendamentos()
             ->whereIn('status', ['agendado', 'confirmado'])

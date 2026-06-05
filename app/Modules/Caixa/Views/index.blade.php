@@ -34,30 +34,83 @@
 @endpush
 
 @section('content')
-    @include('partials.filtro-empresa-listagem')
     @php
         // ME-010 v3: Caixa Diario opera por uma unica empresa. Aceita "1 unica"
-        // vinda do contexto da listagem (URL `?empresa_id=X`) OU do header com
-        // 1 empresa selecionada. Se nenhuma das duas: aviso para escolher.
+        // vinda do contexto da listagem (URL `?empresa_id=X`) OU 1 unica
+        // empresa acessivel no universo do usuario. Se nenhuma das duas:
+        // empty state com picker embutido para escolher.
         $empresasAtuais = (array) session('empresas_atuais', []);
         $contexto = session('empresa_contexto_atual');
         $temEmpresaUnica = is_int($contexto) || count($empresasAtuais) === 1;
     @endphp
+
     @if (! $temEmpresaUnica)
-        <div class="card stretch stretch-full">
+        @php
+            $empresasOpcoes = \App\Modules\Tenant\Models\Empresa::query()
+                ->whereIn('id', $empresasAtuais)
+                ->orderBy('nome')
+                ->get(['id', 'nome']);
+        @endphp
+        <div class="card stretch stretch-full empty-state-empresa">
             <div class="card-body text-center py-5">
-                <div class="mb-3">
-                    <i class="feather-alert-circle" style="font-size: 48px; color: #f0ad4e;"></i>
+                <div class="empty-state-icon d-inline-flex align-items-center justify-content-center mb-3">
+                    <i class="feather-briefcase"></i>
                 </div>
-                <h5 class="mb-2">Selecione 1 empresa para operar o caixa</h5>
-                <p class="text-muted mb-0">
-                    O caixa diario e por empresa. Use o filtro acima ou o seletor
-                    do header para definir uma empresa unica.
+                <h5 class="mb-2 fw-semibold">Selecione uma empresa para operar o caixa</h5>
+                <p class="text-muted mb-4 mx-auto" style="max-width: 460px;">
+                    O caixa e isolado por empresa. Voce tem acesso a {{ count($empresasAtuais) }} empresas — escolha qual delas voce quer operar agora.
                 </p>
+                <div class="d-flex justify-content-center">
+                    <div class="empty-state-picker">
+                        <select class="form-select" data-empresa-inline aria-label="Selecionar empresa">
+                            <option value="" disabled selected>Escolha uma empresa…</option>
+                            @foreach ($empresasOpcoes as $opcao)
+                                <option value="{{ $opcao->id }}">{{ $opcao->nome }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
+
+        @push('css')
+        <style>
+            .empty-state-empresa .empty-state-icon {
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                background: rgba(52, 84, 209, 0.1);
+            }
+            .empty-state-empresa .empty-state-icon i {
+                font-size: 32px;
+                color: #3454d1;
+            }
+            .empty-state-empresa .empty-state-picker {
+                width: 100%;
+                max-width: 320px;
+            }
+        </style>
+        @endpush
+
+        @push('js')
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const empresaInline = document.querySelector('[data-empresa-inline]');
+            if (! empresaInline) return;
+            empresaInline.addEventListener('change', function () {
+                if (! this.value) return;
+                const url = new URL(window.location.href);
+                url.searchParams.set('empresa_id', this.value);
+                window.location.assign(url.toString());
+            });
+        });
+        </script>
+        @endpush
+
         @php return; @endphp
     @endif
+
+    @include('partials.filtro-empresa-listagem', ['permiteTodas' => false])
 
     {{-- Navegacao por data --}}
     @php
@@ -495,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#dc3545',
             focusConfirm: false,
-            didOpen: function() {
+            onOpen: function() {
                 const inp = document.getElementById('swal-saldo');
                 const dif = document.getElementById('swal-diferenca');
                 const atualizar = function() {

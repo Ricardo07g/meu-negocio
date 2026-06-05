@@ -5,7 +5,7 @@ namespace App\Modules\Servico\Models;
 use App\Enums\TipoServico;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -21,7 +21,7 @@ class Servico extends BaseModel
         'duracao',
         'valor',
         'tipo',
-        'qtd_sessoes',
+        'qtd_etapas',
         'descricao',
     ];
 
@@ -45,9 +45,9 @@ class Servico extends BaseModel
         return $this->hasMany(Agendamento::class, 'servico_id');
     }
 
-    public function vendasPacote(): HasMany
+    public function vendasEtapas(): HasMany
     {
-        return $this->hasMany(VendaPacote::class, 'servico_id');
+        return $this->hasMany(VendaEtapas::class, 'servico_id');
     }
 
     // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
@@ -57,8 +57,13 @@ class Servico extends BaseModel
     // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
     // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
-    public function isPacote(): bool
+    public function isEtapas(): bool
     {
-        return $this->tipo === TipoServico::Pacote;
+        return $this->tipo === TipoServico::Etapas;
+    }
+
+    public function isUnico(): bool
+    {
+        return $this->tipo === TipoServico::Unico;
     }
 }

@@ -7,21 +7,25 @@
     $tabSessoesId = "sessoes-{$uid}";
     $tabPagamentosId = "pagamentos-{$uid}";
 
-    $tipoLabel = $venda->tipo === 'produto' ? 'Produto' : 'Serviço';
+    $tipoLabel = match ($venda->tipo) {
+        'produto' => 'Produto',
+        'etapas' => 'Em Etapas',
+        default => 'Único',
+    };
     $tipoBadge = $venda->tipo === 'produto'
         ? 'bg-soft-warning text-warning'
         : 'bg-soft-info text-info';
     $rotaCancelar = match ($venda->tipo) {
-        'avulso' => route('vendas.cancelar-avulso', $venda->id),
-        'pacote' => route('vendas.cancelar-pacote', $venda->id),
+        'unico' => route('vendas.cancelar-unico', $venda->id),
+        'etapas' => route('vendas.cancelar-etapas', $venda->id),
         'produto' => route('vendas.cancelar-produto', $venda->id),
     };
     $podeCancelar = !in_array($venda->status, ['cancelado', 'cancelada', 'finalizado', 'concluido']);
     $pagamento = $venda->model->pagamento ?? null;
 
     $rotaEditar = match ($venda->tipo) {
-        'avulso' => route('vendas.edit-avulso', $venda->id),
-        'pacote' => route('vendas.edit-pacote', $venda->id),
+        'unico' => route('vendas.edit-unico', $venda->id),
+        'etapas' => route('vendas.edit-etapas', $venda->id),
         'produto' => route('vendas.edit-produto', $venda->id),
     };
     $valorPagoAtual = $pagamento ? (float) $pagamento->valorPago() : 0.0;
@@ -61,7 +65,10 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     @if($podeImprimirRecibo)
                         <li>
-                            <a href="{{ route('vendas.recibo', [$venda->tipo, $venda->id]) }}" target="_blank" class="dropdown-item">
+                            <a href="javascript:void(0)" class="dropdown-item"
+                               data-bs-toggle="modal" data-bs-target="#modalRecibo"
+                               data-recibo-url="{{ route('vendas.recibo', [$venda->tipo, $venda->id]) }}"
+                               data-recibo-titulo="Recibo #{{ str_pad($venda->id, 6, '0', STR_PAD_LEFT) }}">
                                 <i class="feather-printer me-2"></i>Imprimir recibo
                             </a>
                         </li>
@@ -113,10 +120,10 @@
                         </li>
                     @endif
 
-                    @if($venda->tipo === 'pacote')
+                    @if($venda->tipo === 'etapas')
                         <li class="nav-item flex-fill border-top" role="presentation">
                             <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#{{ $tabSessoesId }}" role="tab" aria-selected="false">
-                                <i class="feather-calendar me-2"></i>Sessões
+                                <i class="feather-calendar me-2"></i>Etapas
                             </a>
                         </li>
                     @endif
@@ -162,7 +169,7 @@
                             </div>
                         @endif
 
-                        @if($venda->tipo === 'avulso')
+                        @if($venda->tipo === 'unico')
                             <div class="col-md-3">
                                 <div class="fs-12 text-muted">Atendente</div>
                                 <div class="fw-semibold">{{ $venda->model->atendente->nome ?? '—' }}</div>
@@ -171,15 +178,15 @@
                                 <div class="fs-12 text-muted">Início</div>
                                 <div class="fw-semibold">{{ $venda->model->inicio->format('d/m/Y H:i') }}</div>
                             </div>
-                        @elseif($venda->tipo === 'pacote')
+                        @elseif($venda->tipo === 'etapas')
                             <div class="col-md-3">
                                 <div class="fs-12 text-muted">Atendente</div>
                                 <div class="fw-semibold">{{ $venda->model->atendente->nome ?? '—' }}</div>
                             </div>
                             <div class="col-md-3">
-                                <div class="fs-12 text-muted">Sessões</div>
+                                <div class="fs-12 text-muted">Etapas</div>
                                 <div class="fw-semibold">
-                                    {{ $venda->model->sessoesRealizadas() }} realizadas / {{ $venda->model->qtd_sessoes }}
+                                    {{ $venda->model->etapasRealizadas() }} realizadas / {{ $venda->model->qtd_etapas }}
                                 </div>
                             </div>
                         @elseif($venda->tipo === 'produto')
@@ -253,18 +260,18 @@
                     </div>
                 @endif
 
-                {{-- Aba Sessões (pacote) --}}
-                @if($venda->tipo === 'pacote')
+                {{-- Aba Etapas --}}
+                @if($venda->tipo === 'etapas')
                     <div class="tab-pane fade p-0" id="{{ $tabSessoesId }}" role="tabpanel">
                         @if($venda->model->desconto > 0 || $venda->model->acrescimo > 0)
                             @php
-                                $subtotalPacote = $venda->model->valor_total + $venda->model->desconto - $venda->model->acrescimo;
+                                $subtotalEtapas = $venda->model->valor_total + $venda->model->desconto - $venda->model->acrescimo;
                             @endphp
                             <div class="p-3 border-bottom bg-light-subtle">
                                 <div class="d-flex flex-wrap gap-4 fs-13">
                                     <div>
                                         <span class="text-muted">Subtotal:</span>
-                                        <span class="fw-semibold ms-1">R$ {{ number_format($subtotalPacote, 2, ',', '.') }}</span>
+                                        <span class="fw-semibold ms-1">R$ {{ number_format($subtotalEtapas, 2, ',', '.') }}</span>
                                     </div>
                                     @if($venda->model->desconto > 0)
                                         <div>
@@ -306,7 +313,7 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma sessão agendada.</td></tr>
+                                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma etapa agendada.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

@@ -13,6 +13,35 @@
     #calendar { height: 720px; }
     .agenda-sidebar .form-check-input { cursor: pointer; }
     .agenda-sidebar .form-check-label { cursor: pointer; }
+
+    /* Modal de detalhes do agendamento — SweetAlert2 customizado */
+    .swal-agenda .swal2-title { padding-top: 1.25rem !important; padding-bottom: .25rem !important; font-size: 1.05rem !important; font-weight: 600; }
+    .swal-agenda .swal2-html-container { padding: 0 1.5rem 1.5rem !important; margin: .75rem 0 0 !important; text-align: left; }
+
+    .swal-agenda .swal-status { text-align: center; }
+    .swal-agenda .swal-status-pill { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .85rem; border-radius: 1rem; font-size: .8rem; font-weight: 600; }
+    .swal-agenda .swal-status-pill .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+    .swal-agenda .swal-info { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: .5rem; padding: .35rem 1.15rem; margin-bottom: 1rem; }
+    .swal-agenda .swal-info-row { display: flex; justify-content: space-between; align-items: center; padding: .55rem 0; gap: 1rem; font-size: .9rem; border-bottom: 1px dashed #e9ecef; }
+    .swal-agenda .swal-info-row:last-child { border-bottom: none; }
+    .swal-agenda .swal-info-row .label { color: #6c757d; font-weight: 500; min-width: 90px; text-transform: capitalize; }
+    .swal-agenda .swal-info-row .value { color: #212529; font-weight: 600; text-align: right; flex: 1; word-break: break-word; }
+
+    .swal-agenda .swal-obs { background: #fff8e1; border-left: 3px solid #ffc107; padding: .65rem .95rem; border-radius: .25rem; margin-bottom: 1rem; font-size: .85rem; color: #5c4a00; }
+    .swal-agenda .swal-obs strong { color: #856404; margin-right: .35rem; }
+
+    .swal-agenda .swal-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .25rem; }
+    .swal-agenda .swal-actions .btn { flex: 1 1 calc(50% - .3rem); min-width: 130px; padding: .65rem .9rem; font-size: .9rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; }
+    .swal-agenda .swal-actions .btn.swal-btn-full { flex: 1 1 100%; }
+
+    /* Modal de reagendamento — campos datetime-local */
+    .swal-reagendar .swal2-html-container { padding: 0 1.5rem !important; margin: 1rem 0 0 !important; text-align: left; }
+    .swal-reagendar .swal-hint { font-size: .82rem; color: #6c757d; }
+    .swal-reagendar .swal-field { margin-bottom: 1rem; }
+    .swal-reagendar .swal-field label { display: block; font-size: .8rem; font-weight: 600; color: #495057; margin-bottom: .35rem; letter-spacing: .02em; }
+    .swal-reagendar .swal-field input.form-control { width: 100%; padding: .55rem .75rem; font-size: .95rem; border: 1px solid #dee2e6; border-radius: .375rem; box-sizing: border-box; transition: border-color .15s, box-shadow .15s; }
+    .swal-reagendar .swal-field input.form-control:focus { border-color: #3454d1; box-shadow: 0 0 0 0.2rem rgba(52,84,209,.15); outline: 0; }
 </style>
 @endpush
 

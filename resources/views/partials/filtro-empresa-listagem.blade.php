@@ -17,8 +17,13 @@
       - 'standalone': renderiza com wrapper proprio (badge + label inline)
         para listagens sem filter form (Caixa, Agenda).
 
+    Parametros:
+      - permiteTodas (bool, default true): inclui a opcao "Todas as empresas".
+        Use false em telas que exigem 1 empresa unica (ex: Caixa).
+
     Uso (standalone):    @ include partials.filtro-empresa-listagem
     Uso (embed):         @ include partials.filtro-empresa-listagem com modo=embed
+    Sem "Todas":         @ include partials.filtro-empresa-listagem com permiteTodas=false
 --}}
 @php
     use App\Modules\Tenant\Models\Empresa;
@@ -31,6 +36,7 @@
 
     $modoFiltro = $modo ?? 'standalone';
     $colunaCss = $colunaCss ?? 'col-md-3';
+    $permiteTodas = $permiteTodas ?? true;
 
     $contextoAtual = session('empresa_contexto_atual');
     $valorSelecionado = (int) request('empresa_id', $contextoAtual ?? 0);
@@ -48,7 +54,9 @@
     <div class="{{ $colunaCss }}">
         <label class="form-label">Empresa</label>
         <select name="empresa_id" class="form-select" data-filtro-empresa>
-            <option value="todas" @selected($valorSelecionado === 0)>Todas as empresas</option>
+            @if ($permiteTodas)
+                <option value="todas" @selected($valorSelecionado === 0)>Todas as empresas</option>
+            @endif
             @foreach ($opcoes as $opcao)
                 <option value="{{ $opcao->id }}" @selected($valorSelecionado === (int) $opcao->id)>
                     {{ $opcao->nome }}
@@ -62,7 +70,9 @@
             <i class="feather-briefcase me-1"></i>Empresa:
         </label>
         <select class="form-select form-select-sm" style="max-width: 260px;" data-filtro-empresa>
-            <option value="todas" @selected($valorSelecionado === 0)>Todas as empresas</option>
+            @if ($permiteTodas)
+                <option value="todas" @selected($valorSelecionado === 0)>Todas as empresas</option>
+            @endif
             @foreach ($opcoes as $opcao)
                 <option value="{{ $opcao->id }}" @selected($valorSelecionado === (int) $opcao->id)>
                     {{ $opcao->nome }}

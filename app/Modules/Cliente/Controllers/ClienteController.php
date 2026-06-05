@@ -60,8 +60,8 @@ class ClienteController extends Controller
             $this->authorize('view', $cliente);
 
             $cliente->load([
-                'vendasPacote.servico',
-                'vendasPacote.atendente',
+                'vendasEtapas.servico',
+                'vendasEtapas.atendente',
                 'agendamentos.servico',
                 'agendamentos.atendente',
                 'pagamentos.agendamento.servico',

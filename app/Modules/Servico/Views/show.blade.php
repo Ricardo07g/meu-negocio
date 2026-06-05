@@ -20,10 +20,10 @@
                             </div>
                         </div>
                         <h5 class="fw-bold mb-1">{{ $servico->nome }}</h5>
-                        @if ($servico->isPacote())
-                            <span class="badge bg-info">Pacote</span>
+                        @if ($servico->isEtapas())
+                            <span class="badge bg-info">Serviço em Etapas</span>
                         @else
-                            <span class="badge bg-secondary">Avulso</span>
+                            <span class="badge bg-secondary">Serviço Único</span>
                         @endif
                     </div>
 
@@ -33,7 +33,7 @@
                             <span class="text-muted fw-medium hstack gap-3">
                                 <i class="feather-tag"></i>Tipo
                             </span>
-                            <span>{{ $servico->isPacote() ? 'Pacote' : 'Avulso' }}</span>
+                            <span>{{ $servico->isEtapas() ? 'Serviço em Etapas' : 'Serviço Único' }}</span>
                         </li>
                         {{-- Duracao --}}
                         <li class="hstack justify-content-between mb-4">
@@ -49,20 +49,20 @@
                             </span>
                             <span class="fw-bold">R$ {{ number_format($servico->valor, 2, ',', '.') }}</span>
                         </li>
-                        {{-- Sessoes (so para pacote) --}}
-                        @if ($servico->isPacote())
+                        {{-- Etapas (so para servico em etapas) --}}
+                        @if ($servico->isEtapas())
                             <li class="hstack justify-content-between mb-4">
                                 <span class="text-muted fw-medium hstack gap-3">
-                                    <i class="feather-layers"></i>Sessões
+                                    <i class="feather-layers"></i>Etapas
                                 </span>
-                                <span class="fw-bold">{{ $servico->qtd_sessoes ?? '-' }}</span>
+                                <span class="fw-bold">{{ $servico->qtd_etapas ?? '-' }}</span>
                             </li>
-                            @if ($servico->qtd_sessoes && $servico->qtd_sessoes > 0)
+                            @if ($servico->qtd_etapas && $servico->qtd_etapas > 0)
                                 <li class="hstack justify-content-between mb-4">
                                     <span class="text-muted fw-medium hstack gap-3">
-                                        <i class="feather-trending-down"></i>Valor por sessão
+                                        <i class="feather-trending-down"></i>Valor por etapa
                                     </span>
-                                    <span>R$ {{ number_format($servico->valor / $servico->qtd_sessoes, 2, ',', '.') }}</span>
+                                    <span>R$ {{ number_format($servico->valor / $servico->qtd_etapas, 2, ',', '.') }}</span>
                                 </li>
                             @endif
                         @endif
@@ -100,7 +100,7 @@
             </div>
         </div>
 
-        {{-- Coluna direita: agendamentos + vendas pacote (se aplicavel) --}}
+        {{-- Coluna direita: agendamentos + vendas em etapas (se aplicavel) --}}
         <div class="col-xxl-8 col-xl-7">
             <div class="card stretch stretch-full">
                 <div class="card-header">
@@ -148,10 +148,10 @@
                 @endif
             </div>
 
-            @if ($vendasPacote)
+            @if ($vendasEtapas)
                 <div class="card stretch stretch-full mt-4">
                     <div class="card-header">
-                        <h5 class="card-title">Vendas deste Pacote</h5>
+                        <h5 class="card-title">Vendas em Etapas deste Serviço</h5>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -165,7 +165,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse ($vendasPacote as $venda)
+                                    @forelse ($vendasEtapas as $venda)
                                         <tr>
                                             <td>#{{ $venda->id }}</td>
                                             <td>{{ $venda->cliente->nome ?? '-' }}</td>
@@ -183,9 +183,9 @@
                             </table>
                         </div>
                     </div>
-                    @if ($vendasPacote->hasPages())
+                    @if ($vendasEtapas->hasPages())
                         <div class="card-footer">
-                            {{ $vendasPacote->links() }}
+                            {{ $vendasEtapas->links() }}
                         </div>
                     @endif
                 </div>

@@ -16,6 +16,7 @@ use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\CategoriaProdutoController;
 use App\Modules\Produto\Controllers\ProdutoController;
 use App\Modules\Servico\Controllers\ServicoController;
+use App\Modules\Tenant\Controllers\AssinaturaController;
 use App\Modules\Tenant\Controllers\EmpresaController;
 use App\Modules\Usuario\Controllers\PerfilController;
 use App\Modules\Usuario\Controllers\UsuarioController;
@@ -46,8 +47,6 @@ Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->n
 // Rotas autenticadas com verificacao de rede
 Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
     Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::post('perfil', [PerfilController::class, 'atualizar'])->name('perfil.atualizar');
@@ -55,6 +54,8 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
     // Rotas que necessitam empresa
     Route::middleware(['verificar.empresa', 'aplicar.contexto.empresa'])->group(function () {
+
+        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Agenda
         Route::get('agenda', [AgendaController::class, 'index'])->name('agenda.index');
@@ -72,14 +73,14 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         Route::get('vendas', [VendaController::class, 'index'])->name('vendas.index');
         Route::get('vendas/nova', [VendaController::class, 'create'])->name('vendas.create');
         Route::post('vendas', [VendaController::class, 'store'])->name('vendas.store');
-        Route::patch('vendas/avulso/{agendamento}/cancelar', [VendaController::class, 'cancelarAvulso'])->name('vendas.cancelar-avulso');
-        Route::patch('vendas/pacote/{pacote}/cancelar', [VendaController::class, 'cancelarPacote'])->name('vendas.cancelar-pacote');
+        Route::patch('vendas/unico/{agendamento}/cancelar', [VendaController::class, 'cancelarUnico'])->name('vendas.cancelar-unico');
+        Route::patch('vendas/etapas/{etapas}/cancelar', [VendaController::class, 'cancelarEtapas'])->name('vendas.cancelar-etapas');
         Route::patch('vendas/produto/{vendaProduto}/cancelar', [VendaController::class, 'cancelarProduto'])->name('vendas.cancelar-produto');
-        Route::get('vendas/recibo/{tipo}/{id}', [VendaController::class, 'recibo'])->name('vendas.recibo')->whereIn('tipo', ['avulso', 'pacote', 'produto']);
-        Route::get('vendas/avulso/{agendamento}/editar', [VendaController::class, 'editAvulso'])->name('vendas.edit-avulso');
-        Route::patch('vendas/avulso/{agendamento}', [VendaController::class, 'updateAvulso'])->name('vendas.update-avulso');
-        Route::get('vendas/pacote/{pacote}/editar', [VendaController::class, 'editPacote'])->name('vendas.edit-pacote');
-        Route::patch('vendas/pacote/{pacote}', [VendaController::class, 'updatePacote'])->name('vendas.update-pacote');
+        Route::get('vendas/recibo/{tipo}/{id}', [VendaController::class, 'recibo'])->name('vendas.recibo')->whereIn('tipo', ['unico', 'etapas', 'produto']);
+        Route::get('vendas/unico/{agendamento}/editar', [VendaController::class, 'editUnico'])->name('vendas.edit-unico');
+        Route::patch('vendas/unico/{agendamento}', [VendaController::class, 'updateUnico'])->name('vendas.update-unico');
+        Route::get('vendas/etapas/{etapas}/editar', [VendaController::class, 'editEtapas'])->name('vendas.edit-etapas');
+        Route::patch('vendas/etapas/{etapas}', [VendaController::class, 'updateEtapas'])->name('vendas.update-etapas');
         Route::get('vendas/produto/{vendaProduto}/editar', [VendaController::class, 'editProduto'])->name('vendas.edit-produto');
         Route::patch('vendas/produto/{vendaProduto}', [VendaController::class, 'updateProduto'])->name('vendas.update-produto');
 
@@ -137,8 +138,9 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         });
 
         // Administracao
-        Route::resource('empresas', EmpresaController::class);
+        Route::resource('empresas', EmpresaController::class)->except('show');
         Route::resource('usuarios', UsuarioController::class);
         Route::resource('perfis-acesso', PerfilAcessoController::class)->parameters(['perfis-acesso' => 'perfil_acesso']);
+        Route::get('minha-assinatura', [AssinaturaController::class, 'index'])->name('assinatura.index');
     });
 });

@@ -10,7 +10,7 @@ use App\Enums\StatusDespesa;
 use App\Enums\StatusPagamento;
 use App\Enums\StatusParcela;
 use App\Enums\StatusRede;
-use App\Enums\StatusVendaPacote;
+use App\Enums\StatusVendaEtapas;
 use App\Enums\StatusVendaProduto;
 use App\Enums\TipoMovimentoCaixa;
 use App\Enums\TipoMovimentoEstoque;
@@ -34,7 +34,7 @@ use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Tenant\Models\Plano;
 use App\Modules\Tenant\Models\Rede;
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
 use Carbon\Carbon;
 use Faker\Factory as FakerFactory;
@@ -59,7 +59,7 @@ class DesenvolvimentoSeeder extends Seeder
 
     private const TOTAL_AGENDAMENTOS = 600;
 
-    private const TOTAL_VENDAS_PACOTE = 60;
+    private const TOTAL_VENDAS_ETAPAS = 60;
 
     private const TOTAL_VENDAS_PRODUTO = 100;
 
@@ -123,7 +123,7 @@ class DesenvolvimentoSeeder extends Seeder
             $this->criarClientes();
             $this->criarCaixas();
             $this->criarAgendamentosEPagamentos();
-            $this->criarVendasPacote();
+            $this->criarVendasEtapas();
             $this->criarVendasProduto();
             $this->criarDespesas();
         });
@@ -272,35 +272,35 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarServicos(): void
     {
-        $tiposAvulso = [
+        $tiposUnicos = [
             ['Corte Masculino', 30, 45], ['Corte Feminino', 60, 85], ['Coloração', 90, 180],
             ['Escova Progressiva', 120, 220], ['Hidratação', 45, 60], ['Manicure', 45, 35],
             ['Pedicure', 60, 45], ['Depilação Axilas', 20, 30], ['Depilação Pernas', 45, 80],
             ['Massagem Relaxante', 60, 120], ['Limpeza de Pele', 60, 150],
         ];
-        foreach (array_slice($tiposAvulso, 0, self::TOTAL_SERVICOS - 4) as $s) {
+        foreach (array_slice($tiposUnicos, 0, self::TOTAL_SERVICOS - 4) as $s) {
             $this->servicos[] = Servico::create([
                 'rede_id' => $this->rede->id,
                 'nome' => $s[0],
                 'duracao' => $s[1],
                 'valor' => $s[2],
-                'tipo' => TipoServico::Avulso,
+                'tipo' => TipoServico::Unico,
             ]);
         }
 
         foreach ([
-            ['Pacote Massagem 10 Sessões', 60, 1000, 10],
-            ['Pacote Drenagem 8 Sessões', 60, 720, 8],
-            ['Pacote Depilação Laser 6 Sessões', 30, 1200, 6],
-            ['Pacote Limpeza de Pele 4 Sessões', 60, 520, 4],
+            ['Massagem 10 Sessões', 60, 1000, 10],
+            ['Drenagem 8 Sessões', 60, 720, 8],
+            ['Depilação Laser 6 Sessões', 30, 1200, 6],
+            ['Limpeza de Pele 4 Sessões', 60, 520, 4],
         ] as $p) {
             $this->servicos[] = Servico::create([
                 'rede_id' => $this->rede->id,
                 'nome' => $p[0],
                 'duracao' => $p[1],
                 'valor' => $p[2],
-                'tipo' => TipoServico::Pacote,
-                'qtd_sessoes' => $p[3],
+                'tipo' => TipoServico::Etapas,
+                'qtd_etapas' => $p[3],
             ]);
         }
 
@@ -361,11 +361,11 @@ class DesenvolvimentoSeeder extends Seeder
     private function criarAgendamentosEPagamentos(): void
     {
         $this->command->info('Criando '.self::TOTAL_AGENDAMENTOS.' agendamentos…');
-        $avulsos = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Avulso));
+        $unicos = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Unico));
 
         for ($i = 0; $i < self::TOTAL_AGENDAMENTOS; $i++) {
             $cliente = $this->faker->randomElement($this->clientes);
-            $servico = $this->faker->randomElement($avulsos);
+            $servico = $this->faker->randomElement($unicos);
             $atendente = $this->faker->randomElement($this->atendentes);
 
             $diasOffset = $this->faker->numberBetween(-self::DIAS_PASSADO, self::DIAS_FUTURO);
@@ -388,7 +388,7 @@ class DesenvolvimentoSeeder extends Seeder
             ]);
 
             if ($status === StatusAgendamento::Finalizado) {
-                $this->criarPagamentoAvulso($ag);
+                $this->criarPagamentoUnico($ag);
             }
         }
     }
@@ -412,7 +412,7 @@ class DesenvolvimentoSeeder extends Seeder
         ]);
     }
 
-    private function criarPagamentoAvulso(Agendamento $ag): void
+    private function criarPagamentoUnico(Agendamento $ag): void
     {
         $valor = (float) $ag->servico->valor;
         $dataVenda = Carbon::parse($ag->inicio);
@@ -438,49 +438,49 @@ class DesenvolvimentoSeeder extends Seeder
         }
     }
 
-    private function criarVendasPacote(): void
+    private function criarVendasEtapas(): void
     {
-        $pacotes = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Pacote));
-        if (empty($pacotes)) {
+        $servicosEtapas = array_values(array_filter($this->servicos, fn ($s) => $s->tipo === TipoServico::Etapas));
+        if (empty($servicosEtapas)) {
             return;
         }
 
-        $this->command->info('Criando '.self::TOTAL_VENDAS_PACOTE.' vendas de pacote…');
-        for ($i = 0; $i < self::TOTAL_VENDAS_PACOTE; $i++) {
-            $pacote = $this->faker->randomElement($pacotes);
+        $this->command->info('Criando '.self::TOTAL_VENDAS_ETAPAS.' vendas em etapas…');
+        for ($i = 0; $i < self::TOTAL_VENDAS_ETAPAS; $i++) {
+            $servico = $this->faker->randomElement($servicosEtapas);
             $cliente = $this->faker->randomElement($this->clientes);
             $atendente = $this->faker->randomElement($this->atendentes);
             $dataVenda = Carbon::now()->subDays($this->faker->numberBetween(1, self::DIAS_PASSADO));
 
-            $vp = VendaPacote::create([
+            $vp = VendaEtapas::create([
                 'rede_id' => $this->rede->id,
                 'empresa_id' => $this->empresa->id,
                 'cliente_id' => $cliente->id,
-                'servico_id' => $pacote->id,
+                'servico_id' => $servico->id,
                 'atendente_id' => $atendente->id,
                 'data' => $dataVenda,
-                'valor_total' => $pacote->valor,
-                'qtd_sessoes' => $pacote->qtd_sessoes,
-                'status' => StatusVendaPacote::Ativo,
+                'valor_total' => $servico->valor,
+                'qtd_etapas' => $servico->qtd_etapas,
+                'status' => StatusVendaEtapas::Ativo,
             ]);
 
-            // Pacote: 40% à vista, 60% a prazo (3-12 parcelas)
+            // Servico em etapas: 40% à vista, 60% a prazo (3-12 parcelas)
             if ($this->faker->boolean(40)) {
                 $this->criarPagamentoAVista(
-                    valorTotal: (float) $pacote->valor,
+                    valorTotal: (float) $servico->valor,
                     mesReferencia: $dataVenda,
                     dataVenda: $dataVenda,
                     clienteId: $cliente->id,
-                    vendaPacoteId: $vp->id,
+                    vendaEtapasId: $vp->id,
                 );
             } else {
                 $this->criarPagamentoAPrazo(
-                    valorTotal: (float) $pacote->valor,
+                    valorTotal: (float) $servico->valor,
                     numParcelas: $this->faker->numberBetween(3, 12),
                     mesReferencia: $dataVenda,
                     primeiroVencimento: $dataVenda->copy()->addDays(30),
                     clienteId: $cliente->id,
-                    vendaPacoteId: $vp->id,
+                    vendaEtapasId: $vp->id,
                 );
             }
         }
@@ -568,7 +568,7 @@ class DesenvolvimentoSeeder extends Seeder
         Carbon $dataVenda,
         ?int $clienteId = null,
         ?int $agendamentoId = null,
-        ?int $vendaPacoteId = null,
+        ?int $vendaEtapasId = null,
         ?int $vendaProdutoId = null,
     ): void {
         $forma = $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Cartao]);

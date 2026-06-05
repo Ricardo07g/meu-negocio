@@ -20,7 +20,7 @@ return new class extends Migration
 
             // Origem (exclusivas)
             $table->foreignId('agendamento_id')->nullable()->constrained('agendamentos')->nullOnDelete();
-            $table->foreignId('venda_pacote_id')->nullable()->constrained('vendas_pacote')->nullOnDelete();
+            $table->foreignId('venda_etapas_id')->nullable()->constrained('vendas_etapas')->nullOnDelete();
             $table->foreignId('venda_produto_id')->nullable()->constrained('vendas_produto')->nullOnDelete();
 
             $table->decimal('valor_total', 10, 2);

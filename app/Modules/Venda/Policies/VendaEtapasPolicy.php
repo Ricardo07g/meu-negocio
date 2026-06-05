@@ -3,16 +3,16 @@
 namespace App\Modules\Venda\Policies;
 
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 
-class VendaPacotePolicy
+class VendaEtapasPolicy
 {
     public function viewAny(Usuario $usuario): bool
     {
         return $usuario->can('agendamento.ver');
     }
 
-    public function view(Usuario $usuario, VendaPacote $venda): bool
+    public function view(Usuario $usuario, VendaEtapas $venda): bool
     {
         return $usuario->rede_id === $venda->rede_id
             && $usuario->podeAcessarEmpresa($venda->empresa_id)
@@ -24,7 +24,7 @@ class VendaPacotePolicy
         return $usuario->can('agendamento.criar');
     }
 
-    public function cancel(Usuario $usuario, VendaPacote $venda): bool
+    public function cancel(Usuario $usuario, VendaEtapas $venda): bool
     {
         return $usuario->rede_id === $venda->rede_id
             && $usuario->podeAcessarEmpresa($venda->empresa_id)

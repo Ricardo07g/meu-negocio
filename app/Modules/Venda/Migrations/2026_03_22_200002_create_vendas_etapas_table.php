@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vendas_pacote', function (Blueprint $table) {
+        Schema::create('vendas_etapas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conta_id')->constrained('contas');
             $table->foreignId('empresa_id')->constrained('empresas');
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->decimal('valor_total', 10, 2);
             $table->decimal('desconto', 10, 2)->default(0);
             $table->decimal('acrescimo', 10, 2)->default(0);
-            $table->integer('qtd_sessoes');
+            $table->integer('qtd_etapas');
             $table->string('status', 20)->default('ativo');
             $table->timestamps();
             $table->softDeletes();
@@ -31,6 +31,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('vendas_pacote');
+        Schema::dropIfExists('vendas_etapas');
     }
 };

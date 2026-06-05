@@ -175,7 +175,7 @@ class AgendaController extends Controller
     {
         try {
             $this->authorize('view', $agendamento);
-            $agendamento->load(['cliente', 'servico', 'atendente', 'pagamento', 'vendaPacote']);
+            $agendamento->load(['cliente', 'servico', 'atendente', 'pagamento', 'vendaEtapas']);
 
             if ($request->ajax()) {
                 return response()->json([
@@ -186,7 +186,7 @@ class AgendaController extends Controller
                     'horario' => $agendamento->inicio->format('H:i').' - '.$agendamento->fim->format('H:i'),
                     'status' => $agendamento->status->value,
                     'observacoes' => $agendamento->observacoes ?? '-',
-                    'pacote_id' => $agendamento->venda_pacote_id,
+                    'etapas_id' => $agendamento->venda_etapas_id,
                     'edit_url' => route('agenda.edit', $agendamento),
                 ]);
             }
@@ -229,43 +229,67 @@ class AgendaController extends Controller
         }
     }
 
-    public function confirmar(Agendamento $agendamento): RedirectResponse
+    public function confirmar(Request $request, Agendamento $agendamento): RedirectResponse|JsonResponse
     {
         try {
             $this->authorize('update', $agendamento);
             $this->service->confirmar($agendamento);
 
+            if ($request->ajax()) {
+                return response()->json(['ok' => true]);
+            }
+
             return redirect()->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento confirmado.');
         } catch (\Throwable $e) {
+            if ($request->ajax()) {
+                return response()->json(['message' => $e->getMessage()], 500);
+            }
+
             return $this->tratarErro($e, 'Erro ao confirmar agendamento');
         }
     }
 
-    public function finalizar(Agendamento $agendamento): RedirectResponse
+    public function finalizar(Request $request, Agendamento $agendamento): RedirectResponse|JsonResponse
     {
         try {
             $this->authorize('update', $agendamento);
             $this->service->finalizar($agendamento);
 
+            if ($request->ajax()) {
+                return response()->json(['ok' => true]);
+            }
+
             return redirect()
                 ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento finalizado.');
         } catch (\Throwable $e) {
+            if ($request->ajax()) {
+                return response()->json(['message' => $e->getMessage()], 500);
+            }
+
             return $this->tratarErro($e, 'Erro ao finalizar agendamento');
         }
     }
 
-    public function cancelar(Agendamento $agendamento): RedirectResponse
+    public function cancelar(Request $request, Agendamento $agendamento): RedirectResponse|JsonResponse
     {
         try {
             $this->authorize('cancel', $agendamento);
             $this->service->cancelar($agendamento);
 
+            if ($request->ajax()) {
+                return response()->json(['ok' => true]);
+            }
+
             return redirect()
                 ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento cancelado.');
         } catch (\Throwable $e) {
+            if ($request->ajax()) {
+                return response()->json(['message' => $e->getMessage()], 500);
+            }
+
             return $this->tratarErro($e, 'Erro ao cancelar agendamento');
         }
     }

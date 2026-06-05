@@ -213,40 +213,191 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ——— Click em evento: mostra detalhes ———
     calendar.on('clickEvent', (info) => {
-        const ev = info.event;
-        const props = ev.raw || {};
-        const inicio = new Date(ev.start).toLocaleString('pt-BR');
-        const fim = new Date(ev.end).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        abrirModalDetalhes(info.event);
+    });
 
-        let botoes = '';
+    function abrirModalDetalhes(ev) {
+        const props = ev.raw || {};
+        const inicioDate = new Date(ev.start);
+        const fimDate = new Date(ev.end);
+        const dataTexto = inicioDate.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        const horaInicio = inicioDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const horaFim = fimDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        const corStatus = {
+            agendado: 'info',
+            confirmado: 'primary',
+            finalizado: 'success',
+            cancelado: 'danger',
+        }[props.status] || 'secondary';
+
+        let actionsHtml = '';
         if (props.status === 'agendado') {
-            botoes += `<a href="${props.confirmar_url}" class="btn btn-sm btn-primary me-1">Confirmar</a>`;
-            botoes += `<a href="${props.finalizar_url}" class="btn btn-sm btn-success me-1">Finalizar</a>`;
-            botoes += `<a href="${props.cancelar_url}" class="btn btn-sm btn-danger">Cancelar</a>`;
+            actionsHtml = `
+                <button type="button" class="btn btn-primary" data-acao="confirmar"><i class="feather-check-circle me-1"></i>Confirmar</button>
+                <button type="button" class="btn btn-success" data-acao="finalizar"><i class="feather-flag me-1"></i>Finalizar</button>
+                <button type="button" class="btn btn-warning" data-acao="reagendar"><i class="feather-calendar me-1"></i>Reagendar</button>
+                <button type="button" class="btn btn-outline-danger" data-acao="cancelar"><i class="feather-x-circle me-1"></i>Cancelar</button>
+            `;
         } else if (props.status === 'confirmado') {
-            botoes += `<a href="${props.finalizar_url}" class="btn btn-sm btn-success me-1">Finalizar</a>`;
-            botoes += `<a href="${props.cancelar_url}" class="btn btn-sm btn-danger">Cancelar</a>`;
+            actionsHtml = `
+                <button type="button" class="btn btn-success" data-acao="finalizar"><i class="feather-flag me-1"></i>Finalizar</button>
+                <button type="button" class="btn btn-warning" data-acao="reagendar"><i class="feather-calendar me-1"></i>Reagendar</button>
+                <button type="button" class="btn btn-outline-danger swal-btn-full" data-acao="cancelar"><i class="feather-x-circle me-1"></i>Cancelar</button>
+            `;
         }
 
         Swal.fire({
             title: ev.title,
+            customClass: { popup: 'swal-agenda' },
+            width: 520,
+            showConfirmButton: false,
+            showCloseButton: true,
             html: `
-                <div class="text-start">
-                    <p><strong>Cliente:</strong> ${props.cliente || '-'}</p>
-                    <p><strong>Serviço:</strong> ${props.servico || '-'}</p>
-                    <p><strong>Atendente:</strong> ${props.atendente || '-'}</p>
-                    <p><strong>Início:</strong> ${inicio}</p>
-                    <p><strong>Fim:</strong> ${fim}</p>
-                    <p><strong>Status:</strong> <span class="badge bg-secondary">${props.status_label || props.status}</span></p>
-                    ${props.observacoes ? `<p><strong>Obs:</strong> ${props.observacoes}</p>` : ''}
-                    ${botoes ? `<hr><div class="text-center">${botoes}</div>` : ''}
+                <div class="swal-status mb-3">
+                    <span class="swal-status-pill bg-soft-${corStatus} text-${corStatus}">
+                        <span class="dot bg-${corStatus}"></span>${props.status_label || props.status}
+                    </span>
+                </div>
+                <div class="swal-info">
+                    <div class="swal-info-row"><span class="label">Cliente</span><span class="value">${escapeHtml(props.cliente || '-')}</span></div>
+                    <div class="swal-info-row"><span class="label">Serviço</span><span class="value">${escapeHtml(props.servico || '-')}</span></div>
+                    <div class="swal-info-row"><span class="label">Atendente</span><span class="value">${escapeHtml(props.atendente || '-')}</span></div>
+                    <div class="swal-info-row"><span class="label">Data</span><span class="value">${dataTexto}</span></div>
+                    <div class="swal-info-row"><span class="label">Horário</span><span class="value">${horaInicio} – ${horaFim}</span></div>
+                </div>
+                ${props.observacoes ? `<div class="swal-obs"><strong>Observações:</strong> ${escapeHtml(props.observacoes)}</div>` : ''}
+                ${actionsHtml ? `<div class="swal-actions">${actionsHtml}</div>` : ''}
+            `,
+            onOpen: function (popup) {
+                popup.querySelectorAll('[data-acao]').forEach((btn) => {
+                    btn.addEventListener('click', function () {
+                        const acao = this.dataset.acao;
+                        if (acao === 'reagendar') {
+                            Swal.close();
+                            abrirModalReagendar(ev);
+                        } else if (acao === 'cancelar') {
+                            confirmarCancelamento(props);
+                        } else if (acao === 'confirmar') {
+                            executarAcao(props.confirmar_url, 'Agendamento confirmado!');
+                        } else if (acao === 'finalizar') {
+                            executarAcao(props.finalizar_url, 'Agendamento finalizado!');
+                        }
+                    });
+                });
+            },
+        });
+    }
+
+    async function executarAcao(url, msgSucesso) {
+        try {
+            const resp = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'application/json',
+                },
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.message || 'HTTP ' + resp.status);
+            }
+            Swal.fire({ icon: 'success', title: msgSucesso, timer: 1500, showConfirmButton: false });
+            carregarEventos();
+        } catch (err) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: err.message });
+        }
+    }
+
+    function confirmarCancelamento(props) {
+        Swal.fire({
+            title: 'Cancelar agendamento?',
+            text: 'Essa ação não pode ser desfeita.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d13b4c',
+            confirmButtonText: 'Sim, cancelar',
+            cancelButtonText: 'Voltar',
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                executarAcao(props.cancelar_url, 'Agendamento cancelado.');
+            }
+        });
+    }
+
+    function abrirModalReagendar(ev) {
+        const isoInicio = toLocalIsoInput(new Date(ev.start));
+        const isoFim = toLocalIsoInput(new Date(ev.end));
+
+        Swal.fire({
+            title: 'Reagendar atendimento',
+            iconHtml: '<i class="feather-calendar" style="font-size:28px;color:#3454d1;"></i>',
+            customClass: { popup: 'swal-reagendar' },
+            width: 460,
+            html: `
+                <div class="swal-hint mb-3">Defina o novo início e fim. O atendimento será movido no calendário.</div>
+                <div class="swal-field">
+                    <label>Novo início</label>
+                    <input id="swal-reagendar-inicio" type="datetime-local" class="form-control" value="${isoInicio}">
+                </div>
+                <div class="swal-field">
+                    <label>Novo fim</label>
+                    <input id="swal-reagendar-fim" type="datetime-local" class="form-control" value="${isoFim}">
                 </div>
             `,
-            confirmButtonText: 'Fechar',
-            confirmButtonColor: '#6c757d',
-            width: 500,
+            showCancelButton: true,
+            confirmButtonText: 'Reagendar',
+            cancelButtonText: 'Voltar',
+            confirmButtonColor: '#3454d1',
+            focusConfirm: false,
+            preConfirm: function () {
+                const inicio = document.getElementById('swal-reagendar-inicio').value;
+                const fim = document.getElementById('swal-reagendar-fim').value;
+                if (!inicio || !fim) {
+                    Swal.showValidationMessage('Preencha início e fim.');
+                    return false;
+                }
+                if (new Date(fim) <= new Date(inicio)) {
+                    Swal.showValidationMessage('O fim deve ser posterior ao início.');
+                    return false;
+                }
+                return { inicio: inicio + ':00', fim: fim + ':00' };
+            },
+        }).then(async function (result) {
+            if (!result.value) return;
+            const url = reagendarTemplate.replace('__ID__', ev.id);
+            try {
+                const resp = await fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify(result.value),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.message || 'Erro ao reagendar');
+                }
+                Swal.fire({ icon: 'success', title: 'Reagendado!', timer: 1500, showConfirmButton: false });
+                carregarEventos();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Erro', text: err.message });
+            }
         });
-    });
+    }
+
+    function toLocalIsoInput(d) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
 
     calendar.render();
     atualizarRange();

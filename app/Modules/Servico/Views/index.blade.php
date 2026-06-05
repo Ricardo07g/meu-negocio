@@ -32,8 +32,8 @@
                         <label class="form-label">Tipo</label>
                         <select name="tipo" class="form-select">
                             <option value="">Todos</option>
-                            <option value="avulso" @selected(request('tipo') === 'avulso')>Avulso</option>
-                            <option value="pacote" @selected(request('tipo') === 'pacote')>Pacote</option>
+                            <option value="unico" @selected(request('tipo') === 'unico')>Serviço Único</option>
+                            <option value="etapas" @selected(request('tipo') === 'etapas')>Serviço em Etapas</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -87,11 +87,11 @@
                             <td>{{ $servico->nome }}</td>
                             <td>
                                 @switch($servico->tipo->value)
-                                    @case('pacote')
-                                        <span class="badge bg-primary">Pacote ({{ $servico->qtd_sessoes }}x)</span>
+                                    @case('etapas')
+                                        <span class="badge bg-primary">Etapas ({{ $servico->qtd_etapas }}x)</span>
                                         @break
                                     @default
-                                        <span class="badge bg-light text-dark">Avulso</span>
+                                        <span class="badge bg-light text-dark">Único</span>
                                 @endswitch
                             </td>
                             <td>{{ $servico->duracao }} min</td>
