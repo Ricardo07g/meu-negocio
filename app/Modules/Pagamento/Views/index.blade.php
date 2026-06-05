@@ -38,8 +38,8 @@
                         <label class="form-label">Origem</label>
                         <select name="origem" class="form-select">
                             <option value="">Todas</option>
-                            <option value="avulso" @selected(request('origem') === 'avulso')>Agendamento avulso</option>
-                            <option value="pacote" @selected(request('origem') === 'pacote')>Pacote de sessões</option>
+                            <option value="unico" @selected(request('origem') === 'unico')>Serviço único</option>
+                            <option value="etapas" @selected(request('origem') === 'etapas')>Serviço em etapas</option>
                             <option value="produto" @selected(request('origem') === 'produto')>Venda de produto</option>
                         </select>
                     </div>

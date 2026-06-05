@@ -66,14 +66,14 @@ class ServicoController extends Controller
                 ->orderByDesc('inicio')
                 ->paginate(10, pageName: 'pageAgenda');
 
-            $vendasPacote = $servico->isPacote()
-                ? $servico->vendasPacote()
+            $vendasEtapas = $servico->isEtapas()
+                ? $servico->vendasEtapas()
                     ->with('cliente')
                     ->orderByDesc('created_at')
-                    ->paginate(10, pageName: 'pagePacote')
+                    ->paginate(10, pageName: 'pageEtapas')
                 : null;
 
-            return view('servico::show', compact('servico', 'agendamentos', 'vendasPacote'));
+            return view('servico::show', compact('servico', 'agendamentos', 'vendasEtapas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao exibir serviço');
         }
@@ -124,7 +124,7 @@ class ServicoController extends Controller
 
         $servicos = Servico::where('nome', 'like', "%{$q}%")
             ->limit(10)
-            ->get(['id', 'nome', 'tipo', 'duracao', 'valor', 'qtd_sessoes']);
+            ->get(['id', 'nome', 'tipo', 'duracao', 'valor', 'qtd_etapas']);
 
         return response()->json($servicos);
     }

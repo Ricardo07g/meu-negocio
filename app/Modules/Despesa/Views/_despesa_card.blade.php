@@ -75,7 +75,10 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     @if($valorPago > 0)
                     <li>
-                        <a href="{{ route('despesas.recibo', $despesa) }}" target="_blank" class="dropdown-item">
+                        <a href="javascript:void(0)" class="dropdown-item"
+                           data-bs-toggle="modal" data-bs-target="#modalRecibo"
+                           data-recibo-url="{{ route('despesas.recibo', $despesa) }}"
+                           data-recibo-titulo="Comprovante de Pagamento #{{ str_pad($despesa->id, 6, '0', STR_PAD_LEFT) }}">
                             <i class="feather-printer me-2"></i>Imprimir comprovante
                         </a>
                     </li>
@@ -101,7 +104,7 @@
                         @endcan
                     @endif
                     @can('despesa.excluir')
-                        @if ($status === \App\Enums\StatusDespesa::Pendente && $valorPago == 0)
+                        @if (in_array($status, [\App\Enums\StatusDespesa::Pendente, \App\Enums\StatusDespesa::Cancelada]) && $valorPago == 0)
                             <li>
                                 <form action="{{ route('despesas.destroy', $despesa) }}" method="POST" data-confirm="Excluir esta despesa? Esta acao e irreversivel.">
                                     @csrf @method('DELETE')

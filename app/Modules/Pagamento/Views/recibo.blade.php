@@ -38,9 +38,9 @@
     $totalRecebido = $pagamento->totalRecebidoLiquido();
     $saldo = $pagamento->saldoRestante();
     $status = $pagamento->status->value;
-    $origem = $pagamento->agendamento ? 'Agendamento avulso' : ($pagamento->vendaPacote ? 'Pacote de sessões' : ($pagamento->vendaProduto ? 'Venda de produto' : 'Outro'));
+    $origem = $pagamento->agendamento ? 'Serviço único' : ($pagamento->vendaEtapas ? 'Serviço em etapas' : ($pagamento->vendaProduto ? 'Venda de produto' : 'Outro'));
     $origemDesc = $pagamento->agendamento?->servico?->nome
-        ?? $pagamento->vendaPacote?->servico?->nome
+        ?? $pagamento->vendaEtapas?->servico?->nome
         ?? ($pagamento->vendaProduto ? $pagamento->vendaProduto->itens->pluck('descricao')->implode(', ') : '—');
 @endphp
 

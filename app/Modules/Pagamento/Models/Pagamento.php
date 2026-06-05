@@ -10,7 +10,7 @@ use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
@@ -30,7 +30,7 @@ class Pagamento extends BaseModel
         'empresa_id',
         'cliente_id',
         'agendamento_id',
-        'venda_pacote_id',
+        'venda_etapas_id',
         'venda_produto_id',
         'valor_total',
         'desconto',
@@ -72,9 +72,9 @@ class Pagamento extends BaseModel
         return $this->belongsTo(Agendamento::class, 'agendamento_id');
     }
 
-    public function vendaPacote(): BelongsTo
+    public function vendaEtapas(): BelongsTo
     {
-        return $this->belongsTo(VendaPacote::class, 'venda_pacote_id');
+        return $this->belongsTo(VendaEtapas::class, 'venda_etapas_id');
     }
 
     public function vendaProduto(): BelongsTo

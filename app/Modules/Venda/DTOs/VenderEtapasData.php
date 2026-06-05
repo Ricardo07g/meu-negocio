@@ -4,7 +4,7 @@ namespace App\Modules\Venda\DTOs;
 
 use Spatie\LaravelData\Data;
 
-class VenderPacoteData extends Data
+class VenderEtapasData extends Data
 {
     public function __construct(
         public int $cliente_id,

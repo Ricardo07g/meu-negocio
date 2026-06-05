@@ -6,6 +6,7 @@ use App\Enums\StatusAgendamento;
 use App\Enums\StatusCaixa;
 use App\Enums\StatusParcela;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Cliente\Models\Cliente;
@@ -24,12 +25,17 @@ class DashboardService
             'agendamentosHoje' => $this->agendamentosHoje(),
             'totalClientes' => $this->totalClientes(),
             'receitaMes' => $this->receitaMes(),
+            'receitaMesAnterior' => $this->receitaMesAnterior(),
+            'despesaMes' => $this->despesaMes(),
+            'despesaMesAnterior' => $this->despesaMesAnterior(),
             'servicosAtivos' => $this->servicosAtivos(),
             'contasReceber' => $this->contasReceberQuantidade(),
             'totalContasReceber' => $this->contasReceberTotal(),
             'caixaAberto' => $this->caixaAberto(),
             'proximosAgendamentos' => $this->proximosAgendamentos(),
             'parcelasVencendo' => $this->parcelasVencendo(),
+            'fluxoUltimos6Meses' => $this->fluxoUltimos6Meses(),
+            'agendamentosPorStatusMes' => $this->agendamentosPorStatusMes(),
         ];
     }
 
@@ -51,6 +57,31 @@ class DashboardService
     {
         return (float) BaixaPagamento::whereMonth('data', now()->month)
             ->whereYear('data', now()->year)
+            ->sum('valor');
+    }
+
+    public function receitaMesAnterior(): float
+    {
+        $ref = now()->copy()->subMonthNoOverflow();
+
+        return (float) BaixaPagamento::whereMonth('data', $ref->month)
+            ->whereYear('data', $ref->year)
+            ->sum('valor');
+    }
+
+    public function despesaMes(): float
+    {
+        return (float) BaixaDespesa::whereMonth('data', now()->month)
+            ->whereYear('data', now()->year)
+            ->sum('valor');
+    }
+
+    public function despesaMesAnterior(): float
+    {
+        $ref = now()->copy()->subMonthNoOverflow();
+
+        return (float) BaixaDespesa::whereMonth('data', $ref->month)
+            ->whereYear('data', $ref->year)
             ->sum('valor');
     }
 
@@ -115,5 +146,61 @@ class DashboardService
             ->orderBy('data_vencimento')
             ->limit($limite)
             ->get();
+    }
+
+    /**
+     * Receita (BaixaPagamento) e Despesa (BaixaDespesa) somadas por mes
+     * nos ultimos 6 meses (do mais antigo ao mes atual). Usado pelo
+     * grafico de fluxo financeiro.
+     *
+     * Respeita EmpresaTrait nos dois modelos.
+     */
+    public function fluxoUltimos6Meses(): array
+    {
+        $meses = collect();
+        $cursor = now()->copy()->subMonths(5)->startOfMonth();
+        $fim = now()->copy()->startOfMonth();
+
+        while ($cursor->lte($fim)) {
+            $receita = (float) BaixaPagamento::whereYear('data', $cursor->year)
+                ->whereMonth('data', $cursor->month)
+                ->sum('valor');
+            $despesa = (float) BaixaDespesa::whereYear('data', $cursor->year)
+                ->whereMonth('data', $cursor->month)
+                ->sum('valor');
+
+            $meses->push([
+                'label' => ucfirst($cursor->locale('pt_BR')->isoFormat('MMM/YY')),
+                'receita' => round($receita, 2),
+                'despesa' => round($despesa, 2),
+            ]);
+
+            $cursor->addMonth();
+        }
+
+        return $meses->values()->all();
+    }
+
+    /**
+     * Distribuicao dos agendamentos do mes vigente por status.
+     * Usado pelo grafico donut.
+     */
+    public function agendamentosPorStatusMes(): array
+    {
+        $contagem = Agendamento::whereYear('inicio', now()->year)
+            ->whereMonth('inicio', now()->month)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->all();
+
+        return collect(StatusAgendamento::cases())
+            ->map(fn (StatusAgendamento $s) => [
+                'status' => $s->value,
+                'label' => $s->label(),
+                'cor' => $s->cor(),
+                'total' => (int) ($contagem[$s->value] ?? 0),
+            ])
+            ->all();
     }
 }

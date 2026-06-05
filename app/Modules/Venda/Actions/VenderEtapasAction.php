@@ -3,29 +3,29 @@
 namespace App\Modules\Venda\Actions;
 
 use App\Enums\StatusAgendamento;
-use App\Enums\StatusVendaPacote;
+use App\Enums\StatusVendaEtapas;
 use App\Exceptions\ConflitoAgendamentoException;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Servico\Models\Servico;
-use App\Modules\Venda\DTOs\VenderPacoteData;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\DTOs\VenderEtapasData;
+use App\Modules\Venda\Models\VendaEtapas;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-class VenderPacoteAction
+class VenderEtapasAction
 {
-    public function executar(VenderPacoteData $data): VendaPacote
+    public function executar(VenderEtapasData $data): VendaEtapas
     {
         return DB::transaction(function () use ($data) {
             $servico = Servico::findOrFail($data->servico_id);
 
-            $venda = VendaPacote::create([
+            $venda = VendaEtapas::create([
                 'cliente_id' => $data->cliente_id,
                 'servico_id' => $data->servico_id,
                 'atendente_id' => $data->atendente_id,
                 'valor_total' => $data->valor_total,
-                'qtd_sessoes' => count($data->datas),
-                'status' => StatusVendaPacote::Ativo,
+                'qtd_etapas' => count($data->datas),
+                'status' => StatusVendaEtapas::Ativo,
             ]);
 
             $conflitos = [];
@@ -52,7 +52,7 @@ class VenderPacoteAction
                     'cliente_id' => $data->cliente_id,
                     'servico_id' => $data->servico_id,
                     'atendente_id' => $data->atendente_id,
-                    'venda_pacote_id' => $venda->id,
+                    'venda_etapas_id' => $venda->id,
                     'inicio' => $inicio,
                     'fim' => $fim,
                     'status' => StatusAgendamento::Agendado,

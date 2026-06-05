@@ -11,13 +11,13 @@
     $statusLabel = $status->label();
 
     if ($pagamento->agendamento) {
-        $origemTipo = 'Avulso';
+        $origemTipo = 'Único';
         $origemBadge = 'bg-light text-dark border';
         $origemDetalhe = $pagamento->agendamento->servico->nome ?? '—';
-    } elseif ($pagamento->vendaPacote) {
-        $origemTipo = 'Pacote';
+    } elseif ($pagamento->vendaEtapas) {
+        $origemTipo = 'Etapas';
         $origemBadge = 'bg-primary';
-        $origemDetalhe = $pagamento->vendaPacote->servico->nome ?? '—';
+        $origemDetalhe = $pagamento->vendaEtapas->servico->nome ?? '—';
     } elseif ($pagamento->vendaProduto) {
         $origemTipo = 'Produto';
         $origemBadge = 'bg-warning';
@@ -81,7 +81,10 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                     @if($valorPago > 0)
                     <li>
-                        <a href="{{ route('pagamentos.recibo', $pagamento) }}" target="_blank" class="dropdown-item">
+                        <a href="javascript:void(0)" class="dropdown-item"
+                           data-bs-toggle="modal" data-bs-target="#modalRecibo"
+                           data-recibo-url="{{ route('pagamentos.recibo', $pagamento) }}"
+                           data-recibo-titulo="Comprovante de Recebimento #{{ str_pad($pagamento->id, 6, '0', STR_PAD_LEFT) }}">
                             <i class="feather-printer me-2"></i>Imprimir comprovante
                         </a>
                     </li>

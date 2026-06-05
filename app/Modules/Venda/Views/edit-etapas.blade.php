@@ -1,63 +1,63 @@
 @extends('layouts.app')
 
-@section('titulo', 'Editar Pacote - Meu Negócio')
-@section('titulo-pagina', 'Editar Pacote')
+@section('titulo', 'Editar Serviço em Etapas - Meu Negócio')
+@section('titulo-pagina', 'Editar Serviço em Etapas')
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
-    <li class="breadcrumb-item active">Editar pacote</li>
+    <li class="breadcrumb-item active">Editar serviço em etapas</li>
 @endsection
 
 @section('content')
     @php
-        $subtotalPacote = (float) $pacote->valor_total + (float) $pacote->desconto - (float) $pacote->acrescimo;
+        $subtotalEtapas = (float) $etapas->valor_total + (float) $etapas->desconto - (float) $etapas->acrescimo;
     @endphp
 
-    <form action="{{ route('vendas.update-pacote', $pacote) }}" method="POST">
+    <form action="{{ route('vendas.update-etapas', $etapas) }}" method="POST">
         @csrf @method('PATCH')
 
         <div class="card stretch stretch-full">
             <div class="card-header">
-                <h5 class="card-title">Pacote #{{ $pacote->id }} — {{ $pacote->servico->nome ?? '' }}</h5>
+                <h5 class="card-title">Venda em Etapas #{{ $etapas->id }} — {{ $etapas->servico->nome ?? '' }}</h5>
             </div>
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Cliente <span class="text-danger">*</span></label>
-                        <input type="text" id="clienteSearch" class="form-control @error('cliente_id') is-invalid @enderror" placeholder="Digite o nome ou telefone..." autocomplete="off" value="{{ old('_cliente_nome', $pacote->cliente->nome ?? '') }}">
-                        <input type="hidden" name="cliente_id" id="clienteHidden" value="{{ old('cliente_id', $pacote->cliente_id) }}">
+                        <input type="text" id="clienteSearch" class="form-control @error('cliente_id') is-invalid @enderror" placeholder="Digite o nome ou telefone..." autocomplete="off" value="{{ old('_cliente_nome', $etapas->cliente->nome ?? '') }}">
+                        <input type="hidden" name="cliente_id" id="clienteHidden" value="{{ old('cliente_id', $etapas->cliente_id) }}">
                         @error('cliente_id') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Sessões</label>
-                        <input type="text" class="form-control" value="{{ $pacote->qtd_sessoes }}" disabled>
-                        <div class="fs-12 text-muted mt-1">A quantidade de sessões não pode ser alterada após a venda.</div>
+                        <label class="form-label">Etapas</label>
+                        <input type="text" class="form-control" value="{{ $etapas->qtd_etapas }}" disabled>
+                        <div class="fs-12 text-muted mt-1">A quantidade de etapas não pode ser alterada após a venda.</div>
                     </div>
 
                     <div class="col-md-4">
                         <label class="form-label">Subtotal</label>
-                        <input type="text" class="form-control" value="R$ {{ number_format($subtotalPacote, 2, ',', '.') }}" disabled>
+                        <input type="text" class="form-control" value="R$ {{ number_format($subtotalEtapas, 2, ',', '.') }}" disabled>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Desconto (R$)</label>
-                        <input type="number" step="0.01" min="0" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', number_format((float) $pacote->desconto, 2, '.', '')) }}">
+                        <input type="number" step="0.01" min="0" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', number_format((float) $etapas->desconto, 2, '.', '')) }}">
                         @error('desconto') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Acréscimo (R$)</label>
-                        <input type="number" step="0.01" min="0" name="acrescimo" id="acrescimo" class="form-control @error('acrescimo') is-invalid @enderror" value="{{ old('acrescimo', number_format((float) $pacote->acrescimo, 2, '.', '')) }}">
+                        <input type="number" step="0.01" min="0" name="acrescimo" id="acrescimo" class="form-control @error('acrescimo') is-invalid @enderror" value="{{ old('acrescimo', number_format((float) $etapas->acrescimo, 2, '.', '')) }}">
                         @error('acrescimo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-12">
                         <div class="alert alert-info fs-13 mb-0">
-                            <strong>Total atualizado: <span id="totalCalc">R$ {{ number_format((float) $pacote->valor_total, 2, ',', '.') }}</span></strong>
+                            <strong>Total atualizado: <span id="totalCalc">R$ {{ number_format((float) $etapas->valor_total, 2, ',', '.') }}</span></strong>
                             <span class="text-muted ms-2">(subtotal − desconto + acréscimo)</span>
                         </div>
                     </div>
 
                     <div class="col-12">
                         <label class="form-label">Observações</label>
-                        <textarea name="observacao" rows="3" class="form-control @error('observacao') is-invalid @enderror">{{ old('observacao', $pacote->observacao) }}</textarea>
+                        <textarea name="observacao" rows="3" class="form-control @error('observacao') is-invalid @enderror">{{ old('observacao', $etapas->observacao) }}</textarea>
                         @error('observacao') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
@@ -80,7 +80,7 @@
         displayText: function(item) { return item.nome; },
     });
 
-    const subtotal = {{ $subtotalPacote }};
+    const subtotal = {{ $subtotalEtapas }};
     const inputDesc = document.getElementById('desconto');
     const inputAcr = document.getElementById('acrescimo');
     const spanTotal = document.getElementById('totalCalc');

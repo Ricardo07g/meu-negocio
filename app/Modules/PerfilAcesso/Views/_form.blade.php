@@ -34,8 +34,7 @@
             <div class="card border mb-3">
                 <div class="card-header py-2 px-3 bg-light js-collapse-toggle"
                      style="cursor:pointer;"
-                     data-bs-toggle="collapse"
-                     data-bs-target="#{{ $collapseId }}"
+                     data-collapse-target="#{{ $collapseId }}"
                      aria-expanded="true"
                      aria-controls="{{ $collapseId }}">
                     <div class="d-flex align-items-center justify-content-between w-100">
@@ -44,7 +43,6 @@
                                    type="checkbox"
                                    id="master-{{ $modulo }}"
                                    data-master-modulo="{{ $modulo }}"
-                                   onclick="event.stopPropagation();"
                                    title="Marcar/desmarcar todas as permissões deste módulo"
                                    @checked($todasSelecionadas)>
                             <i class="{{ $info['icone'] }} fs-18 text-primary"></i>
@@ -101,6 +99,23 @@
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.js-collapse-toggle[data-collapse-target]').forEach(function (header) {
+        const collapseEl = document.querySelector(header.getAttribute('data-collapse-target'));
+        if (! collapseEl) return;
+
+        header.addEventListener('click', function (event) {
+            if (event.target.closest('input[data-master-modulo]')) return;
+            bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false }).toggle();
+        });
+
+        collapseEl.addEventListener('shown.bs.collapse', function () {
+            header.setAttribute('aria-expanded', 'true');
+        });
+        collapseEl.addEventListener('hidden.bs.collapse', function () {
+            header.setAttribute('aria-expanded', 'false');
+        });
+    });
+
     document.querySelectorAll('input[data-master-modulo]').forEach(function (master) {
         const modulo = master.dataset.masterModulo;
         const filhos = document.querySelectorAll('input[data-modulo="' + modulo + '"]');

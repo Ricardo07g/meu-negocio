@@ -12,13 +12,6 @@ class EmpresaPolicy
         return $usuario->can('empresa.ver');
     }
 
-    public function view(Usuario $usuario, Empresa $empresa): bool
-    {
-        return $usuario->rede_id === $empresa->rede_id
-            && $usuario->podeAcessarEmpresa($empresa->id)
-            && $usuario->can('empresa.ver');
-    }
-
     public function create(Usuario $usuario): bool
     {
         return $usuario->can('empresa.criar');

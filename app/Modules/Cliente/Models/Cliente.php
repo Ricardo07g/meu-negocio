@@ -5,7 +5,7 @@ namespace App\Modules\Cliente\Models;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Pagamento\Models\Pagamento;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -52,9 +52,9 @@ class Cliente extends BaseModel
         return $this->hasMany(Agendamento::class, 'cliente_id');
     }
 
-    public function vendasPacote(): HasMany
+    public function vendasEtapas(): HasMany
     {
-        return $this->hasMany(VendaPacote::class, 'cliente_id');
+        return $this->hasMany(VendaEtapas::class, 'cliente_id');
     }
 
     public function vendasProduto(): HasMany

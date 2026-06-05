@@ -95,7 +95,7 @@
     </table>
 @endif
 
-<div class="section-title">{{ $tipo === 'produto' ? 'Itens' : 'Serviço / Sessões' }}</div>
+<div class="section-title">{{ $tipo === 'produto' ? 'Itens' : 'Serviço / Etapas' }}</div>
 
 @if($tipo === 'produto')
     <table class="itens">
@@ -122,14 +122,14 @@
             @endforeach
         </tbody>
     </table>
-@elseif($tipo === 'pacote')
+@elseif($tipo === 'etapas')
     <table class="dados">
         <tr>
             <td class="label">Serviço:</td><td>{{ $servico->nome ?? '—' }}</td>
-            <td class="label">Sessões:</td><td>{{ $qtdSessoes }} ({{ $sessoesRealizadas }} realizadas)</td>
+            <td class="label">Etapas:</td><td>{{ $qtdEtapas }} ({{ $etapasRealizadas }} realizadas)</td>
         </tr>
     </table>
-    @if($sessoes && $sessoes->count())
+    @if($etapas && $etapas->count())
         <table class="itens" style="margin-top:10px;">
             <thead>
                 <tr>
@@ -137,7 +137,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($sessoes as $i => $ag)
+                @foreach($etapas as $i => $ag)
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         <td>{{ $ag->inicio->format('d/m/Y') }}</td>

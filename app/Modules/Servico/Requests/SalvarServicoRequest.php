@@ -22,7 +22,7 @@ class SalvarServicoRequest extends FormRequest
             'duracao' => ['required', 'integer', 'min:1'],
             'valor' => ['required', 'numeric', 'min:0'],
             'tipo' => ['required', Rule::enum(TipoServico::class)],
-            'qtd_sessoes' => ['nullable', 'required_if:tipo,pacote', 'integer', 'min:2'],
+            'qtd_etapas' => ['nullable', 'required_if:tipo,etapas', 'integer', 'min:2'],
             'descricao' => ['nullable', 'string', 'max:1000'],
         ];
     }

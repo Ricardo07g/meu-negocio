@@ -80,12 +80,12 @@ class RedeService
 
             // Serviços padrão
             $servicosPadrao = [
-                ['nome' => 'Corte Masculino', 'duracao' => 30, 'valor' => 45.00, 'tipo' => 'avulso'],
-                ['nome' => 'Corte Feminino', 'duracao' => 60, 'valor' => 75.00, 'tipo' => 'avulso'],
-                ['nome' => 'Escova Progressiva', 'duracao' => 120, 'valor' => 200.00, 'tipo' => 'avulso'],
-                ['nome' => 'Manicure', 'duracao' => 45, 'valor' => 35.00, 'tipo' => 'avulso'],
-                ['nome' => 'Massagem Relaxante', 'duracao' => 60, 'valor' => 120.00, 'tipo' => 'avulso'],
-                ['nome' => 'Pacote Massagem 10 Sessões', 'duracao' => 60, 'valor' => 1000.00, 'tipo' => 'pacote', 'qtd_sessoes' => 10],
+                ['nome' => 'Corte Masculino', 'duracao' => 30, 'valor' => 45.00, 'tipo' => 'unico'],
+                ['nome' => 'Corte Feminino', 'duracao' => 60, 'valor' => 75.00, 'tipo' => 'unico'],
+                ['nome' => 'Escova Progressiva', 'duracao' => 120, 'valor' => 200.00, 'tipo' => 'unico'],
+                ['nome' => 'Manicure', 'duracao' => 45, 'valor' => 35.00, 'tipo' => 'unico'],
+                ['nome' => 'Massagem Relaxante', 'duracao' => 60, 'valor' => 120.00, 'tipo' => 'unico'],
+                ['nome' => 'Massagem 10 Sessões', 'duracao' => 60, 'valor' => 1000.00, 'tipo' => 'etapas', 'qtd_etapas' => 10],
             ];
             foreach ($servicosPadrao as $s) {
                 Servico::create([
@@ -94,7 +94,7 @@ class RedeService
                     'duracao' => $s['duracao'],
                     'valor' => $s['valor'],
                     'tipo' => $s['tipo'],
-                    'qtd_sessoes' => $s['qtd_sessoes'] ?? null,
+                    'qtd_etapas' => $s['qtd_etapas'] ?? null,
                 ]);
             }
 

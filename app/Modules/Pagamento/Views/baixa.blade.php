@@ -14,9 +14,9 @@
         $diasAtraso = $parcela->diasAtraso();
 
         if ($pagamento->agendamento) {
-            $origemLabel = 'Atendimento avulso — ' . ($pagamento->agendamento->servico->nome ?? '—');
-        } elseif ($pagamento->vendaPacote) {
-            $origemLabel = 'Pacote — ' . ($pagamento->vendaPacote->servico->nome ?? '—');
+            $origemLabel = 'Serviço único — ' . ($pagamento->agendamento->servico->nome ?? '—');
+        } elseif ($pagamento->vendaEtapas) {
+            $origemLabel = 'Serviço em etapas — ' . ($pagamento->vendaEtapas->servico->nome ?? '—');
         } elseif ($pagamento->vendaProduto) {
             $origemLabel = 'Venda de produto — ' . ($pagamento->vendaProduto->itens->pluck('descricao')->implode(', ') ?: '—');
         } else {

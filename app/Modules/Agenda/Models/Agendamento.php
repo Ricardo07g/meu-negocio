@@ -8,7 +8,7 @@ use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Traits\EmpresaTrait;
 use App\Traits\RegistraAtividade;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,7 +27,7 @@ class Agendamento extends BaseModel
         'cliente_id',
         'servico_id',
         'atendente_id',
-        'venda_pacote_id',
+        'venda_etapas_id',
         'inicio',
         'fim',
         'status',
@@ -65,9 +65,9 @@ class Agendamento extends BaseModel
         return $this->belongsTo(Usuario::class, 'atendente_id');
     }
 
-    public function vendaPacote(): BelongsTo
+    public function vendaEtapas(): BelongsTo
     {
-        return $this->belongsTo(VendaPacote::class, 'venda_pacote_id');
+        return $this->belongsTo(VendaEtapas::class, 'venda_etapas_id');
     }
 
     public function pagamento(): HasOne

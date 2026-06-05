@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-    <form action="{{ route('vendas.update-avulso', $agendamento) }}" method="POST">
+    <form action="{{ route('vendas.update-unico', $agendamento) }}" method="POST">
         @csrf @method('PATCH')
 
         <div class="card stretch stretch-full">

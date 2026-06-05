@@ -63,27 +63,27 @@
                         </div>
                     </div>
 
-                    {{-- Campos Avulso --}}
-                    <div id="campos-avulso" style="display:none;">
+                    {{-- Campos Servico Unico --}}
+                    <div id="campos-unico" style="display:none;">
                         <div class="row mb-4">
                             <div class="col-md-4">
                                 <label class="form-label">Data <span class="text-danger">*</span></label>
-                                <input type="date" name="data" id="dataAvulso" class="form-control @error('data') is-invalid @enderror" value="{{ old('data', now()->format('Y-m-d')) }}" disabled>
+                                <input type="date" name="data" id="dataUnico" class="form-control @error('data') is-invalid @enderror" value="{{ old('data', now()->format('Y-m-d')) }}" disabled>
                                 @error('data') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Horário <span class="text-danger">*</span></label>
-                                <input type="time" name="horario" id="horarioAvulso" class="form-control @error('horario') is-invalid @enderror" value="{{ old('horario', '09:00') }}" disabled>
+                                <input type="time" name="horario" id="horarioUnico" class="form-control @error('horario') is-invalid @enderror" value="{{ old('horario', '09:00') }}" disabled>
                                 @error('horario') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4 d-flex align-items-end pb-2">
-                                <span id="fimCalculadoAvulso" class="text-muted fs-13"></span>
+                                <span id="fimCalculadoUnico" class="text-muted fs-13"></span>
                             </div>
                         </div>
                     </div>
 
-                    {{-- Campos Pacote --}}
-                    <div id="campos-pacote" style="display:none;">
+                    {{-- Campos Servico em Etapas --}}
+                    <div id="campos-etapas" style="display:none;">
                         <div class="row mb-4">
                             <div class="col-md-4">
                                 <label class="form-label">Data Início <span class="text-danger">*</span></label>
@@ -95,8 +95,8 @@
                                 @error('horario') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Qtd Sessões <span class="text-danger">*</span></label>
-                                <input type="number" id="qtdSessoesInput" class="form-control" value="{{ old('qtd_sessoes') }}" min="2" disabled>
+                                <label class="form-label">Qtd Etapas <span class="text-danger">*</span></label>
+                                <input type="number" id="qtdEtapasInput" class="form-control" value="{{ old('qtd_etapas') }}" min="2" disabled>
                             </div>
                         </div>
                         <div class="row mb-4">
@@ -126,7 +126,7 @@
                         </div>
                         <div class="d-flex gap-2">
                             <button type="button" id="btnGerarPreview" class="btn btn-outline-primary">
-                                <i class="feather-calendar me-1"></i> Gerar Preview das Sessões
+                                <i class="feather-calendar me-1"></i> Gerar Preview das Etapas
                             </button>
                         </div>
                     </div>
@@ -310,10 +310,10 @@
             </div>
         </div>
 
-        {{-- Preview das sessoes (pacote) — acima do preview das parcelas --}}
+        {{-- Preview das etapas — acima do preview das parcelas --}}
         <div class="card stretch stretch-full mt-4" id="previewCard" style="display:none;">
             <div class="card-header">
-                <h5 class="card-title">Preview das Sessões <span id="qtdSessoesBadge" class="badge bg-primary ms-2"></span></h5>
+                <h5 class="card-title">Preview das Etapas <span id="qtdEtapasBadge" class="badge bg-primary ms-2"></span></h5>
             </div>
             <div class="card-body">
                 <p class="text-muted fs-13 mb-3">Você pode editar as datas individualmente antes de salvar.</p>
@@ -378,8 +378,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipoVendaInput = document.getElementById('tipoVendaInput');
     const camposServico = document.getElementById('campos-servico');
     const camposProduto = document.getElementById('campos-produto');
-    const camposAvulso = document.getElementById('campos-avulso');
-    const camposPacote = document.getElementById('campos-pacote');
+    const camposUnico = document.getElementById('campos-unico');
+    const camposEtapas = document.getElementById('campos-etapas');
     const previewCard = document.getElementById('previewCard');
     const cardCarrinho = document.getElementById('card-carrinho');
 
@@ -411,8 +411,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 camposServico.style.display = 'none';
                 camposProduto.style.display = 'block';
                 cardCarrinho.style.display = 'block';
-                habilitarContainer(camposAvulso, false);
-                habilitarContainer(camposPacote, false);
+                habilitarContainer(camposUnico, false);
+                habilitarContainer(camposEtapas, false);
                 habilitarContainer(camposProduto, true);
                 habilitarContainer(cardCarrinho, true);
                 previewCard.style.display = 'none';
@@ -424,33 +424,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle Avulso / Pacote conforme tipo do servico selecionado
     function aplicarTipoServico(servico) {
         if (!servico) {
-            camposAvulso.style.display = 'none';
-            camposPacote.style.display = 'none';
+            camposUnico.style.display = 'none';
+            camposEtapas.style.display = 'none';
             previewCard.style.display = 'none';
-            habilitarContainer(camposAvulso, false);
-            habilitarContainer(camposPacote, false);
+            habilitarContainer(camposUnico, false);
+            habilitarContainer(camposEtapas, false);
             return;
         }
 
         var tipo = servico.tipo;
         if (typeof tipo === 'object' && tipo !== null) tipo = tipo.value || tipo;
 
-        if (tipo === 'avulso') {
-            camposAvulso.style.display = 'block';
-            camposPacote.style.display = 'none';
+        if (tipo === 'unico') {
+            camposUnico.style.display = 'block';
+            camposEtapas.style.display = 'none';
             previewCard.style.display = 'none';
-            habilitarContainer(camposAvulso, true);
-            habilitarContainer(camposPacote, false);
-            atualizarFimAvulso();
-        } else if (tipo === 'pacote') {
-            camposAvulso.style.display = 'none';
-            camposPacote.style.display = 'block';
-            habilitarContainer(camposAvulso, false);
-            habilitarContainer(camposPacote, true);
-            var qtdSessoesInput = document.getElementById('qtdSessoesInput');
+            habilitarContainer(camposUnico, true);
+            habilitarContainer(camposEtapas, false);
+            atualizarFimUnico();
+        } else if (tipo === 'etapas') {
+            camposUnico.style.display = 'none';
+            camposEtapas.style.display = 'block';
+            habilitarContainer(camposUnico, false);
+            habilitarContainer(camposEtapas, true);
+            var qtdEtapasInput = document.getElementById('qtdEtapasInput');
             var valorTotal = document.getElementById('valorTotal');
-            if (servico.qtd_sessoes && !qtdSessoesInput.value) {
-                qtdSessoesInput.value = servico.qtd_sessoes;
+            if (servico.qtd_etapas && !qtdEtapasInput.value) {
+                qtdEtapasInput.value = servico.qtd_etapas;
             }
             if (servico.valor) {
                 valorTotal.value = parseFloat(servico.valor).toFixed(2);
@@ -584,48 +584,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Valor por sessão (pacote)
+    // Valor por etapa (servico em etapas)
     const valorTotal = document.getElementById('valorTotal');
-    const qtdSessoesInput = document.getElementById('qtdSessoesInput');
+    const qtdEtapasInput = document.getElementById('qtdEtapasInput');
     const valorPorSessao = document.getElementById('valorPorSessao');
 
     valorTotal.addEventListener('input', atualizarValorPorSessao);
-    qtdSessoesInput.addEventListener('input', atualizarValorPorSessao);
+    qtdEtapasInput.addEventListener('input', atualizarValorPorSessao);
 
     function atualizarValorPorSessao() {
-        const qtd = parseInt(qtdSessoesInput.value) || 0;
+        const qtd = parseInt(qtdEtapasInput.value) || 0;
         const val = parseFloat(valorTotal.value) || 0;
         if (qtd > 0 && val > 0) {
-            valorPorSessao.textContent = 'R$ ' + (val / qtd).toFixed(2).replace('.', ',') + ' por sessão';
+            valorPorSessao.textContent = 'R$ ' + (val / qtd).toFixed(2).replace('.', ',') + ' por etapa';
         } else {
             valorPorSessao.textContent = '';
         }
     }
 
-    // Calcula e exibe o horario de termino para servico avulso
-    const horarioAvulso = document.getElementById('horarioAvulso');
-    const fimCalculadoAvulso = document.getElementById('fimCalculadoAvulso');
+    // Calcula e exibe o horario de termino para servico unico
+    const horarioUnico = document.getElementById('horarioUnico');
+    const fimCalculadoUnico = document.getElementById('fimCalculadoUnico');
 
-    horarioAvulso.addEventListener('input', atualizarFimAvulso);
+    horarioUnico.addEventListener('input', atualizarFimUnico);
 
-    function atualizarFimAvulso() {
-        if (!servicoSelecionado || !horarioAvulso.value) {
-            fimCalculadoAvulso.textContent = '';
+    function atualizarFimUnico() {
+        if (!servicoSelecionado || !horarioUnico.value) {
+            fimCalculadoUnico.textContent = '';
             return;
         }
         const duracao = parseInt(servicoSelecionado.duracao) || 0;
         if (duracao <= 0) {
-            fimCalculadoAvulso.textContent = '';
+            fimCalculadoUnico.textContent = '';
             return;
         }
-        const [h, m] = horarioAvulso.value.split(':').map(Number);
+        const [h, m] = horarioUnico.value.split(':').map(Number);
         const totalMin = h * 60 + m + duracao;
         const hFim = String(Math.floor(totalMin / 60) % 24).padStart(2, '0');
         const mFim = String(totalMin % 60).padStart(2, '0');
-        fimCalculadoAvulso.textContent = 'Termina às ' + hFim + ':' + mFim;
+        fimCalculadoUnico.textContent = 'Termina às ' + hFim + ':' + mFim;
     }
 
-    // Gerar preview das sessoes (pacote)
+    // Gerar preview das etapas (servico em etapas)
     document.getElementById('btnGerarPreview').addEventListener('click', function() {
         const dataInicio = document.getElementById('dataInicio');
         const horario = document.getElementById('horario');
@@ -633,8 +633,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!servicoSelecionado) { swalAlerta('Selecione um serviço.'); return; }
         if (!dataInicio.value) { swalAlerta('Informe a data de início.'); return; }
 
-        const qtdSessoes = parseInt(qtdSessoesInput.value);
-        if (!qtdSessoes || qtdSessoes < 2) { swalAlerta('Informe a quantidade de sessões (mínimo 2).'); qtdSessoesInput.focus(); return; }
+        const qtdEtapas = parseInt(qtdEtapasInput.value);
+        if (!qtdEtapas || qtdEtapas < 2) { swalAlerta('Informe a quantidade de etapas (mínimo 2).'); qtdEtapasInput.focus(); return; }
 
         const diasSemana = [];
         document.querySelectorAll('.dias-semana-check:checked').forEach(cb => diasSemana.push(parseInt(cb.value)));
@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let cursor = new Date(inicio);
         let seguranca = 0;
 
-        while (datas.length < qtdSessoes && seguranca < 365) {
+        while (datas.length < qtdEtapas && seguranca < 365) {
             if (diasSemana.includes(cursor.getDay())) datas.push(new Date(cursor));
             cursor.setDate(cursor.getDate() + 1);
             seguranca++;
@@ -664,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.appendChild(tr);
         });
 
-        document.getElementById('qtdSessoesBadge').textContent = datas.length + ' sessões';
+        document.getElementById('qtdEtapasBadge').textContent = datas.length + ' etapas';
         previewCard.style.display = 'block';
         previewCard.scrollIntoView({ behavior: 'smooth' });
         atualizarValorPorSessao();
@@ -698,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tipo: @json($servicoOld->tipo->value),
         valor: {{ $servicoOld->valor }},
         duracao: {{ $servicoOld->duracao }},
-        qtd_sessoes: {{ $servicoOld->qtd_sessoes ?? 'null' }},
+        qtd_etapas: {{ $servicoOld->qtd_etapas ?? 'null' }},
     };
     aplicarTipoServico(servicoSelecionado);
     @endif
@@ -719,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            '<td><input type="time" name="horarios[]" value="' + horario + '" class="form-control form-control-sm" required></td>';
             tbody.appendChild(tr);
         });
-        document.getElementById('qtdSessoesBadge').textContent = oldDatas.length + ' sessões';
+        document.getElementById('qtdEtapasBadge').textContent = oldDatas.length + ' etapas';
         previewCard.style.display = 'block';
     })();
     @endif
@@ -974,9 +974,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const tipoServ = (typeof servicoSelecionado.tipo === 'object' && servicoSelecionado.tipo !== null)
             ? (servicoSelecionado.tipo.value || servicoSelecionado.tipo)
             : servicoSelecionado.tipo;
-        if (tipoServ === 'pacote') {
+        if (tipoServ === 'etapas') {
             const vt = parseFloat(document.getElementById('valorTotal').value) || 0;
-            if (vt <= 0) return { pronto: false, motivo: 'Informe o valor total do pacote.' };
+            if (vt <= 0) return { pronto: false, motivo: 'Informe o valor total da venda.' };
         }
         return { pronto: true, motivo: '' };
     }
@@ -1055,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderItem: function(item) {
             var tipo = item.tipo;
             if (typeof tipo === 'object' && tipo !== null) tipo = tipo.value || tipo;
-            var badge = tipo === 'pacote' ? '<span class="badge bg-info ms-1">Pacote</span>' : '<span class="badge bg-secondary ms-1">Avulso</span>';
+            var badge = tipo === 'etapas' ? '<span class="badge bg-info ms-1">Etapas</span>' : '<span class="badge bg-secondary ms-1">Único</span>';
             return '<strong>' + item.nome + '</strong> ' + badge + '<br><small class="text-muted">R$ ' + parseFloat(item.valor).toFixed(2).replace('.', ',') + ' — ' + item.duracao + ' min</small>';
         },
         displayText: function(item) { return item.nome; },

@@ -249,15 +249,6 @@
                     <li class="nxl-item nxl-caption">
                         <label>Administração</label>
                     </li>
-                    {{-- Empresas --}}
-                    @can('empresa.ver')
-                    <li class="nxl-item">
-                        <a href="{{ route('empresas.index') }}" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-home"></i></span>
-                            <span class="nxl-mtext">Empresas</span>
-                        </a>
-                    </li>
-                    @endcan
                     {{-- Usuarios --}}
                     @can('usuario.ver')
                     <li class="nxl-item">
@@ -273,6 +264,15 @@
                         <a href="{{ route('perfis-acesso.index') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-shield"></i></span>
                             <span class="nxl-mtext">Perfis de Acesso</span>
+                        </a>
+                    </li>
+                    @endcan
+                    {{-- Minha Assinatura --}}
+                    @can('plano.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('assinatura.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-credit-card"></i></span>
+                            <span class="nxl-mtext">Minha Assinatura</span>
                         </a>
                     </li>
                     @endcan
@@ -678,6 +678,8 @@
         });
     });
     </script>
+
+    @include('partials.modal-recibo')
 
     @stack('js')
 </body>

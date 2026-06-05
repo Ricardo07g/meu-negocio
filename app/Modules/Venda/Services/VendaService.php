@@ -6,7 +6,7 @@ use App\Enums\CondicaoPagamento;
 use App\Enums\FormaPagamento;
 use App\Enums\FormaRecebimentoPrazo;
 use App\Enums\StatusParcela;
-use App\Enums\StatusVendaPacote;
+use App\Enums\StatusVendaEtapas;
 use App\Enums\StatusVendaProduto;
 use App\Modules\Agenda\Actions\CancelarAgendamentoAction;
 use App\Modules\Agenda\Actions\CriarAgendamentoAction;
@@ -21,9 +21,9 @@ use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Venda\Actions\CriarVendaProdutoAction;
 use App\Modules\Venda\Actions\SincronizarItensVendaProdutoAction;
-use App\Modules\Venda\Actions\VenderPacoteAction;
-use App\Modules\Venda\DTOs\VenderPacoteData;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\Actions\VenderEtapasAction;
+use App\Modules\Venda\DTOs\VenderEtapasData;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -33,7 +33,7 @@ class VendaService
 {
     public function __construct(
         private CriarAgendamentoAction $criarAgendamento,
-        private VenderPacoteAction $venderPacote,
+        private VenderEtapasAction $venderEtapas,
         private CancelarAgendamentoAction $cancelarAgendamento,
         private CaixaService $caixaService,
         private CriarPagamentoComParcelasAction $criarPagamento,
@@ -46,22 +46,22 @@ class VendaService
         $tipo = $filtros['tipo'] ?? 'todos';
         [$dataInicio, $dataFim] = $this->resolverPeriodo($filtros);
 
-        $pacotes = collect();
-        $avulsos = collect();
+        $etapas = collect();
+        $unicos = collect();
         $produtos = collect();
 
         if ($tipo !== 'produto') {
-            $pacotesQuery = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas'])
+            $etapasQuery = VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas'])
                 ->orderByDesc('created_at');
-            $this->aplicarFiltrosComuns($pacotesQuery, $filtros, $dataInicio, $dataFim, 'pacote');
-            $this->aplicarBuscaPacote($pacotesQuery, $filtros['q'] ?? null);
-            $this->aplicarStatusPacote($pacotesQuery, $filtros['status_venda'] ?? null);
-            $pacotes = $pacotesQuery->get()->map(fn ($p) => (object) [
-                'tipo' => 'pacote',
+            $this->aplicarFiltrosComuns($etapasQuery, $filtros, $dataInicio, $dataFim, 'etapas');
+            $this->aplicarBuscaEtapas($etapasQuery, $filtros['q'] ?? null);
+            $this->aplicarStatusEtapas($etapasQuery, $filtros['status_venda'] ?? null);
+            $etapas = $etapasQuery->get()->map(fn ($p) => (object) [
+                'tipo' => 'etapas',
                 'id' => $p->id,
                 'cliente' => $p->cliente->nome,
                 'servico' => $p->servico->nome,
-                'info' => $p->qtd_sessoes.' sessões',
+                'info' => $p->qtd_etapas.' sessões',
                 'valor' => $p->valor_total,
                 'status' => $p->status->value,
                 'status_label' => $p->status->label(),
@@ -70,15 +70,15 @@ class VendaService
                 'model' => $p,
             ]);
 
-            $avulsosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas'])
-                ->whereNull('venda_pacote_id')
+            $unicosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas'])
+                ->whereNull('venda_etapas_id')
                 ->orderByDesc('created_at');
-            $this->aplicarFiltrosComuns($avulsosQuery, $filtros, $dataInicio, $dataFim, 'avulso');
-            $this->aplicarBuscaAvulso($avulsosQuery, $filtros['q'] ?? null);
-            $this->aplicarStatusAvulso($avulsosQuery, $filtros['status_venda'] ?? null);
-            $this->aplicarValorAvulso($avulsosQuery, $filtros);
-            $avulsos = $avulsosQuery->get()->map(fn ($a) => (object) [
-                'tipo' => 'avulso',
+            $this->aplicarFiltrosComuns($unicosQuery, $filtros, $dataInicio, $dataFim, 'unico');
+            $this->aplicarBuscaUnico($unicosQuery, $filtros['q'] ?? null);
+            $this->aplicarStatusUnico($unicosQuery, $filtros['status_venda'] ?? null);
+            $this->aplicarValorUnico($unicosQuery, $filtros);
+            $unicos = $unicosQuery->get()->map(fn ($a) => (object) [
+                'tipo' => 'unico',
                 'id' => $a->id,
                 'cliente' => $a->cliente->nome,
                 'servico' => $a->servico->nome,
@@ -113,7 +113,7 @@ class VendaService
             ]);
         }
 
-        $vendas = collect($pacotes)->merge($avulsos)->merge($produtos)->sortByDesc('data')->values();
+        $vendas = collect($etapas)->merge($unicos)->merge($produtos)->sortByDesc('data')->values();
 
         $page = (int) (request()->query('page', 1));
         $slice = $vendas->forPage($page, $perPage)->values();
@@ -206,7 +206,7 @@ class VendaService
             }
         }
 
-        if ($origem !== 'avulso') {
+        if ($origem !== 'unico') {
             if (! empty($filtros['valor_min'])) {
                 $query->where('valor_total', '>=', (float) $filtros['valor_min']);
             }
@@ -216,7 +216,7 @@ class VendaService
         }
     }
 
-    private function aplicarValorAvulso($query, array $filtros): void
+    private function aplicarValorUnico($query, array $filtros): void
     {
         if (! empty($filtros['valor_min'])) {
             $query->whereHas('servico', fn ($q) => $q->where('valor', '>=', (float) $filtros['valor_min']));
@@ -226,7 +226,7 @@ class VendaService
         }
     }
 
-    private function aplicarBuscaPacote($query, ?string $q): void
+    private function aplicarBuscaEtapas($query, ?string $q): void
     {
         if (! $q) {
             return;
@@ -238,7 +238,7 @@ class VendaService
         });
     }
 
-    private function aplicarBuscaAvulso($query, ?string $q): void
+    private function aplicarBuscaUnico($query, ?string $q): void
     {
         if (! $q) {
             return;
@@ -262,7 +262,7 @@ class VendaService
         });
     }
 
-    private function aplicarStatusPacote($query, ?string $status): void
+    private function aplicarStatusEtapas($query, ?string $status): void
     {
         match ($status) {
             'em_andamento' => $query->where('status', 'ativo'),
@@ -272,7 +272,7 @@ class VendaService
         };
     }
 
-    private function aplicarStatusAvulso($query, ?string $status): void
+    private function aplicarStatusUnico($query, ?string $status): void
     {
         match ($status) {
             'em_andamento' => $query->whereIn('status', ['agendado', 'confirmado']),
@@ -293,9 +293,9 @@ class VendaService
     }
 
     /**
-     * Cria venda avulsa + pagamento (título + parcelas).
+     * Cria venda de serviço único + pagamento (título + parcelas).
      */
-    public function criarAvulso(
+    public function criarUnico(
         AgendamentoData $data,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
@@ -329,10 +329,10 @@ class VendaService
     }
 
     /**
-     * Cria venda de pacote + pagamento.
+     * Cria venda de serviço em etapas + pagamento.
      */
-    public function criarPacote(
-        VenderPacoteData $data,
+    public function criarEtapas(
+        VenderEtapasData $data,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
         ?FormaPagamento $formaAvista = null,
@@ -340,16 +340,16 @@ class VendaService
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
-    ): VendaPacote {
+    ): VendaEtapas {
         return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
-            $pacote = $this->venderPacote->executar($data);
+            $etapas = $this->venderEtapas->executar($data);
 
             $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
                 valor_total: (float) $data->valor_total,
                 condicao_pagamento: $condicao,
                 mes_referencia: $mesReferencia,
                 cliente_id: $data->cliente_id,
-                venda_pacote_id: $pacote->id,
+                venda_etapas_id: $etapas->id,
                 numero_parcelas: $numeroParcelas,
                 primeiro_vencimento: $primeiroVencimento ?? now(),
                 forma_pagamento_avista: $formaAvista,
@@ -359,7 +359,7 @@ class VendaService
 
             $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista);
 
-            return $pacote;
+            return $etapas;
         });
     }
 
@@ -419,7 +419,7 @@ class VendaService
         );
     }
 
-    public function cancelarAvulso(Agendamento $agendamento): Agendamento
+    public function cancelarUnico(Agendamento $agendamento): Agendamento
     {
         return DB::transaction(function () use ($agendamento) {
             $this->cancelarAgendamento->executar($agendamento);
@@ -429,18 +429,18 @@ class VendaService
         });
     }
 
-    public function cancelarPacote(VendaPacote $pacote): VendaPacote
+    public function cancelarEtapas(VendaEtapas $etapas): VendaEtapas
     {
-        return DB::transaction(function () use ($pacote) {
-            $pacote->agendamentos()
+        return DB::transaction(function () use ($etapas) {
+            $etapas->agendamentos()
                 ->whereIn('status', ['agendado', 'confirmado'])
                 ->update(['status' => 'cancelado']);
 
-            $pacote->update(['status' => StatusVendaPacote::Cancelado]);
+            $etapas->update(['status' => StatusVendaEtapas::Cancelado]);
 
-            $this->estornarPagamentoSeExistir($pacote->pagamento);
+            $this->estornarPagamentoSeExistir($etapas->pagamento);
 
-            return $pacote->fresh();
+            return $etapas->fresh();
         });
     }
 
@@ -484,7 +484,7 @@ class VendaService
         return $pagamento->valorPago() <= 0.0;
     }
 
-    public function atualizarAvulso(Agendamento $agendamento, array $data): Agendamento
+    public function atualizarUnico(Agendamento $agendamento, array $data): Agendamento
     {
         return DB::transaction(function () use ($agendamento, $data) {
             if (! in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
@@ -507,43 +507,43 @@ class VendaService
         });
     }
 
-    public function atualizarPacote(VendaPacote $pacote, array $data): VendaPacote
+    public function atualizarEtapas(VendaEtapas $etapas, array $data): VendaEtapas
     {
-        return DB::transaction(function () use ($pacote, $data) {
-            if ($pacote->status !== StatusVendaPacote::Ativo) {
-                throw new \DomainException('Pacote não pode ser editado nesse status.');
+        return DB::transaction(function () use ($etapas, $data) {
+            if ($etapas->status !== StatusVendaEtapas::Ativo) {
+                throw new \DomainException('Venda em etapas não pode ser editada nesse status.');
             }
-            if (! $this->podeEditar($pacote->pagamento)) {
+            if (! $this->podeEditar($etapas->pagamento)) {
                 throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
             }
 
-            $desconto = (float) ($data['desconto'] ?? $pacote->desconto);
-            $acrescimo = (float) ($data['acrescimo'] ?? $pacote->acrescimo);
-            $subtotal = (float) $pacote->valor_total + (float) $pacote->desconto - (float) $pacote->acrescimo;
+            $desconto = (float) ($data['desconto'] ?? $etapas->desconto);
+            $acrescimo = (float) ($data['acrescimo'] ?? $etapas->acrescimo);
+            $subtotal = (float) $etapas->valor_total + (float) $etapas->desconto - (float) $etapas->acrescimo;
             $novoValorTotal = $subtotal - $desconto + $acrescimo;
 
-            $pacote->update([
-                'cliente_id' => $data['cliente_id'] ?? $pacote->cliente_id,
+            $etapas->update([
+                'cliente_id' => $data['cliente_id'] ?? $etapas->cliente_id,
                 'desconto' => $desconto,
                 'acrescimo' => $acrescimo,
                 'valor_total' => $novoValorTotal,
                 'observacao' => $data['observacao'] ?? null,
             ]);
 
-            if ($pacote->pagamento) {
+            if ($etapas->pagamento) {
                 $updates = ['valor_total' => $novoValorTotal];
                 if (isset($data['cliente_id'])) {
                     $updates['cliente_id'] = $data['cliente_id'];
                 }
-                $pacote->pagamento->update($updates);
+                $etapas->pagamento->update($updates);
 
                 // Se for parcela única (à vista) ou qualquer 1 parcela, propagar o novo valor
-                if ($pacote->pagamento->parcelas->count() === 1) {
-                    $pacote->pagamento->parcelas->first()->update(['valor' => $novoValorTotal]);
+                if ($etapas->pagamento->parcelas->count() === 1) {
+                    $etapas->pagamento->parcelas->first()->update(['valor' => $novoValorTotal]);
                 }
             }
 
-            return $pacote->fresh();
+            return $etapas->fresh();
         });
     }
 

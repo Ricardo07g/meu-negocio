@@ -9,16 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('servicos', function (Blueprint $table) {
-            $table->string('tipo', 20)->default('avulso')->after('valor');
-            $table->integer('qtd_sessoes')->nullable()->after('tipo');
-            $table->json('dias_semana')->nullable()->after('qtd_sessoes');
+            $table->string('tipo', 20)->default('unico')->after('valor');
+            $table->integer('qtd_etapas')->nullable()->after('tipo');
+            $table->json('dias_semana')->nullable()->after('qtd_etapas');
         });
     }
 
     public function down(): void
     {
         Schema::table('servicos', function (Blueprint $table) {
-            $table->dropColumn(['tipo', 'qtd_sessoes', 'dias_semana']);
+            $table->dropColumn(['tipo', 'qtd_etapas', 'dias_semana']);
         });
     }
 };

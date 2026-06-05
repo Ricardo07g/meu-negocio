@@ -20,7 +20,7 @@ return new class extends Migration
             'agendamentos',
             'produtos',
             'movimentos_estoque',
-            'vendas_pacote',
+            'vendas_etapas',
         ];
 
         foreach ($tabelas as $tabela) {
@@ -42,7 +42,7 @@ return new class extends Migration
             'agendamentos',
             'produtos',
             'movimentos_estoque',
-            'vendas_pacote',
+            'vendas_etapas',
         ];
 
         foreach ($tabelas as $tabela) {

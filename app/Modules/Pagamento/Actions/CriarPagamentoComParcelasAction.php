@@ -32,7 +32,7 @@ class CriarPagamentoComParcelasAction
             $pagamento = Pagamento::create([
                 'cliente_id' => $data->cliente_id,
                 'agendamento_id' => $data->agendamento_id,
-                'venda_pacote_id' => $data->venda_pacote_id,
+                'venda_etapas_id' => $data->venda_etapas_id,
                 'venda_produto_id' => $data->venda_produto_id,
                 'valor_total' => $data->valor_total,
                 'condicao_pagamento' => $data->condicao_pagamento,

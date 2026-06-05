@@ -13,12 +13,12 @@ use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\DTOs\VenderPacoteData;
-use App\Modules\Venda\Models\VendaPacote;
+use App\Modules\Venda\DTOs\VenderEtapasData;
+use App\Modules\Venda\Models\VendaEtapas;
 use App\Modules\Venda\Models\VendaProduto;
-use App\Modules\Venda\Requests\AtualizarVendaAvulsoRequest;
-use App\Modules\Venda\Requests\AtualizarVendaPacoteRequest;
+use App\Modules\Venda\Requests\AtualizarVendaEtapasRequest;
 use App\Modules\Venda\Requests\AtualizarVendaProdutoRequest;
+use App\Modules\Venda\Requests\AtualizarVendaUnicoRequest;
 use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
 use App\Support\ContextoEmpresa;
@@ -43,16 +43,18 @@ class VendaController extends Controller
     {
         try {
             $this->authorize('viewAny', Agendamento::class);
+
             $filtros = $request->only([
                 'q', 'periodo_preset', 'data_inicio', 'data_fim', 'tipo',
                 'situacao_pagamento', 'forma_pagamento', 'status_venda',
                 'atendente_id', 'valor_min', 'valor_max',
             ]);
+
             $vendas = $this->service->listar($filtros);
+
             $empresaId = ContextoEmpresa::resolver();
-            $atendentes = ($empresaId
-                ? Usuario::atendentesDaEmpresa($empresaId)
-                : Usuario::where('atende', true))
+
+            $atendentes = ($empresaId ? Usuario::atendentesDaEmpresa($empresaId) : Usuario::where('atende', true))
                 ->orderBy('nome')->get();
 
             return view('venda::index', compact('vendas', 'filtros', 'atendentes'));
@@ -153,9 +155,9 @@ class VendaController extends Controller
 
             $servico = Servico::findOrFail($request->servico_id);
 
-            if ($servico->isPacote()) {
-                $this->service->criarPacote(
-                    VenderPacoteData::from($request->validated()),
+            if ($servico->isEtapas()) {
+                $this->service->criarEtapas(
+                    VenderEtapasData::from($request->validated()),
                     $condicao,
                     $mesReferencia,
                     $forma,
@@ -164,11 +166,11 @@ class VendaController extends Controller
                     $parcelasPersonalizadas,
                     $formaRecebimentoPrazo,
                 );
-                $msg = 'Pacote vendido com sucesso! Agendamentos criados.';
+                $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
             } else {
                 $payload = $request->validated();
                 $payload['inicio'] = Carbon::createFromFormat('Y-m-d H:i', $payload['data'].' '.$payload['horario']);
-                $this->service->criarAvulso(
+                $this->service->criarUnico(
                     AgendamentoData::from($payload),
                     $condicao,
                     $mesReferencia,
@@ -212,27 +214,27 @@ class VendaController extends Controller
         }, array_values($raw));
     }
 
-    public function cancelarAvulso(Agendamento $agendamento): RedirectResponse
+    public function cancelarUnico(Agendamento $agendamento): RedirectResponse
     {
         try {
             $this->authorize('cancel', $agendamento);
-            $this->service->cancelarAvulso($agendamento);
+            $this->service->cancelarUnico($agendamento);
 
             return redirect()->route('vendas.index')->with('sucesso', 'Agendamento cancelado.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao cancelar venda avulsa');
+            return $this->tratarErro($e, 'Erro ao cancelar venda de serviço único');
         }
     }
 
-    public function cancelarPacote(VendaPacote $pacote): RedirectResponse
+    public function cancelarEtapas(VendaEtapas $etapas): RedirectResponse
     {
         try {
-            $this->authorize('cancel', $pacote);
-            $this->service->cancelarPacote($pacote);
+            $this->authorize('cancel', $etapas);
+            $this->service->cancelarEtapas($etapas);
 
-            return redirect()->route('vendas.index')->with('sucesso', 'Pacote cancelado. Agendamentos pendentes foram cancelados.');
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda em etapas cancelada. Agendamentos pendentes foram cancelados.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao cancelar pacote');
+            return $this->tratarErro($e, 'Erro ao cancelar venda em etapas');
         }
     }
 
@@ -247,7 +249,7 @@ class VendaController extends Controller
         }
     }
 
-    public function editAvulso(Agendamento $agendamento): View|RedirectResponse
+    public function editUnico(Agendamento $agendamento): View|RedirectResponse
     {
         try {
             $agendamento->load(['cliente', 'servico', 'pagamento.parcelas']);
@@ -255,47 +257,47 @@ class VendaController extends Controller
                 return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
             }
 
-            return view('venda::edit-avulso', compact('agendamento'));
+            return view('venda::edit-unico', compact('agendamento'));
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao abrir edição de venda avulsa');
+            return $this->tratarErro($e, 'Erro ao abrir edição de venda de serviço único');
         }
     }
 
-    public function updateAvulso(AtualizarVendaAvulsoRequest $request, Agendamento $agendamento): RedirectResponse
+    public function updateUnico(AtualizarVendaUnicoRequest $request, Agendamento $agendamento): RedirectResponse
     {
         try {
-            $this->service->atualizarAvulso($agendamento, $request->validated());
+            $this->service->atualizarUnico($agendamento, $request->validated());
 
             return redirect()->route('vendas.index')->with('sucesso', 'Agendamento atualizado.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar venda avulsa');
+            return $this->tratarErro($e, 'Erro ao atualizar venda de serviço único');
         }
     }
 
-    public function editPacote(VendaPacote $pacote): View|RedirectResponse
+    public function editEtapas(VendaEtapas $etapas): View|RedirectResponse
     {
         try {
-            $this->authorize('view', $pacote);
-            $pacote->load(['cliente', 'servico', 'pagamento.parcelas']);
-            if (! $this->service->podeEditar($pacote->pagamento) || $pacote->status->value !== 'ativo') {
-                return redirect()->route('vendas.index')->with('erro', 'Pacote não pode ser editado.');
+            $this->authorize('view', $etapas);
+            $etapas->load(['cliente', 'servico', 'pagamento.parcelas']);
+            if (! $this->service->podeEditar($etapas->pagamento) || $etapas->status->value !== 'ativo') {
+                return redirect()->route('vendas.index')->with('erro', 'Venda em etapas não pode ser editada.');
             }
 
-            return view('venda::edit-pacote', compact('pacote'));
+            return view('venda::edit-etapas', compact('etapas'));
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao abrir edição de pacote');
+            return $this->tratarErro($e, 'Erro ao abrir edição de venda em etapas');
         }
     }
 
-    public function updatePacote(AtualizarVendaPacoteRequest $request, VendaPacote $pacote): RedirectResponse
+    public function updateEtapas(AtualizarVendaEtapasRequest $request, VendaEtapas $etapas): RedirectResponse
     {
         try {
-            $this->authorize('view', $pacote);
-            $this->service->atualizarPacote($pacote, $request->validated());
+            $this->authorize('view', $etapas);
+            $this->service->atualizarEtapas($etapas, $request->validated());
 
-            return redirect()->route('vendas.index')->with('sucesso', 'Pacote atualizado.');
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda em etapas atualizada.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar pacote');
+            return $this->tratarErro($e, 'Erro ao atualizar venda em etapas');
         }
     }
 
@@ -330,8 +332,8 @@ class VendaController extends Controller
             $empresa = auth()->user()->empresa ?? null;
 
             $dados = match ($tipo) {
-                'avulso' => $this->dadosReciboAvulso($id),
-                'pacote' => $this->dadosReciboPacote($id),
+                'unico' => $this->dadosReciboUnico($id),
+                'etapas' => $this->dadosReciboEtapas($id),
                 'produto' => $this->dadosReciboProduto($id),
                 default => abort(404, 'Tipo de venda inválido'),
             };
@@ -347,7 +349,7 @@ class VendaController extends Controller
         }
     }
 
-    private function dadosReciboAvulso(int $id): array
+    private function dadosReciboUnico(int $id): array
     {
         $agendamento = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])->findOrFail($id);
         $pagamento = $agendamento->pagamento;
@@ -355,7 +357,7 @@ class VendaController extends Controller
 
         return [
             'numero' => $agendamento->id,
-            'tipoLabel' => 'Serviço avulso',
+            'tipoLabel' => 'Serviço Único',
             'statusLabel' => $agendamento->status->label(),
             'dataVenda' => $agendamento->created_at,
             'cliente' => $agendamento->cliente,
@@ -365,9 +367,9 @@ class VendaController extends Controller
             'inicio' => $agendamento->inicio,
             'fim' => $agendamento->fim,
             'itens' => collect(),
-            'sessoes' => null,
-            'qtdSessoes' => null,
-            'sessoesRealizadas' => null,
+            'etapas' => null,
+            'qtdEtapas' => null,
+            'etapasRealizadas' => null,
             'subtotal' => null,
             'desconto' => 0,
             'acrescimo' => 0,
@@ -376,32 +378,32 @@ class VendaController extends Controller
         ];
     }
 
-    private function dadosReciboPacote(int $id): array
+    private function dadosReciboEtapas(int $id): array
     {
-        $pacote = VendaPacote::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])->findOrFail($id);
-        $this->authorize('view', $pacote);
-        $subtotal = $pacote->valor_total + $pacote->desconto - $pacote->acrescimo;
+        $etapas = VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])->findOrFail($id);
+        $this->authorize('view', $etapas);
+        $subtotal = $etapas->valor_total + $etapas->desconto - $etapas->acrescimo;
 
         return [
-            'numero' => $pacote->id,
-            'tipoLabel' => 'Pacote de sessões',
-            'statusLabel' => $pacote->status->label(),
-            'dataVenda' => $pacote->created_at,
-            'cliente' => $pacote->cliente,
-            'atendente' => $pacote->atendente,
+            'numero' => $etapas->id,
+            'tipoLabel' => 'Serviço em Etapas',
+            'statusLabel' => $etapas->status->label(),
+            'dataVenda' => $etapas->created_at,
+            'cliente' => $etapas->cliente,
+            'atendente' => $etapas->atendente,
             'atendenteLabel' => 'Atendente',
-            'servico' => $pacote->servico,
+            'servico' => $etapas->servico,
             'inicio' => null,
             'fim' => null,
             'itens' => collect(),
-            'sessoes' => $pacote->agendamentos->sortBy('inicio')->values(),
-            'qtdSessoes' => $pacote->qtd_sessoes,
-            'sessoesRealizadas' => $pacote->sessoesRealizadas(),
-            'subtotal' => $pacote->desconto > 0 || $pacote->acrescimo > 0 ? $subtotal : null,
-            'desconto' => (float) $pacote->desconto,
-            'acrescimo' => (float) $pacote->acrescimo,
-            'valorTotal' => (float) $pacote->valor_total,
-            'pagamento' => $pacote->pagamento,
+            'etapas' => $etapas->agendamentos->sortBy('inicio')->values(),
+            'qtdEtapas' => $etapas->qtd_etapas,
+            'etapasRealizadas' => $etapas->etapasRealizadas(),
+            'subtotal' => $etapas->desconto > 0 || $etapas->acrescimo > 0 ? $subtotal : null,
+            'desconto' => (float) $etapas->desconto,
+            'acrescimo' => (float) $etapas->acrescimo,
+            'valorTotal' => (float) $etapas->valor_total,
+            'pagamento' => $etapas->pagamento,
         ];
     }
 
@@ -421,9 +423,9 @@ class VendaController extends Controller
             'inicio' => null,
             'fim' => null,
             'itens' => $venda->itens,
-            'sessoes' => null,
-            'qtdSessoes' => null,
-            'sessoesRealizadas' => null,
+            'etapas' => null,
+            'qtdEtapas' => null,
+            'etapasRealizadas' => null,
             'subtotal' => (float) $venda->subtotal,
             'desconto' => (float) $venda->desconto,
             'acrescimo' => (float) $venda->acrescimo,

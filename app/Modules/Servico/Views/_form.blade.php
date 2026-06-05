@@ -9,8 +9,8 @@
             <div class="col-md-3">
                 <label class="form-label">Tipo <span class="text-danger">*</span></label>
                 <select name="tipo" id="tipoServico" class="form-select @error('tipo') is-invalid @enderror" required>
-                    <option value="avulso" {{ old('tipo', $entidade?->tipo?->value ?? 'avulso') === 'avulso' ? 'selected' : '' }}>Avulso</option>
-                    <option value="pacote" {{ old('tipo', $entidade?->tipo?->value ?? 'avulso') === 'pacote' ? 'selected' : '' }}>Pacote</option>
+                    <option value="unico" {{ old('tipo', $entidade?->tipo?->value ?? 'unico') === 'unico' ? 'selected' : '' }}>Serviço Único</option>
+                    <option value="etapas" {{ old('tipo', $entidade?->tipo?->value ?? 'unico') === 'etapas' ? 'selected' : '' }}>Serviço em Etapas</option>
                 </select>
                 @error('tipo') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
@@ -31,16 +31,16 @@
             </div>
         </div>
 
-        {{-- Campos de pacote --}}
-        <div id="camposPacote" style="{{ old('tipo', $entidade?->tipo?->value ?? 'avulso') === 'pacote' ? '' : 'display:none;' }}">
+        {{-- Campos de etapas --}}
+        <div id="camposEtapas" style="{{ old('tipo', $entidade?->tipo?->value ?? 'unico') === 'etapas' ? '' : 'display:none;' }}">
             <div class="row mb-4">
                 <div class="col-md-3">
-                    <label class="form-label">Quantidade de Sessões <span class="text-danger">*</span></label>
-                    <input type="number" name="qtd_sessoes" class="form-control @error('qtd_sessoes') is-invalid @enderror" value="{{ old('qtd_sessoes', $entidade?->qtd_sessoes) }}" min="2">
-                    @error('qtd_sessoes') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <label class="form-label">Quantidade de Etapas <span class="text-danger">*</span></label>
+                    <input type="number" name="qtd_etapas" class="form-control @error('qtd_etapas') is-invalid @enderror" value="{{ old('qtd_etapas', $entidade?->qtd_etapas) }}" min="2">
+                    @error('qtd_etapas') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-9">
-                    <label class="form-label">Descrição do Pacote</label>
+                    <label class="form-label">Descrição</label>
                     <input type="text" name="descricao" class="form-control @error('descricao') is-invalid @enderror" value="{{ old('descricao', $entidade?->descricao) }}" placeholder="Ex: 10 sessões de massagem relaxante">
                     @error('descricao') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
@@ -52,7 +52,7 @@
 @push('js')
 <script>
 document.getElementById('tipoServico').addEventListener('change', function() {
-    document.getElementById('camposPacote').style.display = this.value === 'pacote' ? '' : 'none';
+    document.getElementById('camposEtapas').style.display = this.value === 'etapas' ? '' : 'none';
 });
 </script>
 @endpush
