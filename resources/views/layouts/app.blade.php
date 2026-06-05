@@ -6,7 +6,12 @@
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- Tema escuro temporariamente DESATIVADO (deixar claro por padrao ate ajustar).
+         Guard anti-flash original — reativar junto com o botao e o JS do toggle:
+         <script>(function(){try{if(localStorage.getItem('app-skin-dark')==='app-skin-dark'){document.documentElement.classList.add('app-skin-dark');}}catch(e){}})();</script>
+    --}}
     <title>@yield('titulo', 'Meu Negócio')</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/images/favicon.ico') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/vendors.min.css') }}">
@@ -97,6 +102,41 @@
         .tooltip.tooltip-label-info.bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: #1f2a3d; }
         .tooltip.tooltip-label-info.bs-tooltip-start .tooltip-arrow::before { border-left-color: #1f2a3d; }
         .tooltip.tooltip-label-info.bs-tooltip-end .tooltip-arrow::before { border-right-color: #1f2a3d; }
+
+        /* ── Marca / logo (monograma MN + wordmark) ─────────────── */
+        .b-brand.mn-brand-link { text-decoration: none; }
+        .b-brand .mn-brand { display: inline-flex; align-items: center; gap: 10px; }
+        .mn-logo-mark { display: block; flex: 0 0 auto; }
+        .mn-wordmark {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -.02em;
+            line-height: 1;
+            color: var(--cor-texto);
+            white-space: nowrap;
+        }
+
+        /* ── Tema escuro: overrides das variáveis customizadas ──── */
+        /* O CSS dark do tema (theme.min.css → html.app-skin-dark) cobre os    */
+        /* componentes Duralux; aqui ajustamos só as vars custom usadas nas    */
+        /* telas próprias para acompanharem a troca.                            */
+        html.app-skin-dark {
+            --cor-fundo: #1b2333;
+            --cor-fundo-escuro: #151c29;
+            --cor-fundo-hover: #243044;
+            --cor-texto: #e6ebf4;
+            --cor-texto-claro: #9aa7bd;
+            --cor-icone: #6b7a93;
+            --cor-texto-muted: #9aa7bd;
+            --cor-texto-sutil: #6b7a93;
+            /* --cor-destaque permanece o azul da marca */
+        }
+        html.app-skin-dark .label-info-icon { color: #7c89a0; }
+        /* O tema dark do Duralux faz filter:invert(1) no logo (esperando um PNG */
+        /* monocromático). Nosso logo é um SVG colorido próprio — desfaz o invert. */
+        html.app-skin-dark .nxl-navigation .m-header .logo-lg,
+        html.app-skin-dark .nxl-navigation .m-header .logo-sm { filter: none; }
+        .theme-toggle { cursor: pointer; }
     </style>
 </head>
 
@@ -105,9 +145,14 @@
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                <a href="{{ route('dashboard') }}" class="b-brand">
-                    <img src="{{ asset('assets/images/logo-full.png') }}" alt="Meu Negócio" class="logo logo-lg">
-                    <img src="{{ asset('assets/images/logo-abbr.png') }}" alt="Meu Negócio" class="logo logo-sm">
+                <a href="{{ route('dashboard') }}" class="b-brand mn-brand-link">
+                    <span class="logo logo-lg mn-brand">
+                        @include('partials.logo-mark', ['size' => 36])
+                        <span class="mn-wordmark">Meu Negócio</span>
+                    </span>
+                    <span class="logo logo-sm mn-brand">
+                        @include('partials.logo-mark', ['size' => 34])
+                    </span>
                 </a>
             </div>
             <div class="navbar-content">
@@ -308,11 +353,13 @@
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
-                    <div class="nxl-h-item dark-lavel-toggle">
-                        <a href="javascript:void(0);" class="nxl-head-link dark-button">
+                    {{-- Tema escuro temporariamente DESATIVADO — botao oculto ate ajustar:
+                    <div class="nxl-h-item">
+                        <a href="javascript:void(0);" class="nxl-head-link theme-toggle" id="themeToggle" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
                             <i class="feather-moon"></i>
                         </a>
                     </div>
+                    --}}
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
                             <div class="avatar-text avatar-md bg-primary text-white">
@@ -678,6 +725,26 @@
         });
     });
     </script>
+
+    {{-- Tema escuro temporariamente DESATIVADO — JS do toggle (reativar com o botao e o guard no head):
+    <script>
+    (function () {
+        var KEY = 'app-skin-dark';
+        var btn = document.getElementById('themeToggle');
+        if (!btn) return;
+        var icon = btn.querySelector('i');
+        function isDark() { return document.documentElement.classList.contains('app-skin-dark'); }
+        function syncIcon() { if (icon) { icon.className = isDark() ? 'feather-sun' : 'feather-moon'; } }
+        syncIcon();
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            var dark = document.documentElement.classList.toggle('app-skin-dark');
+            try { localStorage.setItem(KEY, dark ? 'app-skin-dark' : 'app-skin-light'); } catch (_) {}
+            syncIcon();
+        });
+    })();
+    </script>
+    --}}
 
     @include('partials.modal-recibo')
 
