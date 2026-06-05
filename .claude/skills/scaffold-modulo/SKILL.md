@@ -25,7 +25,8 @@ esqueleto consistente com os modulos existentes — nunca um estilo proprio.
 2. Gere os artefatos copiando o estilo canonico (ver `padroes-projeto`): Model (BaseModel + secoes
    ASCII), `SalvarXxxRequest`, `XxxData`, Service, Controller fino com `authorize()`, `XxxPolicy`,
    Migration com `down()`, Views com `_form.blade.php` partial.
-3. **Registre a Policy** em `app/Providers/AppServiceProvider.php` (`$policies`).
+3. **Registre a Policy** em `app/Providers/AppServiceProvider.php` (`$policies`) e crie as permissoes
+   `recurso.ver/criar/editar/excluir` no seeder, dando-as ao role Admin (skill `adicionar-permissao`).
 4. **Registre a rota** em `routes/web.php` (nome em portugues, grupo adequado).
 5. Marque com `// TODO:` apenas onde houver regra de negocio a definir, e liste esses pontos.
 6. Rode a migration: `docker exec meu-negocio-app php artisan migrate`.
