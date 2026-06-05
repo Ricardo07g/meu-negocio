@@ -1,0 +1,21 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    # Erros pre-existentes (318) ficam congelados aqui. O gate barra apenas
+    # erros NOVOS. Reduza este arquivo aos poucos conforme o codigo melhora.
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+
+    paths:
+        - app
+
+    # Migrations usam classes anonimas e schema dinamico; analise estatica
+    # acrescenta pouco e gera ruido. O resto do app e analisado normalmente.
+    excludePaths:
+        - app/Modules/*/Migrations/*
+
+    tmpDir: storage/framework/cache/phpstan
+
+    # Evita falso-positivo comum em models Eloquent (propriedades magicas).
+    checkModelProperties: false

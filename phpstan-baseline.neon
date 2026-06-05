@@ -1,0 +1,1147 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$plano\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Middleware/VerificarPlano.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Middleware/VerificarRede.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Middleware/VerificarRede.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Actions/CancelarAgendamentoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Actions/CancelarAgendamentoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Servico\\Models\\Servico\:\:\$duracao\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Actions/CriarAgendamentoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Actions/FinalizarAgendamentoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$fim\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$inicio\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$venda_etapas_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$atendente_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$fim\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$inicio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$observacoes\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Modules\\Usuario\\Models\\Usuario\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Agenda/Controllers/AgendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Agenda/Policies/AgendamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Agenda/Policies/AgendamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Agenda/Policies/AgendamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$ativo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Auth/Controllers/LoginController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$data\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Modules/Caixa/Controllers/CaixaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$saldo_abertura\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Controllers/CaixaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaDespesa\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaDespesa\:\:\$juros\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaDespesa\:\:\$multa\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaDespesa\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaPagamento\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaPagamento\:\:\$juros\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaPagamento\:\:\$multa\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\BaixaPagamento\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/BaixaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$saldo_abertura\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Models/Caixa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Caixa/Policies/CaixaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Caixa/Policies/CaixaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Caixa/Policies/CaixaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$observacao\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Caixa\\Models\\Caixa\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$despesa_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\|App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$numero\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\|App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\|App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\|App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor_pago\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$pagamento_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:recalcularStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Modules/Caixa/Services/CaixaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Cliente\\Models\\Cliente\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Cliente/Policies/ClientePolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Cliente/Policies/ClientePolicy.php
+
+		-
+			message: '#^Expression on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.expr
+			count: 1
+			path: app/Modules/Dashboard/Services/DashboardService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\Despesa\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Controllers/DespesaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Despesa/Controllers/DespesaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$baixas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Models/Despesa.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Despesa/Models/Despesa.php
+
+		-
+			message: '#^Method App\\Modules\\Despesa\\Models\\Despesa\:\:proximaParcela\(\) should return App\\Modules\\Despesa\\Models\\ParcelaDespesa\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Despesa/Models/Despesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$data_vencimento\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Despesa/Models/ParcelaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Despesa/Models/ParcelaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Models/ParcelaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$valor_pago\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Models/ParcelaDespesa.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:valorTotal\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Despesa/Models/ParcelaDespesa.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\CategoriaDespesa\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Despesa/Policies/CategoriaDespesaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Despesa/Policies/CategoriaDespesaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\Despesa\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Despesa/Policies/DespesaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\Despesa\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Despesa/Policies/DespesaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Despesa/Policies/DespesaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\Despesa\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$observacao\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Despesa\\Models\\ParcelaDespesa\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$observacao\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:recalcularStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Despesa/Services/DespesaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Pagamento/Controllers/PagamentoController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$baixas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Pagamento/Models/Pagamento.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Models/Pagamento.php
+
+		-
+			message: '#^Method App\\Modules\\Pagamento\\Models\\Pagamento\:\:proximaParcela\(\) should return App\\Modules\\Pagamento\\Models\\ParcelaPagamento\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Pagamento/Models/Pagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$data_vencimento\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Models/ParcelaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Models/ParcelaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Pagamento/Models/ParcelaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor_pago\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Pagamento/Models/ParcelaPagamento.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:valorTotal\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Pagamento/Models/ParcelaPagamento.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\Pagamento\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Pagamento/Policies/PagamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\Pagamento\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Pagamento/Policies/PagamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Pagamento/Policies/PagamentoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$data_vencimento\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$observacao\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Pagamento\\Models\\ParcelaPagamento\:\:\$valor_pago\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:recalcularStatus\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Modules/Pagamento/Services/PagamentoService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/PerfilAcesso/Requests/SalvarPerfilAcessoRequest.php
+
+		-
+			message: '#^Method App\\Modules\\PerfilAcesso\\Services\\PerfilAcessoService\:\:criar\(\) should return Spatie\\Permission\\Models\\Role but returns Spatie\\Permission\\Contracts\\Role\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/PerfilAcesso/Services/PerfilAcessoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\CategoriaProduto\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Produto/Policies/CategoriaProdutoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Produto/Policies/CategoriaProdutoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Produto/Policies/ProdutoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Produto/Policies/ProdutoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Servico\\Models\\Servico\:\:\$tipo\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Servico/Models/Servico.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Servico\\Models\\Servico\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Servico/Policies/ServicoPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Servico/Policies/ServicoPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$max_empresas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Actions/ValidarPlanoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$max_usuarios\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Actions/ValidarPlanoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tem_estoque\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Actions/ValidarPlanoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tem_financeiro\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Actions/ValidarPlanoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Tenant\\Models\\Rede\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Tenant\\Models\\Rede\:\:\$plano_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$plano\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$preco_mensal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:empresas\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:usuarios\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Parameter \#1 \$rede of method App\\Modules\\Tenant\\Controllers\\AssinaturaController\:\:garantirHistoricoFaturas\(\) expects App\\Modules\\Tenant\\Models\\Rede, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Tenant/Controllers/AssinaturaController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:empresas\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Tenant/Controllers/EmpresaController.php
+
+		-
+			message: '#^Parameter \#1 \$rede of method App\\Modules\\Tenant\\Services\\EmpresaService\:\:criar\(\) expects App\\Modules\\Tenant\\Models\\Rede, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Tenant/Controllers/EmpresaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Tenant\\Models\\Empresa\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Tenant/Policies/EmpresaPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Tenant/Policies/EmpresaPolicy.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$max_empresas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Services/PlanoService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$max_usuarios\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Services/PlanoService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tem_estoque\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Services/PlanoService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tem_financeiro\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Tenant/Services/PlanoService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Usuario/Actions/CriarUsuarioAction.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),int\>\:\:mapWithKeys\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Usuario/Actions/CriarUsuarioAction.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:usuarios\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Usuario/Controllers/UsuarioController.php
+
+		-
+			message: '#^Parameter \#1 \$rede of method App\\Modules\\Usuario\\Services\\UsuarioService\:\:criar\(\) expects App\\Modules\\Tenant\\Models\\Rede, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Usuario/Controllers/UsuarioController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Usuario/Models/Usuario.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Usuario/Policies/UsuarioPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 6
+			path: app/Modules/Usuario/Policies/UsuarioPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$password\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Usuario/Requests/AtualizarSenhaPerfilRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Usuario/Requests/SalvarUsuarioRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Usuario/Services/UsuarioService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<\(int\|string\),int\>\:\:mapWithKeys\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Usuario/Services/UsuarioService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Modules\\Produto\\Models\\Produto\>\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/CriarVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Modules\\Produto\\Models\\Produto\>\:\:\$valor_venda\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/CriarVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$valor_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/CriarVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Actions/SincronizarItensVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\:\:\$valor_venda\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/SincronizarItensVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/SincronizarItensVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$produto_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Actions/SincronizarItensVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantidade\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Venda/Actions/SincronizarItensVendaProdutoAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Servico\\Models\\Servico\:\:\$duracao\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Actions/VenderEtapasAction.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$fim\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$inicio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Modules\\Produto\\Models\\Produto\>\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Produto\\Models\\Produto\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Modules\\Produto\\Models\\Produto\>\:\:\$valor_venda\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$acrescimo\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$qtd_etapas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$valor_total\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$acrescimo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$subtotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$valor_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Parameter \#1 \$pagamento of method App\\Modules\\Venda\\Services\\VendaService\:\:podeEditar\(\) expects App\\Modules\\Pagamento\\Models\\Pagamento\|null, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Modules/Venda/Controllers/VendaController.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Usuario\\Models\\Usuario\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Policies/VendaEtapasPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$empresa_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Policies/VendaEtapasPolicy.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$rede_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Policies/VendaEtapasPolicy.php
+
+		-
+			message: '#^Call to an undefined method App\\Modules\\Servico\\Models\\Servico\|Illuminate\\Database\\Eloquent\\Collection\<int, App\\Modules\\Servico\\Models\\Servico\>\:\:isPacote\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Venda/Requests/CriarVendaRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$cliente_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$inicio\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Agenda\\Models\\Agendamento\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Servico\\Models\\Servico\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$acrescimo\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$cliente_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$qtd_etapas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaEtapas\:\:\$valor_total\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$acrescimo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$cliente_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$desconto\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$observacao\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Venda\\Models\\VendaProduto\:\:\$valor_total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nome\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$parcelas\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$produto_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantidade\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$valor\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Modules\\Agenda\\Models\\Agendamento\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Modules\\Venda\\Models\\VendaEtapas\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Modules\\Venda\\Models\\VendaProduto\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$pagamento of method App\\Modules\\Venda\\Services\\VendaService\:\:estornarPagamentoSeExistir\(\) expects App\\Modules\\Pagamento\\Models\\Pagamento\|null, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$pagamento of method App\\Modules\\Venda\\Services\\VendaService\:\:podeEditar\(\) expects App\\Modules\\Pagamento\\Models\\Pagamento\|null, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Modules/Venda/Services/VendaService.php
+
+		-
+			message: '#^Parameter \#1 \$parcela of method App\\Modules\\Caixa\\Services\\CaixaService\:\:darBaixaParcelaPagamento\(\) expects App\\Modules\\Pagamento\\Models\\ParcelaPagamento, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Venda/Services/VendaService.php
