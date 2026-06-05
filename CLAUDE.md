@@ -115,16 +115,17 @@ Caixa usa BaseModel + EmpresaTrait (isolamento por empresa alem da rede).
 - **Despesa** — Titulo+Parcelas, categorias, baixa parcial por parcela, recibo
 - **Estoque** — Movimentos entrada/saida/ajuste
 - **Produto** — CRUD + CategoriaProduto (descricao + ativo) + busca AJAX
-- **Venda** — VendaPacote + VendaProduto (carrinho multi-item) + estorno automatico
+- **Venda** — VendaEtapas + VendaProduto (carrinho multi-item) + estorno automatico
 - **Caixa** — Navegacao por dia, abrir/fechar/reabrir, sangria/reforco, retroativo
 - **Dashboard** — Cards reais + listas de proximos agendamentos e parcelas a vencer (agregacoes em `DashboardService`)
+- **Assinatura** — Tela "Minha Assinatura" (plano, uso x limites, fatura do mes, historico), troca de plano self-service (Admin) com validacao de limites e fatura pro-rata (`TransicionarPlanoAction`). Sem gateway (faturas internas). Ver ADR-0007.
 
 ---
 
 ## Banco de Dados
 
 ### Tabelas
-planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_pacote, vendas_produto, venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas, parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto, movimentos_estoque, caixas, movimentos_caixa
+planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto, venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas, parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto, movimentos_estoque, caixas, movimentos_caixa, **faturas**
 
 ---
 
@@ -172,20 +173,21 @@ Categorias, produtos, servicos, clientes padrao criados automaticamente ao regis
 
 ## Testes
 
-- `tests/Feature/` agrupado por contexto: `Auth/` (Login, Registro, RateLimit), `Venda/` (a vista, a prazo), `Pagamento/` (baixa parcial, permissoes), `Caixa/` (estorno), `MultiTenant/` (isolamento), `Usuario/` (perfil), alem de `AuditoriaTest.php`.
-- 17 testes Feature cobrindo registro, login, rate limit, venda a vista/a prazo, baixa parcial de parcela, estorno automatico, isolamento entre redes, atualizacao de perfil e auditoria via ActivityLog.
+- `tests/Feature/` agrupado por contexto: `Auth/`, `Venda/`, `Pagamento/`, `Caixa/`, `MultiTenant/`, `MultiEmpresa/`, `Usuario/`, `Produto/`, `Servico/`, `Estoque/`, `Despesa/`, `Agenda/`, `Dashboard/`, `PerfilAcesso/`, `Tenant/` (assinatura), alem de `AuditoriaTest.php` e `_FactoriesSmokeTest.php`.
+- **117 testes Feature** (439 asserts) cobrindo CRUD, isolamento multi-tenant/multi-empresa, autorizacao (403), fluxos financeiros (baixa/estorno), movimentacao de estoque, agendamentos, dashboard e troca de plano pro-rata.
 - `composer test` roda em **SQLite in-memory** (config no `phpunit.xml`).
-- Factories em `database/factories/`: `RedeFactory`, `EmpresaFactory`, `UsuarioFactory`.
-- Helper `criarRedeAutenticada()` em `tests/TestCase.php` cria `Plano` + `Rede` + `Empresa` + `Usuario` autenticado em uma chamada.
-- Style: `vendor/bin/pint --test` deve manter zero diffs.
+- Factories em `database/factories/` para todos os models principais. **Os models NAO usam `HasFactory`** (namespace modular) — instancie via `XxxFactory::new()->create([...])`, nunca `Model::factory()`.
+- Trait `tests/Concerns/CriaTenant.php`: `criarRedeAutenticada()`, `criarRede()`, `criarUsuarioComum()`, `garantirSeedsBase()`.
+- Qualidade: `vendor/bin/pint --test` (zero diffs) e `composer stan` (PHPStan/Larastan nivel 5 + baseline). Veja a skill `checklist-pre-pr` e o comando `/pre-pr`.
 
 ---
 
 ## CI/CD
 
 - `.github/workflows/ci.yml` roda em `push` e `pull_request` para `main`.
-- Steps: setup PHP 8.3 (com `pdo_sqlite`, `redis`, `bcmath`, `gd`) -> `composer install` -> `php artisan key:generate` -> `composer test` -> `vendor/bin/pint --test`.
+- Steps: setup PHP 8.3 (com `pdo_sqlite`, `redis`, `bcmath`, `gd`, `coverage: pcov`) -> `composer install` -> `php artisan key:generate` -> **PHPStan/Larastan** (`vendor/bin/phpstan analyse`) -> **testes com cobertura** (`php artisan test --coverage --min=30`) -> `vendor/bin/pint --test`.
 - Cache de pacotes Composer entre execucoes via `actions/cache@v4`.
+- Analise estatica: `phpstan.neon` (nivel 5, paths `app/`) + `phpstan-baseline.neon` (erros legados congelados; o gate barra apenas erros novos). `--min` de cobertura e piso conservador, a elevar.
 
 ---
 
@@ -193,10 +195,23 @@ Categorias, produtos, servicos, clientes padrao criados automaticamente ao regis
 
 - `README.md` — peca de portfolio com setup Docker, screenshots e overview do produto.
 - `CONTRIBUTING.md` — guia de contribuicao (padroes de commit, fluxo de PR, padroes de codigo).
-- `docs/ADR/` — 6 ADRs de decisoes arquiteturais (multi-tenant single-DB, modelo financeiro Titulo+Parcela+Baixa, estrutura modular, BaseModel + traits, caixa diario com retroativo, FKs cascade/null/restrict). Indice em `docs/ADR/README.md`.
+- `docs/ADR/` — 7 ADRs de decisoes arquiteturais (multi-tenant single-DB, modelo financeiro Titulo+Parcela+Baixa, estrutura modular, BaseModel + traits, caixa diario com retroativo, FKs cascade/null/restrict, assinatura/faturamento pro-rata). Indice em `docs/ADR/README.md`.
+- `docs/AUTOMACAO.md` — automacao de desenvolvimento via Claude Code (hooks, subagents, skills, slash commands) e o plugin distribuivel em `devkit/`.
 - `docs/FECHAMENTO_PORTFOLIO.md` — backlog do fechamento de portfolio (historico das Fases 1 a 5 + closure).
 - `docs/FASE_1_5_MULTI_EMPRESA.md` — backlog da fase multi-empresa N:N (historico de ME-001 a ME-013).
 - `docs/INSTRUCOES_DEV_FECHAMENTO.md` — instrucoes de execucao do fechamento (historico).
+
+---
+
+## Automacao de Desenvolvimento (Claude Code)
+
+Tudo em `.claude/` (versionado, auto-descoberto) e espelhado como plugin em `devkit/`. Detalhes em `docs/AUTOMACAO.md`.
+
+- **Hooks** (`.claude/settings.json` + `.claude/hooks/`): Pint automatico ao editar `.php`, bloqueio de `.env`, lembrete de `down()` em migrations. Rodam via `docker exec` (nao ha PHP no host).
+- **Subagents** (`.claude/agents/`): `laravel-test-writer`, `laravel-module-scaffolder`, `tenancy-security-reviewer` (+ os globais `laravel-senior-architect`, `tech-product-owner`).
+- **Skills** (`.claude/skills/`): `padroes-projeto`, `scaffold-modulo`, `gerar-teste-model`, `checklist-pre-pr`.
+- **Slash commands** (`.claude/commands/`): `/testar`, `/migrar`, `/auditar-tenancy`, `/pre-pr`.
+- Execucao sempre no container: `docker exec meu-negocio-app <cmd>`.
 
 ---
 
