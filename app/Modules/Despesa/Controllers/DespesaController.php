@@ -12,7 +12,7 @@ use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Services\DespesaService;
 use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, SalvarBaixaParcelaRequest};
-use App\Traits\TratamentoErros;
+use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request, Response};
@@ -20,6 +20,7 @@ use Illuminate\View\View;
 
 class DespesaController extends Controller
 {
+    use DefineEmpresaDeCriacao;
     use TratamentoErros;
 
     public function __construct(
@@ -56,79 +57,80 @@ class DespesaController extends Controller
     public function store(SalvarDespesaRequest $request): RedirectResponse
     {
         try {
-            // ME-010: setar empresa de criacao quando ha multiplas selecionadas
-            // para garantir que Despesa + ParcelaDespesa + BaixaDespesa usem a
-            // mesma empresa via EmpresaTrait::creating override.
-            if ($request->filled('empresa_id')) {
-                session(['empresa_criacao_atual' => (int) $request->empresa_id]);
-            }
+            $empresaId = $request->filled('empresa_id') ? (int) $request->empresa_id : null;
 
-            $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+            return $this->comEmpresaDeCriacao($empresaId, function () use ($request) {
+                $this->service->criar($this->montarDados($request));
 
-            $forma = $request->forma_pagamento
-                ? FormaPagamento::from($request->forma_pagamento)
-                : null;
-
-            $formaRecebimentoPrazo = $request->forma_recebimento_prazo
-                ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
-                : null;
-
-            $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
-
-            $parcelasPersonalizadas = null;
-            $raw = $request->input('parcelas');
-            if (! empty($raw) && is_array($raw)) {
-                $parcelasPersonalizadas = array_map(function (array $p) {
-                    return [
-                        'numero' => (int) $p['numero'],
-                        'total' => (int) $p['total'],
-                        'valor' => (float) $p['valor'],
-                        'data_vencimento' => Carbon::parse($p['data_vencimento']),
-                        'mes_referencia' => Carbon::parse($p['mes_referencia']),
-                    ];
-                }, array_values($raw));
-            }
-
-            $data = new CriarDespesaData(
-                nome: $request->nome,
-                valor_total: (float) $request->valor_total,
-                condicao_pagamento: $condicao,
-                mes_referencia: Carbon::parse($request->mes_referencia)->startOfMonth(),
-                data_emissao: Carbon::parse($request->data_emissao),
-                primeiro_vencimento: Carbon::parse($request->primeiro_vencimento),
-                categoria_despesa_id: $request->categoria_despesa_id,
-                fornecedor_nome: $request->fornecedor_nome,
-                documento: $request->documento,
-                observacoes: $request->observacoes,
-                numero_parcelas: $numeroParcelas,
-                forma_pagamento_avista: $forma,
-                forma_recebimento_prazo: $formaRecebimentoPrazo,
-                parcelas_personalizadas: $parcelasPersonalizadas,
-            );
-
-            $this->service->criar($data);
-
-            return redirect()->route('despesas.index')->with('sucesso', 'Despesa criada com sucesso.');
+                return redirect()->route('despesas.index')->with('sucesso', 'Despesa criada com sucesso.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao criar despesa');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
+    }
+
+    /**
+     * Monta o DTO de criacao a partir do request validado: converte enums e
+     * datas e normaliza o array cru de parcelas personalizadas vindo do preview.
+     */
+    private function montarDados(SalvarDespesaRequest $request): CriarDespesaData
+    {
+        $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+
+        $forma = $request->forma_pagamento
+            ? FormaPagamento::from($request->forma_pagamento)
+            : null;
+
+        $formaRecebimentoPrazo = $request->forma_recebimento_prazo
+            ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
+            : null;
+
+        $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
+
+        $parcelasPersonalizadas = null;
+        $raw = $request->input('parcelas');
+        if (! empty($raw) && is_array($raw)) {
+            $parcelasPersonalizadas = array_map(function (array $p) {
+                return [
+                    'numero' => (int) $p['numero'],
+                    'total' => (int) $p['total'],
+                    'valor' => (float) $p['valor'],
+                    'data_vencimento' => Carbon::parse($p['data_vencimento']),
+                    'mes_referencia' => Carbon::parse($p['mes_referencia']),
+                ];
+            }, array_values($raw));
+        }
+
+        return new CriarDespesaData(
+            nome: $request->nome,
+            valor_total: (float) $request->valor_total,
+            condicao_pagamento: $condicao,
+            mes_referencia: Carbon::parse($request->mes_referencia)->startOfMonth(),
+            data_emissao: Carbon::parse($request->data_emissao),
+            primeiro_vencimento: Carbon::parse($request->primeiro_vencimento),
+            categoria_despesa_id: $request->categoria_despesa_id,
+            fornecedor_nome: $request->fornecedor_nome,
+            documento: $request->documento,
+            observacoes: $request->observacoes,
+            numero_parcelas: $numeroParcelas,
+            forma_pagamento_avista: $forma,
+            forma_recebimento_prazo: $formaRecebimentoPrazo,
+            parcelas_personalizadas: $parcelasPersonalizadas,
+        );
     }
 
     public function cancelar(Despesa $despesa): RedirectResponse
     {
         try {
             $this->authorize('update', $despesa);
-            session(['empresa_criacao_atual' => (int) $despesa->empresa_id]);
 
-            $this->service->cancelarDespesa($despesa);
+            return $this->comEmpresaDeCriacao((int) $despesa->empresa_id, function () use ($despesa) {
+                $this->service->cancelarDespesa($despesa);
 
-            return redirect()->route('despesas.index')->with('sucesso', 'Despesa cancelada.');
+                return redirect()->route('despesas.index')->with('sucesso', 'Despesa cancelada.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar despesa');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
@@ -161,38 +163,34 @@ class DespesaController extends Controller
     public function baixaParcela(SalvarBaixaParcelaRequest $request, ParcelaDespesa $parcela): RedirectResponse
     {
         try {
-            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+            return $this->comEmpresaDeCriacao((int) $parcela->empresa_id, function () use ($request, $parcela) {
+                $this->caixaService->darBaixaParcelaDespesa(
+                    $parcela,
+                    (float) $request->valor,
+                    FormaPagamento::from($request->forma_pagamento),
+                    $request->observacao,
+                    (float) ($request->multa ?? 0),
+                    (float) ($request->juros ?? 0),
+                    (float) ($request->desconto ?? 0),
+                );
 
-            $this->caixaService->darBaixaParcelaDespesa(
-                $parcela,
-                (float) $request->valor,
-                FormaPagamento::from($request->forma_pagamento),
-                $request->observacao,
-                (float) ($request->multa ?? 0),
-                (float) ($request->juros ?? 0),
-                (float) ($request->desconto ?? 0),
-            );
-
-            return redirect()->route('despesas.index')->with('sucesso', 'Pagamento registrado com sucesso.');
+                return redirect()->route('despesas.index')->with('sucesso', 'Pagamento registrado com sucesso.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar pagamento');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
     public function cancelarParcela(CancelarParcelaRequest $request, ParcelaDespesa $parcela): RedirectResponse
     {
         try {
-            session(['empresa_criacao_atual' => (int) $parcela->empresa_id]);
+            return $this->comEmpresaDeCriacao((int) $parcela->empresa_id, function () use ($request, $parcela) {
+                $this->service->cancelarParcela($parcela, $request->input('motivo'));
 
-            $this->service->cancelarParcela($parcela, $request->input('motivo'));
-
-            return redirect()->route('despesas.index')->with('sucesso', 'Parcela cancelada.');
+                return redirect()->route('despesas.index')->with('sucesso', 'Parcela cancelada.');
+            });
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao cancelar parcela');
-        } finally {
-            session()->forget('empresa_criacao_atual');
         }
     }
 
