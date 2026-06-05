@@ -6,8 +6,10 @@
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    {{-- Aplica o tema salvo antes do paint para evitar flash (FOUC) --}}
-    <script>(function(){try{if(localStorage.getItem('app-skin-dark')==='app-skin-dark'){document.documentElement.classList.add('app-skin-dark');}}catch(e){}})();</script>
+    {{-- Tema escuro temporariamente DESATIVADO (deixar claro por padrao ate ajustar).
+         Guard anti-flash original — reativar junto com o botao e o JS do toggle:
+         <script>(function(){try{if(localStorage.getItem('app-skin-dark')==='app-skin-dark'){document.documentElement.classList.add('app-skin-dark');}}catch(e){}})();</script>
+    --}}
     <title>@yield('titulo', 'Meu Negócio')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('assets/images/favicon.ico') }}">
@@ -351,11 +353,13 @@
             </div>
             <div class="header-right ms-auto">
                 <div class="d-flex align-items-center">
+                    {{-- Tema escuro temporariamente DESATIVADO — botao oculto ate ajustar:
                     <div class="nxl-h-item">
                         <a href="javascript:void(0);" class="nxl-head-link theme-toggle" id="themeToggle" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
                             <i class="feather-moon"></i>
                         </a>
                     </div>
+                    --}}
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
                             <div class="avatar-text avatar-md bg-primary text-white">
@@ -722,7 +726,7 @@
     });
     </script>
 
-    {{-- Alternância de tema claro/escuro (persistente, sem depender do customizer do tema) --}}
+    {{-- Tema escuro temporariamente DESATIVADO — JS do toggle (reativar com o botao e o guard no head):
     <script>
     (function () {
         var KEY = 'app-skin-dark';
@@ -740,6 +744,7 @@
         });
     })();
     </script>
+    --}}
 
     @include('partials.modal-recibo')
 
