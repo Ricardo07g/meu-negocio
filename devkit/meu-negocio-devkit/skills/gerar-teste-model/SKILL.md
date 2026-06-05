@@ -25,8 +25,12 @@ Produz testes que **passam de verdade** e seguem as convencoes da suite existent
 
 1. **Leia o alvo** (Model + Controller/Service/Action) e um teste vizinho similar para copiar estilo
    e descobrir rotas/nomes reais (nao invente endpoints). Veja `padroes-projeto` se precisar.
-2. **Factory**: se faltar a factory do Model, crie no estilo de `RedeFactory`/`EmpresaFactory`/
-   `UsuarioFactory` (states, relacoes, `rede_id`/`empresa_id` quando aplicavel).
+2. **Factory**: os models **nao usam `HasFactory`** (namespace modular `App\Modules\...`), entao
+   `Model::factory()` NAO funciona — instancie sempre pela classe da factory:
+   `ClienteFactory::new()->create([...])`. Referencias aninhadas tambem (`RedeFactory::new()`).
+   Ja existem factories para os models principais em `database/factories/` (catalogo, financeiro,
+   caixa, estoque, agenda); reutilize-as. Se faltar alguma, crie no mesmo estilo (states, relacoes,
+   `rede_id`/`empresa_id` explicitos quando o teste roda sem auth).
 3. **Casos minimos** a cobrir, conforme o tipo:
    - CRUD: criar, listar (com escopo), atualizar, excluir.
    - **Isolamento multi-tenant**: rede/empresa A nao ve dados de B (modelo: `MultiTenant/IsolamentoTest`).
