@@ -106,9 +106,16 @@ Saldo de abertura, entradas/saídas, sangria, reforço e fechamento — com nave
 - **Modelo financeiro**: Título (`Pagamento` / `Despesa`) + Parcela + Baixa. `condicao_pagamento` (à vista / à prazo) decide o fluxo, `forma_pagamento` fica na parcela/baixa, não no título.
 - **Permissões dinâmicas**: catálogo de permissions fixo no código (`recurso.acao`), Roles criados pelo Admin via UI (`/perfis-acesso`). Apenas o Admin master é seedado.
 
-### Contexto para IA (e para humanos)
+### Desenvolvimento assistido por IA (medido)
 
-A [`CLAUDE.md`](CLAUDE.md) na raiz é o índice enxuto e sempre-carregado das convenções do projeto. O conhecimento de domínio detalhado vive em [`.claude/rules/`](.claude/rules/) como *path-scoped rules*: cada arquivo declara um `paths:` e só entra em contexto quando se edita um arquivo daquele escopo (ex.: a regra do Pagamento carrega ao mexer em `app/Modules/Pagamento/`). É conhecimento **ativo e lazy** — substitui a antiga pasta `.ai/`, que o assistente nunca lia de fato. Procedimentos repetíveis viram *skills* em [`.claude/skills/`](.claude/skills/). Tudo detalhado em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md).
+O repositório é também uma vitrine de **como desenvolver com IA mantendo qualidade**. A automação vive em [`.claude/`](.claude/), auto-descoberta pelo Claude Code:
+
+- **Conhecimento lazy** — a [`CLAUDE.md`](CLAUDE.md) é um índice enxuto; o domínio detalhado fica em [`.claude/rules/`](.claude/rules/) como *path-scoped rules* que só entram em contexto ao editar arquivos do escopo (a regra do Pagamento carrega ao mexer em `app/Modules/Pagamento/`). Substituiu a antiga pasta `.ai/`, que o assistente nunca lia.
+- **Skills** ([`.claude/skills/`](.claude/skills/)) para procedimentos repetíveis (validar uma feature, revisar código, depurar, criar migration…), além de **subagents**, **hooks** (Pint/guards) e **slash commands**.
+- **Fonte única** — o plugin distribuível em `devkit/` é **gerado** de `.claude/` por `bin/sync-devkit.sh`, e o CI **barra drift** entre os dois.
+- **Qualidade medida** — as 3 skills-flagship passaram por um harness de avaliação A/B (com vs sem a skill, 6 cenários reais sobre este código): **100% vs 90%** de acerto, **~24% mais rápido** e **~20% menos tokens**. O baseline já forte (90%) confirma que as *rules* carregam o conhecimento; a skill agrega consistência e foco.
+
+Detalhes, metodologia e o comparativo em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md).
 
 ### Decisões arquiteturais (ADRs)
 

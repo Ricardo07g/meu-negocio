@@ -112,6 +112,28 @@ lado sem re-sincronizar. O que e espelhado: `agents/`, `skills/`, `commands/`, `
 `${CLAUDE_PLUGIN_ROOT}/hooks/`). **Nao** espelhados: `rules/` (conhecimento especifico deste projeto),
 `settings.json` e `agent-memory/` (estado de runtime).
 
+## Qualidade medida (evals das skills)
+
+As skills nao sao so escritas — sao **avaliadas**. As 3 flagship (`validar-implementacao`,
+`revisar-codigo`, `depurar`) passaram por um harness A/B (skill-creator): para cada cenario, dois
+agentes resolvem a MESMA tarefa sobre este codigo — um com a skill, outro sem (baseline) — e um
+grader pontua o resultado contra criterios objetivos.
+
+Iteracao 1 (6 cenarios reais, modelo Sonnet, 1 run por configuracao):
+
+| Metrica | Com skill | Sem skill |
+|---------|-----------|-----------|
+| Pass rate | 100% | 90% |
+| Tempo medio | ~238s | ~316s (~24% mais lento) |
+| Tokens medios | ~59k | ~74k (~20% a mais) |
+
+Leitura: a skill agrega **consistencia** (variancia zero) e **eficiencia** (mais rapida e barata,
+pois direciona o agente as dimensoes certas — ex.: `validar-implementacao` sempre cobre o smoke de
+tela, `revisar-codigo` usa a taxonomia Critico/Importante/Sugestao). O baseline ja forte (90%)
+confirma que o ganho estrutural vem das `rules` lazy + `CLAUDE.md`, que qualquer agente herda neste
+repo — a skill poe o acabamento. Harness leve (amostra pequena), entao e sinal de direcao, nao
+benchmark estatistico.
+
 ## Pre-requisitos
 
 - Docker Compose rodando (container `meu-negocio-app`; override via `MEUNEGOCIO_APP_CONTAINER`).
