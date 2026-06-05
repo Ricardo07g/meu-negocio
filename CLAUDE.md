@@ -12,7 +12,8 @@ Projeto de portfolio, preparado para open source.
 - Docker Compose (app, nginx:8080, mysql:3306, redis:6379) — **nao ha PHP no host**; rode tudo via
   `docker exec meu-negocio-app <cmd>`.
 - Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3 (Node so no host).
-- Template UI: Duralux Admin 1.0.0 (`/home/ricardo/Documentos/Projetos/TEMAS/Duralux-admin-1.0.0/`).
+- Template UI: Duralux Admin 1.0.0 (template comercial; mantenha uma copia local para referencia
+  visual — ver `NOTICE.md`).
 
 ## Pacotes obrigatorios
 - `spatie/laravel-permission` ^7.2 (papeis/permissoes) · `spatie/laravel-data` ^4.20 (DTOs) ·

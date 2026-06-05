@@ -48,7 +48,7 @@ Após cada fase completa, **parar e reportar** o estado consolidado antes de ini
 3. **Pint:** corrigir só nos arquivos que tocar.
 4. **Não introduzir dependências novas** (composer/npm) sem perguntar ao Ricardo.
 5. **Respeitar 100% padrões da `CLAUDE.md`:** PT-BR, BaseModel, RedeTrait/EmpresaTrait, Requests unificados (`SalvarXxxRequest`), DTOs unificados, `_form.blade.php` com `@php $entidade = $entidade ?? null; @endphp`, `<x-form-botoes>`, padrão Duralux Bootstrap 5, SweetAlert2, Feather icons.
-6. **Sempre buscar padrões visuais no Duralux Admin** (`/home/ricardo/Documentos/Projetos/TEMAS/Duralux-admin-1.0.0/`) antes de criar UI nova.
+6. **Sempre buscar padrões visuais no Duralux Admin** (template comercial; cópia local de referência — ver `NOTICE.md`) antes de criar UI nova.
 7. **Não tocar em itens fora do backlog** sem aprovação.
 8. **Limpar cache do Spatie** após mexer em Roles/Permissions: `php artisan permission:cache-reset` ou `forgetCachedPermissions()`.
 9. **Validar multi-tenant** após qualquer mudança que toque modelos: `RedeTrait`/`EmpresaTrait` continuam aplicados.

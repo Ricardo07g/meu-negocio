@@ -7,9 +7,9 @@ paths:
 
 # UI — padrao Duralux Admin
 
-Carrega ao mexer em Blade/Views. **Sempre** busque o padrao visual no template Duralux antes de criar
-UI: `/home/ricardo/Documentos/Projetos/TEMAS/Duralux-admin-1.0.0/`. Base: Bootstrap 5, icones Feather,
-modais SweetAlert2.
+Carrega ao mexer em Blade/Views. **Sempre** busque o padrao visual no template Duralux (comercial;
+mantenha uma copia local para referencia — ver `NOTICE.md`) antes de criar UI. Base: Bootstrap 5,
+icones Feather, modais SweetAlert2.
 
 ## Icones Feather (gotcha importante)
 O tema usa Feather como **fonte CSS**: use a classe `feather-nome` (ex.: `<i class="feather-edit-3">`).
