@@ -20,7 +20,7 @@ jobs:
         with:
           php-version: '8.3'
           extensions: mbstring, intl, pdo_sqlite, redis, bcmath, gd
-          coverage: none
+          coverage: pcov
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -45,8 +45,15 @@ jobs:
       - name: Generate app key
         run: php artisan key:generate
 
-      - name: Run tests (composer test)
-        run: composer test
+      - name: Static analysis (PHPStan/Larastan)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
+      # Cobertura via pcov. O --min e um piso conservador contra regressao;
+      # eleve conforme a cobertura cresce (mede-se o % real no log deste step).
+      - name: Run tests with coverage
+        run: |
+          php artisan config:clear --ansi
+          php artisan test --coverage --min=30
 
       - name: Check code style (Pint)
         run: vendor/bin/pint --test
