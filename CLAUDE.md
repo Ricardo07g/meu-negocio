@@ -54,7 +54,7 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), Caixa, Dashboard,
-Assinatura (troca de plano pro-rata, sem gateway — ADR-0007).
+Assinatura (troca de plano: upgrade imediato pro-rata x downgrade agendado, sem gateway — ADR-0007/0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
 ## Banco de Dados — tabelas

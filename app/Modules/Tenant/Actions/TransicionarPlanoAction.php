@@ -4,34 +4,63 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenant\Actions;
 
+use App\Enums\StatusFatura;
 use App\Exceptions\NegocioException;
+use App\Modules\Tenant\DTOs\ResultadoTransicao;
 use App\Modules\Tenant\Models\{Fatura, Plano, Rede};
+use App\Modules\Tenant\Support\CalculadoraProRata;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class TransicionarPlanoAction
 {
     /**
-     * Migra a rede para outro plano. Valida os limites do plano destino contra
-     * o uso atual e ajusta a fatura do mes vigente de forma pro-rata (dias ja
-     * decorridos no plano antigo + dias restantes no novo). Retorna a fatura
-     * do mes ajustada. Tudo numa transacao.
+     * Migra a rede para outro plano (ADR-0008). Distingue upgrade de downgrade
+     * pelo preco mensal:
+     *  - UPGRADE (ou preco igual): efeito imediato — troca o plano agora e ajusta
+     *    a fatura do mes pro-rata SOMENTE se ela ainda estiver em aberto (fatura
+     *    paga/vencida nao e tocada);
+     *  - DOWNGRADE: agenda a troca para a virada do mes (plano_agendado_id), sem
+     *    mexer no plano atual nem na fatura — sem reembolso, mantem recursos ate la.
+     * Escolher de novo o plano atual quando ha um downgrade agendado cancela o
+     * agendamento. Tudo em transacao.
      */
-    public function executar(Rede $rede, Plano $destino): Fatura
+    public function executar(Rede $rede, Plano $destino): ResultadoTransicao
     {
         /** @var Plano|null $atual */
         $atual = $rede->plano;
 
         if ($atual && $atual->id === $destino->id) {
+            if ($rede->plano_agendado_id !== null) {
+                $rede->update(['plano_agendado_id' => null]);
+
+                return ResultadoTransicao::agendamentoCancelado($destino);
+            }
+
             throw new NegocioException("A rede ja esta no plano \"{$destino->nome}\".");
         }
 
         $this->validarLimites($rede, $destino);
 
-        return DB::transaction(function () use ($rede, $atual, $destino) {
-            $rede->update(['plano_id' => $destino->id]);
+        $precoAtual = $atual !== null ? (float) $atual->preco_mensal : 0.0;
+        $precoNovo = (float) $destino->preco_mensal;
 
-            return $this->ajustarFaturaDoMes($rede, $atual, $destino);
+        if ($precoNovo < $precoAtual) {
+            // Downgrade: so vale no proximo ciclo.
+            $rede->update(['plano_agendado_id' => $destino->id]);
+            $vigencia = Carbon::now()->addMonthNoOverflow()->startOfMonth();
+
+            return ResultadoTransicao::downgradeAgendado($destino, $vigencia);
+        }
+
+        // Upgrade (ou preco igual com plano diferente): efeito imediato.
+        return DB::transaction(function () use ($rede, $atual, $destino) {
+            $rede->update(['plano_id' => $destino->id, 'plano_agendado_id' => null]);
+            $fatura = $this->ajustarFaturaDoMesSeAberta($rede, $atual, $destino);
+
+            return $fatura !== null
+                ? ResultadoTransicao::upgradeAjustado($destino, $fatura)
+                : ResultadoTransicao::upgradeSemAjuste($destino);
         });
     }
 
@@ -42,7 +71,7 @@ class TransicionarPlanoAction
     private function validarLimites(Rede $rede, Plano $destino): void
     {
         $usoEmpresas = $rede->empresas()->count();
-        $usoUsuarios = $rede->usuarios()->count();
+        $usoUsuarios = $rede->usuariosAtivos()->count();
 
         if ($destino->max_empresas > 0 && $usoEmpresas > $destino->max_empresas) {
             throw new NegocioException(
@@ -60,31 +89,28 @@ class TransicionarPlanoAction
     }
 
     /**
-     * Como ha no maximo uma fatura por mes (unique rede_id+referencia), o ajuste
-     * de plano no meio do mes recai sobre a fatura do mes vigente: cobra os dias
-     * ja usados no preco antigo e os dias restantes no preco novo.
+     * Ajusta a fatura do mes vigente pro-rata, mas SOMENTE se ela existir e
+     * estiver em aberto — fatura paga/vencida nao pode ser sobrescrita (retorna
+     * null nesse caso, o upgrade vale a partir da proxima fatura). Se nao houver
+     * fatura do mes (a tela costuma cria-la ao abrir), cria ja no plano novo.
      */
-    private function ajustarFaturaDoMes(Rede $rede, ?Plano $atual, Plano $destino): Fatura
+    private function ajustarFaturaDoMesSeAberta(Rede $rede, ?Plano $atual, Plano $destino): ?Fatura
     {
-        $hoje = Carbon::now();
-        $referencia = $hoje->format('Y-m');
-        $diasNoMes = $hoje->daysInMonth;
-        $diasUsados = $hoje->day - 1;                  // decorridos no plano antigo
-        $diasRestantes = $diasNoMes - $diasUsados;     // inclui hoje, ja no plano novo
-
-        $precoAntigo = $atual !== null ? (float) $atual->preco_mensal : 0.0;
-        $precoNovo = (float) $destino->preco_mensal;
-
-        $valorProRata = round(
-            ($precoAntigo * $diasUsados + $precoNovo * $diasRestantes) / $diasNoMes,
-            2
+        $referencia = Carbon::now()->format('Y-m');
+        $valorProRata = CalculadoraProRata::calcular(
+            $atual !== null ? (float) $atual->preco_mensal : 0.0,
+            (float) $destino->preco_mensal,
         );
 
         $fatura = Fatura::where('rede_id', $rede->id)
             ->where('referencia', $referencia)
             ->first();
 
-        if ($fatura) {
+        if ($fatura !== null) {
+            if ($fatura->status !== StatusFatura::EmAberto) {
+                return null;
+            }
+
             $fatura->update([
                 'plano_id' => $destino->id,
                 'valor' => $valorProRata,
@@ -93,15 +119,13 @@ class TransicionarPlanoAction
             return $fatura;
         }
 
-        // Fallback raro: nao havia fatura do mes (a tela de assinatura a cria
-        // ao abrir). Vence no fim do mes vigente.
         return Fatura::create([
             'rede_id' => $rede->id,
             'plano_id' => $destino->id,
             'referencia' => $referencia,
             'valor' => $valorProRata,
-            'vencimento' => $hoje->copy()->endOfMonth(),
-            'status' => 'em_aberto',
+            'vencimento' => Carbon::now()->endOfMonth(),
+            'status' => StatusFatura::EmAberto,
         ]);
     }
 }

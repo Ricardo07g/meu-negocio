@@ -14,13 +14,16 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $nome
  * @property int $plano_id
+ * @property int|null $plano_agendado_id
  * @property StatusRede $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Plano $plano
+ * @property-read Plano|null $planoAgendado
  * @property-read Collection<int, Empresa> $empresas
  * @property-read Collection<int, Usuario> $usuarios
+ * @property-read Collection<int, Usuario> $usuariosAtivos
  */
 class Rede extends Model
 {
@@ -31,6 +34,7 @@ class Rede extends Model
     protected $fillable = [
         'nome',
         'plano_id',
+        'plano_agendado_id',
         'status',
     ];
 
@@ -53,6 +57,11 @@ class Rede extends Model
         return $this->belongsTo(Plano::class, 'plano_id');
     }
 
+    public function planoAgendado(): BelongsTo
+    {
+        return $this->belongsTo(Plano::class, 'plano_agendado_id');
+    }
+
     public function empresas(): HasMany
     {
         return $this->hasMany(Empresa::class, 'rede_id');
@@ -61,5 +70,15 @@ class Rede extends Model
     public function usuarios(): HasMany
     {
         return $this->hasMany(Usuario::class, 'rede_id');
+    }
+
+    /**
+     * Usuarios que ocupam "vaga" no plano. Inativos (login bloqueado) nao contam
+     * no limite, mas mantem seus registros — assim da pra reduzir o uso (e fazer
+     * downgrade) sem excluir ninguem.
+     */
+    public function usuariosAtivos(): HasMany
+    {
+        return $this->hasMany(Usuario::class, 'rede_id')->where('ativo', true);
     }
 }

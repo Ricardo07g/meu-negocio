@@ -2,6 +2,11 @@
 
 ## Status
 
+Substituído por [ADR-0008](0008-transicao-plano-upgrade-downgrade.md) — junho/2026. A visão de
+assinatura, o faturamento mensal e a fórmula pro-rata seguem válidos; a **troca de plano** (upgrade
+imediato × downgrade agendado, não-sobrescrita de fatura paga, enum de status e marcação manual de
+pagamento) passou a ser regida pelo ADR-0008.
+
 Aceito — junho/2026.
 
 ## Contexto

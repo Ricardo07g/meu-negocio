@@ -139,32 +139,8 @@ parameters:
 			path: app/Modules/PerfilAcesso/Services/PerfilAcessoService.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$plano\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/Tenant/Controllers/AssinaturaController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:empresas\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Modules/Tenant/Controllers/AssinaturaController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:usuarios\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Modules/Tenant/Controllers/AssinaturaController.php
-
-		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
-			count: 1
-			path: app/Modules/Tenant/Controllers/AssinaturaController.php
-
-		-
-			message: '#^Parameter \#1 \$rede of method App\\Modules\\Tenant\\Controllers\\AssinaturaController\:\:garantirHistoricoFaturas\(\) expects App\\Modules\\Tenant\\Models\\Rede, Illuminate\\Database\\Eloquent\\Model given\.$#'
-			identifier: argument.type
 			count: 1
 			path: app/Modules/Tenant/Controllers/AssinaturaController.php
 
@@ -179,12 +155,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: app/Modules/Tenant/Controllers/EmpresaController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:usuarios\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Modules/Usuario/Controllers/UsuarioController.php
 
 		-
 			message: '#^Parameter \#1 \$rede of method App\\Modules\\Usuario\\Services\\UsuarioService\:\:criar\(\) expects App\\Modules\\Tenant\\Models\\Rede, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'

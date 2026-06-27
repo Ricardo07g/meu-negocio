@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Tenant\Models;
 
+use App\Enums\StatusFatura;
 use App\Models\BaseModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property float $valor
  * @property Carbon $vencimento
  * @property Carbon|null $pago_em
- * @property string $status
+ * @property StatusFatura $status
  * @property-read Plano $plano
  */
 class Fatura extends BaseModel
@@ -42,6 +43,7 @@ class Fatura extends BaseModel
             'valor' => 'decimal:2',
             'vencimento' => 'date',
             'pago_em' => 'datetime',
+            'status' => StatusFatura::class,
         ];
     }
 

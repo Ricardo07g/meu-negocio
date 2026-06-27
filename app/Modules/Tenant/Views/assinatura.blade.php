@@ -6,15 +6,10 @@
     <li class="breadcrumb-item active">Minha Assinatura</li>
 @endsection
 
+@use('App\Enums\StatusFatura')
+
 @php
-    $mapaBadge = [
-        'paga' => ['cor' => 'success', 'rotulo' => 'Paga'],
-        'em_aberto' => ['cor' => 'warning', 'rotulo' => 'Em aberto'],
-        'vencida' => ['cor' => 'danger', 'rotulo' => 'Vencida'],
-        'cancelada' => ['cor' => 'secondary', 'rotulo' => 'Cancelada'],
-    ];
-    $statusFatura = $faturaAtual?->status ?? 'em_aberto';
-    $badge = $mapaBadge[$statusFatura] ?? ['cor' => 'secondary', 'rotulo' => 'Em aberto'];
+    $statusFatura = $faturaAtual?->status ?? StatusFatura::EmAberto;
 
     $modulosDisponiveis = [
         ['icone' => 'feather-users', 'nome' => 'Clientes', 'inclui' => true],
@@ -126,6 +121,25 @@
 @endpush
 
 @section('content')
+    {{-- Banner: downgrade agendado para o proximo ciclo --}}
+    @if ($rede->plano_agendado_id && $rede->planoAgendado)
+        <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
+            <div>
+                <i class="feather-clock me-1"></i>
+                Mudanca de plano agendada: <strong class="text-capitalize">{{ $rede->planoAgendado->nome }}</strong>
+                passa a valer em <strong>{{ now()->addMonthNoOverflow()->startOfMonth()->format('d/m/Y') }}</strong>.
+                Voce mantem o plano atual ate la.
+            </div>
+            @if ($podeTrocar)
+                <form method="POST" action="{{ route('assinatura.transicionar') }}" class="mb-0">
+                    @csrf
+                    <input type="hidden" name="plano_id" value="{{ $plano->id }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">Cancelar mudanca agendada</button>
+                </form>
+            @endif
+        </div>
+    @endif
+
     {{-- Top action: comparar planos --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="text-muted fs-13">
@@ -242,8 +256,8 @@
             <div class="card stretch stretch-full fatura-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Fatura atual</h5>
-                    <span class="badge bg-soft-{{ $badge['cor'] }} text-{{ $badge['cor'] }} border border-{{ $badge['cor'] }}-subtle">
-                        {{ $badge['rotulo'] }}
+                    <span class="badge bg-soft-{{ $statusFatura->cor() }} text-{{ $statusFatura->cor() }} border border-{{ $statusFatura->cor() }}-subtle">
+                        {{ $statusFatura->label() }}
                     </span>
                 </div>
                 <div class="card-body">
@@ -291,6 +305,16 @@
                         </div>
                     </div>
                 </div>
+                @if ($podeTrocar && $faturaAtual && in_array($statusFatura, [StatusFatura::EmAberto, StatusFatura::Vencida], true))
+                    <div class="card-footer text-end">
+                        <form method="POST" action="{{ route('assinatura.fatura.pagar', $faturaAtual) }}" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-pagar-fatura">
+                                <i class="feather-check me-1"></i> Marcar como paga
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -327,23 +351,37 @@
                             <th>Pago em</th>
                             <th>Plano</th>
                             <th>Status</th>
+                            @if ($podeTrocar)
+                                <th class="text-end">Acoes</th>
+                            @endif
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($faturas as $f)
-                            @php
-                                $b = $mapaBadge[$f->status] ?? ['cor' => 'secondary', 'rotulo' => $f->status];
-                            @endphp
                             <tr>
                                 <td>{{ ucfirst(\Carbon\Carbon::createFromFormat('Y-m', $f->referencia)->locale('pt_BR')->isoFormat('MMMM/YYYY')) }}</td>
                                 <td>{{ $f->vencimento->format('d/m/Y') }}</td>
                                 <td class="text-end">R$ {{ number_format($f->valor, 2, ',', '.') }}</td>
                                 <td>{{ $f->pago_em ? $f->pago_em->format('d/m/Y') : '-' }}</td>
                                 <td class="text-capitalize">{{ $f->plano->nome ?? '-' }}</td>
-                                <td><span class="badge bg-{{ $b['cor'] }}">{{ $b['rotulo'] }}</span></td>
+                                <td><span class="badge bg-{{ $f->status->cor() }}">{{ $f->status->label() }}</span></td>
+                                @if ($podeTrocar)
+                                    <td class="text-end">
+                                        @if (in_array($f->status, [StatusFatura::EmAberto, StatusFatura::Vencida], true))
+                                            <form method="POST" action="{{ route('assinatura.fatura.pagar', $f) }}" class="d-inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-sm btn-soft-success btn-pagar-fatura">
+                                                    <i class="feather-check me-1"></i> Marcar paga
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                @endif
                             </tr>
                         @empty
-                            <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma fatura registrada em {{ $anoSelecionado }}.</td></tr>
+                            <tr><td colspan="{{ $podeTrocar ? 7 : 6 }}" class="text-center text-muted py-4">Nenhuma fatura registrada em {{ $anoSelecionado }}.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -408,12 +446,22 @@
                                         @if ($eAtual)
                                             <button type="button" class="btn btn-primary w-100" disabled>Plano atual</button>
                                         @elseif ($podeTrocar)
-                                            <button type="button" class="btn btn-outline-primary w-100 btn-trocar-plano"
-                                                data-plano-id="{{ $p->id }}"
-                                                data-plano-nome="{{ $p->nome }}"
-                                                data-plano-preco="{{ $p->preco_mensal > 0 ? 'R$ '.number_format($p->preco_mensal, 2, ',', '.').'/mes' : 'Gratuito' }}">
-                                                Mudar para este plano
-                                            </button>
+                                            @php $previa = $previas[$p->id] ?? ['tipo' => 'upgrade', 'texto' => '']; @endphp
+                                            @if ($previa['tipo'] === 'downgrade_bloqueado')
+                                                <button type="button" class="btn btn-outline-secondary w-100" disabled>
+                                                    Indisponivel — limite
+                                                </button>
+                                                <small class="text-danger d-block mt-2">{{ $previa['texto'] }}</small>
+                                            @else
+                                                <button type="button" class="btn btn-outline-primary w-100 btn-trocar-plano"
+                                                    data-plano-id="{{ $p->id }}"
+                                                    data-plano-nome="{{ $p->nome }}"
+                                                    data-plano-preco="{{ $p->preco_mensal > 0 ? 'R$ '.number_format($p->preco_mensal, 2, ',', '.').'/mes' : 'Gratuito' }}"
+                                                    data-tipo="{{ $previa['tipo'] }}"
+                                                    data-previa="{{ $previa['texto'] }}">
+                                                    {{ $previa['tipo'] === 'downgrade' ? 'Agendar downgrade' : 'Fazer upgrade' }}
+                                                </button>
+                                            @endif
                                         @else
                                             <button type="button" class="btn btn-outline-secondary w-100" disabled>
                                                 Somente o Admin pode trocar
@@ -427,7 +475,7 @@
                 </div>
                 <div class="modal-footer justify-content-between">
                     @if ($podeTrocar)
-                        <small class="text-muted">A mudanca e aplicada imediatamente, com ajuste pro-rata na fatura do mes vigente.</small>
+                        <small class="text-muted">Upgrade vale na hora (fatura do mes ajustada pro-rata); downgrade passa a valer no proximo ciclo.</small>
                     @else
                         <small class="text-muted">Somente o Admin da rede pode alterar o plano.</small>
                     @endif
@@ -454,22 +502,44 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = this.dataset.planoId;
             const nome = this.dataset.planoNome;
             const preco = this.dataset.planoPreco;
+            const tipo = this.dataset.tipo;
+            const previa = this.dataset.previa || '';
+            const ehDowngrade = tipo === 'downgrade';
             const modalEl = document.getElementById('modalComparaPlanos');
             const modal = bootstrap.Modal.getInstance(modalEl);
             if (modal) modal.hide();
             Swal.fire({
                 icon: 'question',
-                title: 'Mudar de plano?',
-                html: 'Confirmar a mudanca para o plano <strong style="text-transform:capitalize;">' + nome + '</strong> (' + preco + ')?<br><small class="text-muted">A fatura do mes sera ajustada pro-rata.</small>',
+                title: ehDowngrade ? 'Agendar downgrade?' : 'Fazer upgrade?',
+                html: 'Mudar para o plano <strong style="text-transform:capitalize;">' + nome + '</strong> (' + preco + ').'
+                    + (previa ? '<br><small class="text-muted">' + previa + '</small>' : ''),
                 showCancelButton: true,
                 confirmButtonColor: '#3454d1',
-                confirmButtonText: 'Sim, mudar',
+                confirmButtonText: ehDowngrade ? 'Sim, agendar' : 'Sim, fazer upgrade',
                 cancelButtonText: 'Cancelar',
             }).then(function (resultado) {
-                if (resultado.isConfirmed) {
+                if (resultado.value) {
                     document.getElementById('input-plano-id').value = id;
                     document.getElementById('form-transicionar-plano').submit();
                 }
+            });
+        });
+    });
+
+    document.querySelectorAll('.btn-pagar-fatura').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const form = this.closest('form');
+            Swal.fire({
+                icon: 'question',
+                title: 'Marcar como paga?',
+                text: 'Confirma o pagamento desta fatura?',
+                showCancelButton: true,
+                confirmButtonColor: '#3454d1',
+                confirmButtonText: 'Sim, marcar',
+                cancelButtonText: 'Cancelar',
+            }).then(function (resultado) {
+                if (resultado.value) form.submit();
             });
         });
     });

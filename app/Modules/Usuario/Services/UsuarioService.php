@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Usuario\Services;
 
+use App\Exceptions\NegocioException;
 use App\Modules\Tenant\Models\Rede;
 use App\Modules\Usuario\Actions\CriarUsuarioAction;
 use App\Modules\Usuario\DTOs\UsuarioData;
@@ -33,6 +34,10 @@ class UsuarioService
 
     public function atualizar(Usuario $usuario, UsuarioData $data): Usuario
     {
+        if ($data->ativo === false && $usuario->ativo) {
+            $this->garantirQuePodeInativar($usuario);
+        }
+
         $campos = [
             'nome' => $data->nome,
             'email' => $data->email,
@@ -74,5 +79,28 @@ class UsuarioService
     public function excluir(Usuario $usuario): void
     {
         $usuario->delete();
+    }
+
+    /**
+     * Inativar um usuario tira a vaga dele no plano (e bloqueia o login), mas
+     * nao pode deixar a rede sem acesso: nao se inativa a propria conta nem o
+     * ultimo administrador ativo.
+     */
+    private function garantirQuePodeInativar(Usuario $usuario): void
+    {
+        if (auth()->id() === $usuario->id) {
+            throw new NegocioException('Voce nao pode inativar a propria conta.');
+        }
+
+        if ($usuario->hasRole('Admin')) {
+            $outrosAdminsAtivos = Usuario::whereHas('roles', fn ($q) => $q->where('name', 'Admin'))
+                ->where('ativo', true)
+                ->whereKeyNot($usuario->id)
+                ->count();
+
+            if ($outrosAdminsAtivos === 0) {
+                throw new NegocioException('A rede precisa de ao menos um administrador ativo.');
+            }
+        }
     }
 }

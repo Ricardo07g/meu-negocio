@@ -36,6 +36,7 @@ Donas de pequenos salões, clínicas e profissionais autônomos costumam viver c
 - **Financeiro** modelado como Título + Parcela + Baixa: aceita pagamento à vista, à prazo, parcial e renegociação.
 - **Caixa diário** com abertura/fechamento, sangria, reforço e estorno automático ao cancelar venda.
 - **Estoque** com movimentos de entrada/saída/ajuste vinculados a vendas de produto.
+- **Assinatura self-service**: troca de plano com upgrade imediato (pró-rata) e downgrade agendado para o próximo ciclo; faturas mensais e limites por plano — as vagas contam só usuários *ativos* (inativar libera vaga sem perder histórico).
 - **Multi-tenant single-DB** com isolamento por `rede_id` e `empresa_id` via Eloquent global scopes.
 
 Stack moderna (PHP 8.3 + Laravel 13), código em português, padrões consistentes módulo a módulo.
@@ -119,7 +120,7 @@ Detalhes, metodologia e o comparativo em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md
 
 ### Decisões arquiteturais (ADRs)
 
-As decisões marcantes da arquitetura estão registradas em [`docs/ADR/`](docs/ADR/README.md) no formato MADR-light. Tópicos cobertos: multi-tenant single-DB, modelo financeiro Título+Parcela+Baixa, estrutura modular, BaseModel+traits para tenancy, caixa diário retroativo e padrões de foreign keys.
+As decisões marcantes da arquitetura estão registradas em [`docs/ADR/`](docs/ADR/README.md) no formato MADR-light. Tópicos cobertos: multi-tenant single-DB, modelo financeiro Título+Parcela+Baixa, estrutura modular, BaseModel+traits para tenancy, caixa diário retroativo, padrões de foreign keys e assinatura/troca de plano (upgrade imediato × downgrade agendado pró-rata).
 
 ---
 

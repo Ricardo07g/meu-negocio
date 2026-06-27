@@ -24,4 +24,12 @@ class FaturaPolicy
     {
         return $usuario->hasRole('Admin');
     }
+
+    /**
+     * Marcar uma fatura como paga e tambem uma decisao de cobranca: so o Admin.
+     */
+    public function pagar(Usuario $usuario): bool
+    {
+        return $usuario->hasRole('Admin');
+    }
 }

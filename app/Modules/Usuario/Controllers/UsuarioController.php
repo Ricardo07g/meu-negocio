@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Tenant\Models\Empresa;
+use App\Modules\Tenant\Models\{Empresa, Rede};
 use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\SalvarUsuarioRequest;
@@ -29,9 +29,10 @@ class UsuarioController extends Controller
             $this->authorize('viewAny', Usuario::class);
             $usuarios = $this->service->listar();
 
+            /** @var Rede $rede */
             $rede = auth()->user()->rede;
             $maxUsuarios = (int) ($rede->plano->max_usuarios ?? 0);
-            $atualUsuarios = $rede->usuarios()->count();
+            $atualUsuarios = $rede->usuariosAtivos()->count();
             $limite = [
                 'atual' => $atualUsuarios,
                 'maximo' => $maxUsuarios,

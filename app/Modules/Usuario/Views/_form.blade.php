@@ -71,6 +71,16 @@
                     <label class="form-check-label" for="atende">Este usuário realiza atendimentos</label>
                 </div>
             </div>
+            @if ($entidade)
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <input type="hidden" name="ativo" value="0">
+                        <input type="checkbox" name="ativo" value="1" class="form-check-input" id="ativo" {{ old('ativo', $entidade?->ativo) ? 'checked' : '' }}>
+                        <label class="form-check-label" for="ativo">Usuário ativo</label>
+                        <small class="d-block text-muted">Inativo não acessa o sistema nem ocupa vaga do plano (registros mantidos).</small>
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Empresas com acesso (pivot empresa_usuario). Admin acessa todas automaticamente; nao-admin precisa de >= 1. --}}

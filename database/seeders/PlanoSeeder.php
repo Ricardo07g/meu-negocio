@@ -18,8 +18,8 @@ class PlanoSeeder extends Seeder
                 'descricao' => 'Comece sem custo. Ideal para autonomos testando o sistema.',
                 'max_empresas' => 1,
                 'max_usuarios' => 2,
-                'tem_estoque' => true,
-                'tem_financeiro' => true,
+                'tem_estoque' => false,
+                'tem_financeiro' => false,
             ],
             [
                 'nome' => 'basic',

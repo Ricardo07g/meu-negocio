@@ -55,7 +55,21 @@ trait CriaTenant
 
         $sufixo ??= (string) random_int(1, 999_999);
 
-        $plano = Plano::where('nome', 'free')->firstOrFail();
+        // Tenant de teste num plano completo e ilimitado, desacoplado do seed de
+        // marketing (onde 'free' nao tem estoque/financeiro) — assim os testes de
+        // modulo nao batem no gate verificar.plano nem em limites. Testes que
+        // exercitam limites sobrescrevem plano_id com PlanoFactory.
+        $plano = Plano::firstOrCreate(
+            ['nome' => 'teste'],
+            [
+                'preco_mensal' => 0,
+                'descricao' => 'Plano de teste',
+                'max_empresas' => 0,
+                'max_usuarios' => 0,
+                'tem_estoque' => true,
+                'tem_financeiro' => true,
+            ],
+        );
 
         $rede = Rede::create([
             'nome' => "Rede Teste {$sufixo}",

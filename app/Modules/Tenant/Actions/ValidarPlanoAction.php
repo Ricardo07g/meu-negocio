@@ -20,7 +20,7 @@ class ValidarPlanoAction
                 'empresas'
             ),
             'usuario' => $this->validarLimite(
-                $rede->usuarios()->count(),
+                $rede->usuariosAtivos()->count(),
                 $plano->max_usuarios,
                 'usuários'
             ),
