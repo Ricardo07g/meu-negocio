@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Cliente\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Cliente\DTOs\ClienteData;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Requests\SalvarClienteRequest;
@@ -17,7 +18,7 @@ class ClienteController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private ClienteService $service) {}
+    public function __construct(private ClienteService $service, private ArquivoService $arquivos) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -46,7 +47,8 @@ class ClienteController extends Controller
     public function store(SalvarClienteRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(ClienteData::from($request->validated()));
+            $cliente = $this->service->criar(ClienteData::from($request->validated()));
+            $this->arquivos->sincronizarUnico($cliente, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente criado com sucesso.');
         } catch (\Throwable $e) {
@@ -88,7 +90,8 @@ class ClienteController extends Controller
     {
         try {
             $this->authorize('update', $cliente);
-            $this->service->atualizar($cliente, ClienteData::from($request->validated()));
+            $cliente = $this->service->atualizar($cliente, ClienteData::from($request->validated()));
+            $this->arquivos->sincronizarUnico($cliente, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente atualizado com sucesso.');
         } catch (\Throwable $e) {
@@ -118,8 +121,15 @@ class ClienteController extends Controller
 
         $clientes = Cliente::where('nome', 'like', "%{$q}%")
             ->orWhere('telefone', 'like', "%{$q}%")
+            ->with('arquivoPrincipal')
             ->limit(10)
-            ->get(['id', 'nome', 'telefone']);
+            ->get(['id', 'nome', 'telefone'])
+            ->map(fn (Cliente $c) => [
+                'id' => $c->id,
+                'nome' => $c->nome,
+                'telefone' => $c->telefone,
+                'imagem_thumb_url' => $c->imagem_thumb_url,
+            ]);
 
         return response()->json($clientes);
     }

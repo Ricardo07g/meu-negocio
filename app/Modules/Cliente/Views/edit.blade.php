@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-    <form action="{{ route('clientes.update', $cliente) }}" method="POST">
+    <form action="{{ route('clientes.update', $cliente) }}" method="POST" enctype="multipart/form-data">
         @csrf @method('PUT')
 
         @include('cliente::_form', ['entidade' => $cliente])

@@ -24,6 +24,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th style="width:56px"></th>
                             <th>Nome</th>
                             <th>Email</th>
                             <th>Status</th>
@@ -34,6 +35,7 @@
                     <tbody>
                         @forelse($usuarios as $usuario)
                         <tr>
+                            <td><x-thumb :url="$usuario->imagem_thumb_url" :nome="$usuario->nome" /></td>
                             <td>{{ $usuario->nome }}</td>
                             <td>{{ $usuario->email }}</td>
                             <td>
@@ -77,7 +79,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum usuário cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

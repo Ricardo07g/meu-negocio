@@ -1,5 +1,15 @@
 @php $entidade = $entidade ?? null; @endphp
 
+{{-- Foto --}}
+<div class="card stretch stretch-full">
+    <div class="card-header">
+        <h5 class="card-title">Foto</h5>
+    </div>
+    <div class="card-body">
+        <x-campo-imagem :atual="$entidade?->imagem_thumb_url" label="Foto do cliente" />
+    </div>
+</div>
+
 {{-- Dados Pessoais --}}
 <div class="card stretch stretch-full">
     <div class="card-header">

@@ -1,5 +1,15 @@
 @php $entidade = $entidade ?? null; @endphp
 
+{{-- Imagem --}}
+<div class="card stretch stretch-full">
+    <div class="card-header">
+        <h5 class="card-title">Imagem</h5>
+    </div>
+    <div class="card-body">
+        <x-campo-imagem :atual="$entidade?->imagem_thumb_url" label="Imagem do serviço" />
+    </div>
+</div>
+
 <div class="card stretch stretch-full">
     <div class="card-header">
         <h5 class="card-title">{{ isset($entidade) ? 'Editar' : 'Cadastrar' }} Serviço</h5>

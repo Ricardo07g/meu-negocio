@@ -93,6 +93,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th style="width:56px"></th>
                             <th>Nome</th>
                             <th>Telefone</th>
                             <th>Email</th>
@@ -103,6 +104,7 @@
                     <tbody>
                         @forelse($clientes as $cliente)
                         <tr>
+                            <td><x-thumb :url="$cliente->imagem_thumb_url" :nome="$cliente->nome" /></td>
                             <td>{{ $cliente->nome }}</td>
                             <td>
                                 {{ $cliente->telefone ?? '-' }}
@@ -151,7 +153,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum cliente cadastrado.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum cliente cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

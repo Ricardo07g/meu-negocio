@@ -7,7 +7,9 @@ namespace App\Modules\Servico\Models;
 use App\Enums\TipoServico;
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Venda\Models\VendaEtapas;
+use App\Traits\TemArquivos;
 use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -27,9 +29,10 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Agendamento> $agendamentos
  * @property-read Collection<int, VendaEtapas> $vendasEtapas
  */
-class Servico extends BaseModel
+class Servico extends BaseModel implements PossuiArquivos
 {
     use SoftDeletes;
+    use TemArquivos;
 
     protected $table = 'servicos';
 
@@ -83,5 +86,20 @@ class Servico extends BaseModel
     public function isUnico(): bool
     {
         return $this->tipo === TipoServico::Unico;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function colecoesArquivo(): array
+    {
+        return [
+            'avatar' => [
+                'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_kb' => 2048,
+                'unica' => true,
+                'thumb' => true,
+            ],
+        ];
     }
 }

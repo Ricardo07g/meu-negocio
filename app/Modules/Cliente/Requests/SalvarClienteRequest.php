@@ -33,6 +33,8 @@ class SalvarClienteRequest extends FormRequest
             'numero' => ['nullable', 'string', 'max:20'],
             'complemento' => ['nullable', 'string', 'max:100'],
             'observacoes' => ['nullable', 'string'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remover_foto' => ['nullable', 'boolean'],
         ];
     }
 }

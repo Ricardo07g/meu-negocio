@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Usuario\Models;
 
+use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
 use App\Modules\Tenant\Models\Empresa;
-use App\Traits\RedeTrait;
+use App\Traits\{RedeTrait, TemArquivos};
 use Illuminate\Database\Eloquent\{Builder, Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, BelongsToMany};
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -31,9 +32,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read Collection<int, Empresa> $empresas
  * @property-read Empresa|null $empresa
  */
-class Usuario extends Authenticatable
+class Usuario extends Authenticatable implements PossuiArquivos
 {
-    use HasRoles, Notifiable, RedeTrait, SoftDeletes;
+    use HasRoles, Notifiable, RedeTrait, SoftDeletes, TemArquivos;
 
     protected $table = 'usuarios';
 
@@ -148,5 +149,20 @@ class Usuario extends Authenticatable
         }
 
         return $this->empresas()->where('empresas.id', $empresaId)->exists();
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function colecoesArquivo(): array
+    {
+        return [
+            'avatar' => [
+                'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_kb' => 2048,
+                'unica' => true,
+                'thumb' => true,
+            ],
+        ];
     }
 }

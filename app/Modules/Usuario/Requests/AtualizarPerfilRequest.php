@@ -23,6 +23,8 @@ class AtualizarPerfilRequest extends FormRequest
                 'email',
                 Rule::unique('usuarios', 'email')->ignore($this->user()->id),
             ],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remover_foto' => ['nullable', 'boolean'],
         ];
     }
 }

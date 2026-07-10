@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-    <form action="{{ route('servicos.store') }}" method="POST">
+    <form action="{{ route('servicos.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
         @include('servico::_form')

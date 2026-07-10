@@ -23,9 +23,13 @@
                 <div class="card-body">
                     <div class="mb-4 text-center">
                         <div class="wd-80 ht-80 mx-auto mb-3">
-                            <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
-                                {{ mb_substr($usuario->nome, 0, 1) }}
-                            </div>
+                            @if($usuario->imagem_url)
+                                <img src="{{ $usuario->imagem_url }}" alt="{{ $usuario->nome }}" class="wd-80 ht-80 rounded-circle" style="object-fit:cover;">
+                            @else
+                                <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
+                                    {{ mb_substr($usuario->nome, 0, 1) }}
+                                </div>
+                            @endif
                         </div>
                         <h5 class="fw-bold mb-1">{{ $usuario->nome }}</h5>
                         <span class="fs-12 text-muted">{{ $usuario->email }}</span>
@@ -91,8 +95,13 @@
                 <div class="tab-content">
                     {{-- Aba Dados pessoais --}}
                     <div class="tab-pane fade {{ $abaSenha ? '' : 'show active' }} p-4" id="dadosTab" role="tabpanel">
-                        <form action="{{ route('perfil.atualizar') }}" method="POST">
+                        <form action="{{ route('perfil.atualizar') }}" method="POST" enctype="multipart/form-data">
                             @csrf
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <x-campo-imagem :atual="$usuario->imagem_thumb_url" label="Foto" />
+                                </div>
+                            </div>
                             <div class="row mb-4">
                                 <div class="col-md-12">
                                     <label class="form-label">Nome <span class="text-danger">*</span></label>

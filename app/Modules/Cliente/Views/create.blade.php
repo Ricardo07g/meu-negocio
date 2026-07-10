@@ -8,7 +8,7 @@
 @endsection
 
 @section('content')
-    <form action="{{ route('clientes.store') }}" method="POST">
+    <form action="{{ route('clientes.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
 
         @include('cliente::_form')
