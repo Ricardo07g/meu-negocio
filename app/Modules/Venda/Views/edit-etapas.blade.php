@@ -33,16 +33,16 @@
                         <div class="fs-12 text-muted mt-1">A quantidade de etapas não pode ser alterada após a venda.</div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-4">
                         <label class="form-label">Subtotal</label>
                         <input type="text" class="form-control" value="R$ {{ number_format($subtotalEtapas, 2, ',', '.') }}" disabled>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-sm-4">
                         <label class="form-label">Desconto (R$)</label>
                         <input type="number" step="0.01" min="0" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', number_format((float) $etapas->desconto, 2, '.', '')) }}">
                         @error('desconto') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-sm-4">
                         <label class="form-label">Acréscimo (R$)</label>
                         <input type="number" step="0.01" min="0" name="acrescimo" id="acrescimo" class="form-control @error('acrescimo') is-invalid @enderror" value="{{ old('acrescimo', number_format((float) $etapas->acrescimo, 2, '.', '')) }}">
                         @error('acrescimo') <div class="invalid-feedback">{{ $message }}</div> @enderror

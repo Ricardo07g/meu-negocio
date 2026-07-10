@@ -31,7 +31,7 @@
                 </div>
 
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle" id="tabelaItens">
+                    <table class="table table-hover align-middle table-sticky-col" id="tabelaItens" style="min-width: 720px;">
                         <thead>
                             <tr>
                                 <th>Produto</th>
@@ -66,21 +66,24 @@
                         </tbody>
                     </table>
                 </div>
+                <small class="d-md-none text-muted d-block mt-2">
+                    <i class="feather-arrow-right me-1"></i>Deslize a tabela para o lado para ver todas as colunas.
+                </small>
 
                 @error('itens') <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
 
                 <div class="row g-3 mt-2">
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4">
                         <label class="form-label">Desconto global (R$)</label>
                         <input type="number" step="0.01" min="0" name="desconto" id="descontoGlobal" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', number_format((float) $vendaProduto->desconto, 2, '.', '')) }}">
                         @error('desconto') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4">
                         <label class="form-label">Acréscimo global (R$)</label>
                         <input type="number" step="0.01" min="0" name="acrescimo" id="acrescimoGlobal" class="form-control @error('acrescimo') is-invalid @enderror" value="{{ old('acrescimo', number_format((float) $vendaProduto->acrescimo, 2, '.', '')) }}">
                         @error('acrescimo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <label class="form-label">Total</label>
                         <input type="text" class="form-control fw-bold" id="totalCalc" value="R$ {{ number_format((float) $vendaProduto->valor_total, 2, ',', '.') }}" disabled>
                     </div>

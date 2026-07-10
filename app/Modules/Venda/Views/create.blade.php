@@ -155,23 +155,23 @@
             </div>
             <div class="card-body">
                 {{-- Linha de inclusão: Produto + Qtd + Preço + Botão --}}
-                <div class="row mb-4 align-items-end">
-                    <div class="col-md-4">
+                <div class="row g-3 mb-4 align-items-end">
+                    <div class="col-12 col-md-4">
                         <label class="form-label">Produto</label>
                         <div>
                             <input type="text" id="produtoSearch" class="form-control" placeholder="Digite o nome do produto..." autocomplete="off" disabled>
                             <input type="hidden" id="produtoHidden" value="">
                         </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label">Quantidade</label>
                         <input type="number" id="produtoQtd" class="form-control" value="1" min="1" disabled>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label">Preço Venda</label>
                         <input type="number" id="produtoPreco" class="form-control" step="0.01" min="0" placeholder="0,00" disabled>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <button type="button" id="btnAdicionarProduto" class="btn btn-outline-primary w-100" disabled>
                             <i class="feather-shopping-cart me-1"></i> Incluir Item
                         </button>
@@ -180,7 +180,7 @@
 
                 {{-- Tabela de itens --}}
                 <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0" id="tabelaCarrinho">
+                    <table class="table table-striped table-hover mb-0 table-sticky-col" id="tabelaCarrinho" style="min-width: 720px;">
                         <thead>
                             <tr>
                                 <th style="width:40%;">Produto</th>
@@ -197,6 +197,9 @@
                         </tbody>
                     </table>
                 </div>
+                <small class="d-md-none text-muted d-block mt-2">
+                    <i class="feather-arrow-right me-1"></i>Deslize a tabela para o lado para ver todas as colunas.
+                </small>
 
                 {{-- Resumo financeiro --}}
                 <div class="row mt-4 pt-3" id="carrinhoResumo" style="display:none; border-top: 1px solid #eee;">
@@ -238,7 +241,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     @php $condAtual = old('condicao_pagamento', 'a_vista'); @endphp
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-md-4">
                         <label class="form-label">Condição de Pagamento <span class="text-danger">*</span></label>
                         <select name="condicao_pagamento" id="condicaoPagamentoSelect" class="form-select @error('condicao_pagamento') is-invalid @enderror">
                             <option value="a_vista" @selected($condAtual === 'a_vista')>À Vista</option>
@@ -247,7 +250,7 @@
                         @error('condicao_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-4" id="formaPagamentoWrapper">
+                    <div class="col-12 col-sm-6 col-md-4" id="formaPagamentoWrapper">
                         <label class="form-label" id="formaPagamentoLabel">Forma de Pagamento <span class="text-danger">*</span></label>
                         <select name="forma_pagamento" id="formaPagamentoSelect"
                                 class="form-select @error('forma_pagamento') is-invalid @enderror"
@@ -258,7 +261,7 @@
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-4" id="formaRecebimentoPrazoWrapper" style="display:none;">
+                    <div class="col-12 col-sm-6 col-md-4" id="formaRecebimentoPrazoWrapper" style="display:none;">
                         <label class="form-label" for="formaRecebimentoPrazoSelect">
                             Forma de Recebimento <span class="text-danger">*</span>
                             <x-label-info content="Como as parcelas serão cobradas do cliente.<br><b>Carnê</b>: controle manual — cada parcela é recebida e baixada aqui no sistema.<br><br>Novas formas (boleto registrado, Pix parcelado) serão adicionadas no futuro." />
@@ -272,7 +275,7 @@
                         @error('forma_recebimento_prazo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-4" id="parcelasWrapper" style="display:none;">
+                    <div class="col-12 col-sm-6 col-md-4" id="parcelasWrapper" style="display:none;">
                         <label class="form-label" for="numeroParcelas">Número de Parcelas <span class="text-danger">*</span></label>
                         <input type="number" min="2" max="24" step="1" name="numero_parcelas" id="numeroParcelas"
                                class="form-control @error('numero_parcelas') is-invalid @enderror"
@@ -281,7 +284,7 @@
                         @error('numero_parcelas') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-4" id="primeiroVencimentoWrapper" style="display:none;">
+                    <div class="col-12 col-sm-6 col-md-4" id="primeiroVencimentoWrapper" style="display:none;">
                         <label class="form-label" for="primeiroVencimento">Primeiro Vencimento <span class="text-danger">*</span></label>
                         <input type="date" name="primeiro_vencimento" id="primeiroVencimento"
                                class="form-control @error('primeiro_vencimento') is-invalid @enderror"
@@ -290,7 +293,7 @@
                         @error('primeiro_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-md-4">
                         <label class="form-label" for="mesReferencia">Mês de Referência <span class="text-danger">*</span></label>
                         <input type="month" name="mes_referencia" id="mesReferencia"
                                class="form-control @error('mes_referencia') is-invalid @enderror"
