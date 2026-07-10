@@ -19,70 +19,56 @@
     @endcan
 
     {{-- Filtros --}}
-    <div class="card stretch stretch-full mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('movimentos-estoque.index') }}">
-                <div class="row g-3 align-items-end">
-                    {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
-                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-md-3'])
+    <x-filtros-listagem :action="route('movimentos-estoque.index')"
+        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+        {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
+        @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
 
-                    <div class="col-md-9">
-                        <label class="form-label">Buscar</label>
-                        <input type="text" name="q" class="form-control" placeholder="Nome ou código do produto..." value="{{ request('q') }}">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Produto</label>
-                        <select name="produto_id" class="form-select">
-                            <option value="">Todos</option>
-                            @foreach($produtos as $produto)
-                                <option value="{{ $produto->id }}" @selected((int) request('produto_id') === $produto->id)>
-                                    {{ $produto->nome }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Tipo</label>
-                        <select name="tipo" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="entrada" @selected(request('tipo') === 'entrada')>Entrada</option>
-                            <option value="saida" @selected(request('tipo') === 'saida')>Saída</option>
-                            <option value="ajuste" @selected(request('tipo') === 'ajuste')>Ajuste</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Período</label>
-                        <select name="periodo_preset" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="hoje" @selected(request('periodo_preset') === 'hoje')>Hoje</option>
-                            <option value="7dias" @selected(request('periodo_preset') === '7dias')>Últimos 7 dias</option>
-                            <option value="30dias" @selected(request('periodo_preset') === '30dias')>Últimos 30 dias</option>
-                            <option value="mes_atual" @selected(request('periodo_preset') === 'mes_atual')>Mês atual</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Data início</label>
-                        <input type="date" name="data_inicio" class="form-control" value="{{ request('data_inicio') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Data fim</label>
-                        <input type="date" name="data_fim" class="form-control" value="{{ request('data_fim') }}">
-                    </div>
-
-                    <div class="col-12 d-flex justify-content-end gap-2">
-                        <a href="{{ route('movimentos-estoque.index') }}" class="btn btn-light" title="Limpar filtros">
-                            <i class="feather-x me-1"></i>Limpar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="feather-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                </div>
-            </form>
+        <div class="col-12 col-md-9">
+            <label class="form-label">Buscar</label>
+            <input type="text" name="q" class="form-control" placeholder="Nome ou código do produto..." value="{{ request('q') }}">
         </div>
-    </div>
+
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Produto</label>
+            <select name="produto_id" class="form-select">
+                <option value="">Todos</option>
+                @foreach($produtos as $produto)
+                    <option value="{{ $produto->id }}" @selected((int) request('produto_id') === $produto->id)>
+                        {{ $produto->nome }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select">
+                <option value="">Todos</option>
+                <option value="entrada" @selected(request('tipo') === 'entrada')>Entrada</option>
+                <option value="saida" @selected(request('tipo') === 'saida')>Saída</option>
+                <option value="ajuste" @selected(request('tipo') === 'ajuste')>Ajuste</option>
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Período</label>
+            <select name="periodo_preset" class="form-select">
+                <option value="">Todos</option>
+                <option value="hoje" @selected(request('periodo_preset') === 'hoje')>Hoje</option>
+                <option value="7dias" @selected(request('periodo_preset') === '7dias')>Últimos 7 dias</option>
+                <option value="30dias" @selected(request('periodo_preset') === '30dias')>Últimos 30 dias</option>
+                <option value="mes_atual" @selected(request('periodo_preset') === 'mes_atual')>Mês atual</option>
+            </select>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label class="form-label">Data início</label>
+            <input type="date" name="data_inicio" class="form-control" value="{{ request('data_inicio') }}">
+        </div>
+        <div class="col-12 col-md-6">
+            <label class="form-label">Data fim</label>
+            <input type="date" name="data_fim" class="form-control" value="{{ request('data_fim') }}">
+        </div>
+    </x-filtros-listagem>
 
     {{-- Tabela --}}
     <div class="card stretch stretch-full">

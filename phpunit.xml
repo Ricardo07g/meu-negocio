@@ -16,6 +16,14 @@
         <include>
             <directory>app</directory>
         </include>
+        <exclude>
+            <!-- Blade (.blade.php) e migrations nao sao PHP unitariamente testavel:
+                 views rodam no cache compilado (nunca "cobertas" na origem) e
+                 migrations sao script de schema. Ficam fora do denominador para a
+                 cobertura refletir a logica de negocio (Services/Actions/Models). -->
+            <directory>app/Modules/*/Views</directory>
+            <directory>app/Modules/*/Migrations</directory>
+        </exclude>
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>

@@ -67,6 +67,19 @@
         /* Alinha btn-sm no carrinho com form-control-sm (~47px: padding 24 + 14*1.5 + 2) */
         #tabelaCarrinho .btn-sm { min-height: calc(2.8125rem + 2px); }
 
+        /* ── Tabelas densas: coluna de referencia fixa ao rolar (mobile) ─── */
+        /* Aplique .table-sticky-col na <table> dentro de .table-responsive;   */
+        /* combine com um min-width na tabela para acionar o scroll horizontal.*/
+        .table-sticky-col thead th:first-child,
+        .table-sticky-col tbody td:first-child,
+        .table-sticky-col tfoot td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: var(--cor-fundo);
+        }
+        .table-sticky-col thead th:first-child { z-index: 3; }
+
         /* ── Ícone de ajuda nos filtros (x-label-info) ───────────── */
         .label-info-icon {
             font-size: 16px;
