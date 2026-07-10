@@ -18,7 +18,7 @@ class ClienteService
 
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Cliente::query()->orderBy('nome');
+        $query = Cliente::query()->with('arquivoPrincipal')->orderBy('nome');
 
         if (! empty($filtros['q'])) {
             $q = $filtros['q'];

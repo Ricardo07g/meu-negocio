@@ -62,6 +62,22 @@ return [
             'report' => false,
         ],
 
+        // Cloudflare R2 (S3-compativel). O acesso publico e servido pelo
+        // dominio publico do bucket (R2_PUBLIC_BASE_URL); nao enviamos ACL por
+        // objeto (o R2 rejeita headers de ACL do S3).
+        'r2' => [
+            'driver' => 's3',
+            'key' => env('R2_ACCESS_KEY_ID'),
+            'secret' => env('R2_SECRET_ACCESS_KEY'),
+            'region' => 'auto',
+            'bucket' => env('R2_BUCKET'),
+            'endpoint' => env('R2_ENDPOINT', 'https://'.env('R2_ACCOUNT_ID').'.r2.cloudflarestorage.com'),
+            'url' => env('R2_PUBLIC_BASE_URL'),
+            'use_path_style_endpoint' => true,
+            'throw' => true,
+            'report' => false,
+        ],
+
     ],
 
     /*

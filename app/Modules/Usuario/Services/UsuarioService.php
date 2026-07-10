@@ -18,7 +18,7 @@ class UsuarioService
 
     public function listar(int $perPage = 20): LengthAwarePaginator
     {
-        return Usuario::orderBy('nome')->paginate($perPage);
+        return Usuario::with('arquivoPrincipal')->orderBy('nome')->paginate($perPage);
     }
 
     public function buscar(int $id): Usuario

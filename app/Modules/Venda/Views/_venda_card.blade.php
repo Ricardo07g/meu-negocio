@@ -216,7 +216,12 @@
                                 <tbody>
                                     @forelse($venda->model->itens as $item)
                                         <tr>
-                                            <td>{{ $item->descricao }}</td>
+                                            <td>
+                                                <div class="hstack gap-2">
+                                                    <x-thumb :url="$item->produto?->imagem_thumb_url" :nome="$item->descricao" icone="feather-package" :circulo="false" classe="avatar-sm" />
+                                                    <span>{{ $item->descricao }}</span>
+                                                </div>
+                                            </td>
                                             <td class="text-center">{{ $item->quantidade }}</td>
                                             <td class="text-end">R$ {{ number_format($item->valor_unitario, 2, ',', '.') }}</td>
                                             <td class="text-end {{ $item->desconto > 0 ? 'text-danger' : 'text-muted' }}">

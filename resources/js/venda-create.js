@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
             carrinhoItens.push({
                 produto_id: produtoId,
                 nome: produtoSelecionado.nome,
+                imagem_thumb_url: produtoSelecionado.imagem_thumb_url,
                 quantidade: qtd,
                 valor_unitario: preco,
                 desconto: 0,
@@ -163,8 +164,11 @@ document.addEventListener('DOMContentLoaded', function() {
             acrescimoGeral += item.acrescimo;
 
             const tr = document.createElement('tr');
+            const miniatura = item.imagem_thumb_url
+                ? '<img src="' + item.imagem_thumb_url + '" class="rounded me-2" style="width:28px;height:28px;object-fit:cover;vertical-align:middle;">'
+                : '';
             tr.innerHTML =
-                '<td>' + item.nome + '</td>' +
+                '<td>' + miniatura + item.nome + '</td>' +
                 '<td class="text-center"><input type="number" class="form-control form-control-sm text-center" value="' + item.quantidade + '" min="1" data-idx="' + idx + '" data-campo="quantidade"></td>' +
                 '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.valor_unitario.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="valor_unitario"></td>' +
                 '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.desconto.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="desconto"></td>' +
@@ -681,7 +685,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var tipo = item.tipo;
             if (typeof tipo === 'object' && tipo !== null) tipo = tipo.value || tipo;
             var badge = tipo === 'etapas' ? '<span class="badge bg-info ms-1">Etapas</span>' : '<span class="badge bg-secondary ms-1">Único</span>';
-            return '<strong>' + item.nome + '</strong> ' + badge + '<br><small class="text-muted">R$ ' + parseFloat(item.valor).toFixed(2).replace('.', ',') + ' — ' + item.duracao + ' min</small>';
+            var mini = item.imagem_thumb_url ? '<img src="' + item.imagem_thumb_url + '" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;vertical-align:middle;">' : '';
+            return mini + '<strong>' + item.nome + '</strong> ' + badge + '<br><small class="text-muted">R$ ' + parseFloat(item.valor).toFixed(2).replace('.', ',') + ' — ' + item.duracao + ' min</small>';
         },
         displayText: function(item) { return item.nome; },
         onSelect: function(item) {
@@ -702,7 +707,8 @@ document.addEventListener('DOMContentLoaded', function() {
         hiddenId: 'clienteHidden',
         url: cfg.urls.clientes,
         renderItem: function(item) {
-            return '<strong>' + item.nome + '</strong>' + (item.telefone ? '<br><small class="text-muted">' + item.telefone + '</small>' : '');
+            var mini = item.imagem_thumb_url ? '<img src="' + item.imagem_thumb_url + '" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;vertical-align:middle;">' : '';
+            return mini + '<strong>' + item.nome + '</strong>' + (item.telefone ? '<br><small class="text-muted">' + item.telefone + '</small>' : '');
         },
         displayText: function(item) { return item.nome; },
     });
@@ -713,7 +719,8 @@ document.addEventListener('DOMContentLoaded', function() {
         hiddenId: 'produtoHidden',
         url: cfg.urls.produtos,
         renderItem: function(item) {
-            return '<strong>' + item.nome + '</strong><br><small class="text-muted">R$ ' + parseFloat(item.valor_venda).toFixed(2).replace('.', ',') + ' — ' + item.quantidade + ' em estoque</small>';
+            var mini = item.imagem_thumb_url ? '<img src="' + item.imagem_thumb_url + '" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;vertical-align:middle;">' : '';
+            return mini + '<strong>' + item.nome + '</strong><br><small class="text-muted">R$ ' + parseFloat(item.valor_venda).toFixed(2).replace('.', ',') + ' — ' + item.quantidade + ' em estoque</small>';
         },
         displayText: function(item) { return item.nome; },
         onSelect: function(item) {

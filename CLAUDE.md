@@ -54,14 +54,15 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), Caixa, Dashboard,
-Assinatura (troca de plano pro-rata, sem gateway — ADR-0007).
+Assinatura (troca de plano pro-rata, sem gateway — ADR-0007), Arquivo (uploads genericos —
+imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
 ## Banco de Dados — tabelas
 planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto,
 venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas,
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
-movimentos_estoque, caixas, movimentos_caixa, **faturas**.
+movimentos_estoque, caixas, movimentos_caixa, **faturas**, **arquivos** (polimorfica).
 -> convencoes de migration em `.claude/rules/banco-de-dados.md` e skill `criar-migration`.
 
 ## Traits
@@ -72,6 +73,7 @@ movimentos_estoque, caixas, movimentos_caixa, **faturas**.
 | RegistraAtividade | Spatie ActivityLog |
 | TratamentoErros | Error handling controllers (`tratarErro`) |
 | DefineEmpresaDeCriacao | Helper `comEmpresaDeCriacao` (contexto ME-010 em escrita) |
+| TemArquivos | Anexos polimorficos (imagens/PDFs) via tabela `arquivos` + colecoes |
 
 ## Seeds (ao registrar)
 Categorias, produtos, servicos, clientes padrao criados automaticamente ao registrar nova rede.
@@ -109,7 +111,7 @@ container (`docker exec meu-negocio-app <cmd>`).
 
 - **Rules lazy** (`.claude/rules/`): conhecimento ativado por `paths:` —
   `multi-tenant-seguranca`, `modelo-financeiro`, `ui-duralux`, `banco-de-dados`, `modulos/{modulo}`,
-  `fluxos`. Carregam so ao editar arquivos do escopo (mantem o contexto enxuto).
+  `arquivos`, `fluxos`. Carregam so ao editar arquivos do escopo (mantem o contexto enxuto).
 - **Skills** (`.claude/skills/`): `padroes-projeto`, `scaffold-modulo`, `gerar-teste-model`,
   `checklist-pre-pr`, `validar-implementacao`, `revisar-codigo`, `depurar`, `criar-migration`,
   `adicionar-permissao`, `documentar-adr`, `escrever-commit`.

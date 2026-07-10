@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Servico\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Servico\DTOs\ServicoData;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Requests\SalvarServicoRequest;
@@ -19,6 +20,7 @@ class ServicoController extends Controller
 
     public function __construct(
         private ServicoService $service,
+        private ArquivoService $arquivos,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -48,7 +50,8 @@ class ServicoController extends Controller
     public function store(SalvarServicoRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(ServicoData::from($request->validated()));
+            $servico = $this->service->criar(ServicoData::from($request->validated()));
+            $this->arquivos->sincronizarUnico($servico, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço criado com sucesso.');
         } catch (\Throwable $e) {
@@ -94,7 +97,8 @@ class ServicoController extends Controller
     {
         try {
             $this->authorize('update', $servico);
-            $this->service->atualizar($servico, ServicoData::from($request->validated()));
+            $servico = $this->service->atualizar($servico, ServicoData::from($request->validated()));
+            $this->arquivos->sincronizarUnico($servico, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço atualizado com sucesso.');
         } catch (\Throwable $e) {
@@ -123,8 +127,18 @@ class ServicoController extends Controller
         }
 
         $servicos = Servico::where('nome', 'like', "%{$q}%")
+            ->with('arquivoPrincipal')
             ->limit(10)
-            ->get(['id', 'nome', 'tipo', 'duracao', 'valor', 'qtd_etapas']);
+            ->get(['id', 'nome', 'tipo', 'duracao', 'valor', 'qtd_etapas'])
+            ->map(fn (Servico $s) => [
+                'id' => $s->id,
+                'nome' => $s->nome,
+                'tipo' => $s->tipo,
+                'duracao' => $s->duracao,
+                'valor' => $s->valor,
+                'qtd_etapas' => $s->qtd_etapas,
+                'imagem_thumb_url' => $s->imagem_thumb_url,
+            ]);
 
         return response()->json($servicos);
     }

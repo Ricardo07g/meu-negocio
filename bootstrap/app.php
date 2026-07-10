@@ -1,19 +1,13 @@
 <?php
 
-use App\Exceptions\ConflitoAgendamentoException;
-use App\Exceptions\EmpresaNaoEncontradaException;
-use App\Exceptions\NegocioException;
-use App\Exceptions\PlanoLimiteException;
-use App\Exceptions\TenantNaoEncontradoException;
-use App\Http\Middleware\AplicarContextoEmpresa;
-use App\Http\Middleware\VerificarEmpresa;
-use App\Http\Middleware\VerificarPlano;
-use App\Http\Middleware\VerificarRede;
+declare(strict_types=1);
+
+use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
+use App\Http\Middleware\{AplicarContextoEmpresa, VerificarEmpresa, VerificarPlano, VerificarRede};
+use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
 use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Middleware\RoleMiddleware;
+use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
+use Spatie\Permission\Middleware\{PermissionMiddleware, RoleMiddleware};
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands([
+        LimparRascunhosArquivo::class,
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'verificar.rede' => VerificarRede::class,

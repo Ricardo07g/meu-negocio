@@ -12,7 +12,7 @@ class ProdutoService
 {
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Produto::query()->with('categoria')->orderBy('nome');
+        $query = Produto::query()->with(['categoria', 'arquivoPrincipal'])->orderBy('nome');
 
         if (! empty($filtros['q'])) {
             $q = $filtros['q'];

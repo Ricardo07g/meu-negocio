@@ -12,7 +12,7 @@ class ServicoService
 {
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
     {
-        $query = Servico::query()->orderBy('nome');
+        $query = Servico::query()->with('arquivoPrincipal')->orderBy('nome');
 
         if (! empty($filtros['q'])) {
             $q = $filtros['q'];

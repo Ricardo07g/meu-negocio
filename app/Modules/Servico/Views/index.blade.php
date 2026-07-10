@@ -74,6 +74,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th style="width:56px"></th>
                             <th>Nome</th>
                             <th>Tipo</th>
                             <th>Duração (min)</th>
@@ -84,6 +85,7 @@
                     <tbody>
                         @forelse($servicos as $servico)
                         <tr>
+                            <td><x-thumb :url="$servico->imagem_thumb_url" :nome="$servico->nome" icone="feather-scissors" :circulo="false" /></td>
                             <td>{{ $servico->nome }}</td>
                             <td>
                                 @switch($servico->tipo->value)
@@ -135,7 +137,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum serviço cadastrado.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum serviço cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

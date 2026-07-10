@@ -167,8 +167,11 @@ document.addEventListener('DOMContentLoaded', function () {
             hiddenId: 'agenda-cliente-id',
             url: '{{ route('clientes.buscar') }}',
             renderItem: function (c) {
-                return '<div class="fw-semibold">' + (c.nome || '') + '</div>' +
-                    (c.telefone ? '<div class="fs-12 text-muted">' + c.telefone + '</div>' : '');
+                var mini = c.imagem_thumb_url ? '<img src="' + c.imagem_thumb_url + '" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;vertical-align:middle;">' : '';
+                return '<div class="d-flex align-items-center">' + mini + '<div>' +
+                    '<div class="fw-semibold">' + (c.nome || '') + '</div>' +
+                    (c.telefone ? '<div class="fs-12 text-muted">' + c.telefone + '</div>' : '') +
+                    '</div></div>';
             },
             displayText: function (c) { return c.nome; },
         });
@@ -177,8 +180,11 @@ document.addEventListener('DOMContentLoaded', function () {
             hiddenId: 'agenda-servico-id',
             url: '{{ route('servicos.buscar') }}',
             renderItem: function (s) {
-                return '<div class="fw-semibold">' + (s.nome || '') + '</div>' +
-                    (s.duracao ? '<div class="fs-12 text-muted">' + s.duracao + ' min</div>' : '');
+                var mini = s.imagem_thumb_url ? '<img src="' + s.imagem_thumb_url + '" class="rounded me-2" style="width:32px;height:32px;object-fit:cover;vertical-align:middle;">' : '';
+                return '<div class="d-flex align-items-center">' + mini + '<div>' +
+                    '<div class="fw-semibold">' + (s.nome || '') + '</div>' +
+                    (s.duracao ? '<div class="fs-12 text-muted">' + s.duracao + ' min</div>' : '') +
+                    '</div></div>';
             },
             displayText: function (s) { return s.nome; },
         });

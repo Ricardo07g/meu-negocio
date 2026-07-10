@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Produto\Models;
 
 use App\Models\BaseModel;
+use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Estoque\Models\MovimentoEstoque;
+use App\Traits\TemArquivos;
 use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Support\Carbon;
@@ -31,9 +33,10 @@ use Illuminate\Support\Carbon;
  * @property-read CategoriaProduto|null $categoria
  * @property-read Collection<int, MovimentoEstoque> $movimentos
  */
-class Produto extends BaseModel
+class Produto extends BaseModel implements PossuiArquivos
 {
     use SoftDeletes;
+    use TemArquivos;
 
     protected $table = 'produtos';
 
@@ -77,5 +80,20 @@ class Produto extends BaseModel
     public function movimentos(): HasMany
     {
         return $this->hasMany(MovimentoEstoque::class, 'produto_id');
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function colecoesArquivo(): array
+    {
+        return [
+            'galeria' => [
+                'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_kb' => 4096,
+                'unica' => false,
+                'max' => 8,
+            ],
+        ];
     }
 }

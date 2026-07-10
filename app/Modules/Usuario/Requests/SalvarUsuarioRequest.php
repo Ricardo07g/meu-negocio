@@ -37,6 +37,8 @@ class SalvarUsuarioRequest extends FormRequest
             'papel' => [$criando ? 'required' : 'nullable', 'string', 'exists:roles,name'],
             'ativo' => ['nullable', 'boolean'],
             'atende' => ['nullable', 'boolean'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remover_foto' => ['nullable', 'boolean'],
             // Admin nao precisa de pivot (acessa tudo). Nao-admin: array obrigatorio com >= 1 empresa da propria rede.
             'empresas' => [$ehAdmin ? 'nullable' : 'required', 'array', $ehAdmin ? 'nullable' : 'min:1'],
             'empresas.*' => [

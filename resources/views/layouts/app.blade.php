@@ -360,18 +360,27 @@
                         </a>
                     </div>
                     --}}
+                    @php $fotoTopo = auth()->user()->imagem_thumb_url; @endphp
                     <div class="dropdown nxl-h-item">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
-                            <div class="avatar-text avatar-md bg-primary text-white">
-                                {{ mb_substr(auth()->user()->nome, 0, 1) }}
-                            </div>
+                            @if($fotoTopo)
+                                <img src="{{ $fotoTopo }}" alt="{{ auth()->user()->nome }}" class="avatar-md rounded-circle" style="object-fit:cover;">
+                            @else
+                                <div class="avatar-text avatar-md bg-primary text-white">
+                                    {{ mb_substr(auth()->user()->nome, 0, 1) }}
+                                </div>
+                            @endif
                         </a>
                         <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                             <div class="dropdown-header">
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar-text avatar-md bg-primary text-white me-3">
-                                        {{ mb_substr(auth()->user()->nome, 0, 1) }}
-                                    </div>
+                                    @if($fotoTopo)
+                                        <img src="{{ $fotoTopo }}" alt="{{ auth()->user()->nome }}" class="avatar-md rounded-circle me-3" style="object-fit:cover;">
+                                    @else
+                                        <div class="avatar-text avatar-md bg-primary text-white me-3">
+                                            {{ mb_substr(auth()->user()->nome, 0, 1) }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <h6 class="text-dark mb-0">{{ auth()->user()->nome }}</h6>
                                         <span class="fs-12 fw-medium text-muted">{{ auth()->user()->email }}</span>

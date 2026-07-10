@@ -26,6 +26,8 @@ class SalvarServicoRequest extends FormRequest
             'tipo' => ['required', Rule::enum(TipoServico::class)],
             'qtd_etapas' => ['nullable', 'required_if:tipo,etapas', 'integer', 'min:2'],
             'descricao' => ['nullable', 'string', 'max:1000'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remover_foto' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -6,8 +6,10 @@ namespace App\Modules\Cliente\Models;
 
 use App\Models\BaseModel;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use App\Traits\TemArquivos;
 use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
@@ -38,9 +40,10 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, VendaProduto> $vendasProduto
  * @property-read Collection<int, Pagamento> $pagamentos
  */
-class Cliente extends BaseModel
+class Cliente extends BaseModel implements PossuiArquivos
 {
     use SoftDeletes;
+    use TemArquivos;
 
     protected $table = 'clientes';
 
@@ -93,5 +96,20 @@ class Cliente extends BaseModel
     public function pagamentos(): HasMany
     {
         return $this->hasMany(Pagamento::class, 'cliente_id');
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function colecoesArquivo(): array
+    {
+        return [
+            'avatar' => [
+                'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+                'max_kb' => 2048,
+                'unica' => true,
+                'thumb' => true,
+            ],
+        ];
     }
 }
