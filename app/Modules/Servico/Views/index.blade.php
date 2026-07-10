@@ -19,53 +19,39 @@
     @endcan
 
     {{-- Filtros --}}
-    <div class="card stretch stretch-full mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('servicos.index') }}">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-12">
-                        <label class="form-label">Buscar</label>
-                        <input type="text" name="q" class="form-control" placeholder="Nome ou descrição..." value="{{ request('q') }}">
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Tipo</label>
-                        <select name="tipo" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="unico" @selected(request('tipo') === 'unico')>Serviço Único</option>
-                            <option value="etapas" @selected(request('tipo') === 'etapas')>Serviço em Etapas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Valor mínimo</label>
-                        <input type="number" step="0.01" min="0" name="valor_min" class="form-control" placeholder="0,00" value="{{ request('valor_min') }}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Valor máximo</label>
-                        <input type="number" step="0.01" min="0" name="valor_max" class="form-control" placeholder="0,00" value="{{ request('valor_max') }}">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Duração mínima (min)</label>
-                        <input type="number" min="0" name="duracao_min" class="form-control" placeholder="0" value="{{ request('duracao_min') }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Duração máxima (min)</label>
-                        <input type="number" min="0" name="duracao_max" class="form-control" placeholder="0" value="{{ request('duracao_max') }}">
-                    </div>
-
-                    <div class="col-12 d-flex justify-content-end gap-2">
-                        <a href="{{ route('servicos.index') }}" class="btn btn-light" title="Limpar filtros">
-                            <i class="feather-x me-1"></i>Limpar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="feather-filter me-1"></i>Filtrar
-                        </button>
-                    </div>
-                </div>
-            </form>
+    <x-filtros-listagem :action="route('servicos.index')"
+        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+        <div class="col-12">
+            <label class="form-label">Buscar</label>
+            <input type="text" name="q" class="form-control" placeholder="Nome ou descrição..." value="{{ request('q') }}">
         </div>
-    </div>
+
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select">
+                <option value="">Todos</option>
+                <option value="unico" @selected(request('tipo') === 'unico')>Serviço Único</option>
+                <option value="etapas" @selected(request('tipo') === 'etapas')>Serviço em Etapas</option>
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Valor mínimo</label>
+            <input type="number" step="0.01" min="0" name="valor_min" class="form-control" placeholder="0,00" value="{{ request('valor_min') }}">
+        </div>
+        <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label">Valor máximo</label>
+            <input type="number" step="0.01" min="0" name="valor_max" class="form-control" placeholder="0,00" value="{{ request('valor_max') }}">
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label class="form-label">Duração mínima (min)</label>
+            <input type="number" min="0" name="duracao_min" class="form-control" placeholder="0" value="{{ request('duracao_min') }}">
+        </div>
+        <div class="col-12 col-md-6">
+            <label class="form-label">Duração máxima (min)</label>
+            <input type="number" min="0" name="duracao_max" class="form-control" placeholder="0" value="{{ request('duracao_max') }}">
+        </div>
+    </x-filtros-listagem>
 
     {{-- Card with table --}}
     <div class="card stretch stretch-full">

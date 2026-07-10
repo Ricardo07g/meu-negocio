@@ -65,7 +65,7 @@
         </select>
     </div>
 @else
-    <div class="d-flex align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
         <label class="form-label fw-semibold mb-0 text-nowrap">
             <i class="feather-briefcase me-1"></i>Empresa:
         </label>
