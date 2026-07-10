@@ -15,9 +15,13 @@
                 <div class="card-body">
                     <div class="mb-4 text-center">
                         <div class="wd-80 ht-80 mx-auto mb-3">
-                            <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
-                                <i class="feather-clipboard"></i>
-                            </div>
+                            @if($servico->imagem_url)
+                                <img src="{{ $servico->imagem_url }}" alt="{{ $servico->nome }}" class="wd-80 ht-80 rounded-3" style="object-fit:cover;">
+                            @else
+                                <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
+                                    <i class="feather-clipboard"></i>
+                                </div>
+                            @endif
                         </div>
                         <h5 class="fw-bold mb-1">{{ $servico->nome }}</h5>
                         @if ($servico->isEtapas())

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Arquivo;
 
 use App\Modules\Arquivo\Services\ArquivoService;
-use Database\Factories\ProdutoFactory;
+use Database\Factories\{ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -49,5 +49,19 @@ class TelasImagemSmokeTest extends TestCase
 
         $this->get(route('produtos.edit', $produto))->assertOk();
         $this->get(route('produtos.show', $produto))->assertOk()->assertSee('carouselProduto');
+    }
+
+    public function test_detalhe_do_cliente_e_servico_exibe_a_foto(): void
+    {
+        $ctx = $this->criarRedeAutenticada();
+        $service = app(ArquivoService::class);
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $ctx['rede']->id]);
+        $arqCliente = $service->armazenar($cliente, UploadedFile::fake()->image('c.jpg'), 'avatar');
+        $this->get(route('clientes.show', $cliente))->assertOk()->assertSee($arqCliente->url, false);
+
+        $servico = ServicoFactory::new()->create(['rede_id' => $ctx['rede']->id]);
+        $arqServico = $service->armazenar($servico, UploadedFile::fake()->image('s.jpg'), 'avatar');
+        $this->get(route('servicos.show', $servico))->assertOk()->assertSee($arqServico->url, false);
     }
 }

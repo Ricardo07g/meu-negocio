@@ -15,9 +15,13 @@
                 <div class="card-body">
                     <div class="mb-4 text-center">
                         <div class="wd-80 ht-80 mx-auto mb-3">
-                            <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
-                                {{ mb_substr($cliente->nome, 0, 1) }}
-                            </div>
+                            @if($cliente->imagem_url)
+                                <img src="{{ $cliente->imagem_url }}" alt="{{ $cliente->nome }}" class="wd-80 ht-80 rounded-circle" style="object-fit:cover;">
+                            @else
+                                <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
+                                    {{ mb_substr($cliente->nome, 0, 1) }}
+                                </div>
+                            @endif
                         </div>
                         <h5 class="fw-bold mb-1">{{ $cliente->nome }}</h5>
                         @if($cliente->email)
