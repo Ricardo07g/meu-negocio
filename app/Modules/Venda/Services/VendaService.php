@@ -86,7 +86,7 @@ class VendaService
         }
 
         if ($tipo !== 'servico') {
-            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.parcelas'])
+            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto.arquivoPrincipal', 'pagamento.parcelas'])
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($produtosQuery, $filtros, $dataInicio, $dataFim, 'produto');
             $this->aplicarBuscaProduto($produtosQuery, $filtros['q'] ?? null);
