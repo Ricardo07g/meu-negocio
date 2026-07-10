@@ -6,7 +6,7 @@
         <h5 class="card-title">Imagem</h5>
     </div>
     <div class="card-body">
-        <x-campo-imagem :atual="$entidade?->imagem_thumb_url" label="Imagem do serviço" />
+        <x-campo-imagem :atual="$entidade?->imagem_thumb_url" label="Imagem do serviço" formato="quadrado" />
     </div>
 </div>
 
