@@ -11,7 +11,7 @@ use App\Modules\Despesa\Controllers\{CategoriaDespesaController, DespesaControll
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
 use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
-use App\Modules\Produto\Controllers\{CategoriaProdutoController, ProdutoController};
+use App\Modules\Produto\Controllers\{CategoriaProdutoController, ProdutoArquivoController, ProdutoController};
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\{AssinaturaController, EmpresaController};
 use App\Modules\Usuario\Controllers\{PerfilController, UsuarioController};
@@ -124,6 +124,16 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Produtos (cadastro independente)
         Route::get('produtos/buscar', [ProdutoController::class, 'buscar'])->name('produtos.buscar');
+
+        // Galeria de imagens do produto (AJAX). Rascunho antes do resource para
+        // 'arquivos' nao ser capturado como {produto}.
+        Route::post('produtos/arquivos/rascunho', [ProdutoArquivoController::class, 'storeRascunho'])->name('produtos.arquivos.rascunho.store');
+        Route::delete('produtos/arquivos/rascunho', [ProdutoArquivoController::class, 'destroyRascunho'])->name('produtos.arquivos.rascunho.destroy');
+        Route::post('produtos/{produto}/arquivos', [ProdutoArquivoController::class, 'store'])->name('produtos.arquivos.store');
+        Route::patch('produtos/{produto}/arquivos/reordenar', [ProdutoArquivoController::class, 'reordenar'])->name('produtos.arquivos.reordenar');
+        Route::patch('produtos/{produto}/arquivos/{arquivo}/principal', [ProdutoArquivoController::class, 'principal'])->name('produtos.arquivos.principal');
+        Route::delete('produtos/{produto}/arquivos/{arquivo}', [ProdutoArquivoController::class, 'destroy'])->name('produtos.arquivos.destroy');
+
         Route::resource('produtos', ProdutoController::class);
         Route::resource('categorias-produto', CategoriaProdutoController::class)->except(['show']);
 

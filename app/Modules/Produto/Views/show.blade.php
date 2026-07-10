@@ -13,12 +13,38 @@
         <div class="col-xxl-4 col-xl-5">
             <div class="card stretch stretch-full">
                 <div class="card-body">
+                    @php $galeria = $produto->arquivosDaColecao('galeria'); @endphp
                     <div class="mb-4 text-center">
-                        <div class="wd-80 ht-80 mx-auto mb-3">
-                            <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
-                                <i class="feather-package"></i>
+                        @if($galeria->isNotEmpty())
+                            <div id="carouselProduto" class="carousel slide mb-3" data-bs-ride="false">
+                                <div class="carousel-inner rounded">
+                                    @foreach($galeria as $i => $img)
+                                        <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+                                            <img src="{{ $img->url }}" class="d-block w-100" style="height:260px;object-fit:contain;background:var(--bs-tertiary-bg,#f8f9fa);" alt="{{ $produto->nome }}">
+                                        </div>
+                                    @endforeach
+                                </div>
+                                @if($galeria->count() > 1)
+                                    <div class="carousel-indicators">
+                                        @foreach($galeria as $i => $img)
+                                            <button type="button" data-bs-target="#carouselProduto" data-bs-slide-to="{{ $i }}" class="{{ $i === 0 ? 'active' : '' }}" aria-label="Imagem {{ $i + 1 }}"></button>
+                                        @endforeach
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselProduto" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon"></span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselProduto" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon"></span>
+                                    </button>
+                                @endif
                             </div>
-                        </div>
+                        @else
+                            <div class="wd-80 ht-80 mx-auto mb-3">
+                                <div class="avatar-text avatar-xl bg-primary text-white rounded-circle fs-24 fw-bold">
+                                    <i class="feather-package"></i>
+                                </div>
+                            </div>
+                        @endif
                         <h5 class="fw-bold mb-1">{{ $produto->nome }}</h5>
                         @if($produto->ativo)
                             <span class="badge bg-success">Ativo</span>

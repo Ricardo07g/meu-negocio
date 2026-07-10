@@ -45,6 +45,8 @@
     </div>
 </div>
 
+@include('produto::_galeria', ['entidade' => $entidade, 'tokenRascunho' => $tokenRascunho ?? null])
+
 {{-- Preços --}}
 <div class="card stretch stretch-full">
     <div class="card-header">

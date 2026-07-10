@@ -92,6 +92,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th style="width:56px"></th>
                             <th>Código</th>
                             <th>Nome</th>
                             <th>Categoria</th>
@@ -104,6 +105,7 @@
                     <tbody>
                         @forelse($produtos as $produto)
                         <tr>
+                            <td><x-thumb :url="$produto->imagem_thumb_url" :nome="$produto->nome" icone="feather-package" :circulo="false" /></td>
                             <td>{{ $produto->codigo ?? '-' }}</td>
                             <td>{{ $produto->nome }}</td>
                             <td>{{ $produto->categoria->descricao ?? '-' }}</td>
@@ -162,7 +164,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

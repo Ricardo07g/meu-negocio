@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Produto\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Estoque\Services\EstoqueService;
 use App\Modules\Produto\DTOs\ProdutoData;
 use App\Modules\Produto\Models\{CategoriaProduto, Produto};
@@ -12,13 +13,18 @@ use App\Modules\Produto\Requests\SalvarProdutoRequest;
 use App\Modules\Produto\Services\ProdutoService;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ProdutoController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private ProdutoService $service, private EstoqueService $estoqueService) {}
+    public function __construct(
+        private ProdutoService $service,
+        private EstoqueService $estoqueService,
+        private ArquivoService $arquivoService,
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -40,7 +46,11 @@ class ProdutoController extends Controller
             $this->authorize('create', Produto::class);
             $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
-            return view('produto::create', compact('categorias'));
+            // Token de rascunho para as imagens enviadas antes de o produto existir.
+            $tokenRascunho = (string) Str::uuid();
+            session(['arquivo_rascunho_token' => $tokenRascunho]);
+
+            return view('produto::create', compact('categorias', 'tokenRascunho'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de produto');
         }
@@ -49,7 +59,14 @@ class ProdutoController extends Controller
     public function store(SalvarProdutoRequest $request): RedirectResponse
     {
         try {
-            $this->service->criar(ProdutoData::from($request->validated()));
+            $produto = $this->service->criar(ProdutoData::from($request->validated()));
+
+            $token = (string) session('arquivo_rascunho_token', '');
+            $caminhos = array_values(array_filter((array) $request->input('arquivos_rascunho', []), 'is_string'));
+            if ($token !== '' && $caminhos !== []) {
+                $this->arquivoService->anexarRascunhos($produto, 'galeria', $token, $caminhos);
+            }
+            session()->forget('arquivo_rascunho_token');
 
             return redirect()->route('produtos.index')->with('sucesso', 'Produto criado com sucesso.');
         } catch (\Throwable $e) {
@@ -118,8 +135,16 @@ class ProdutoController extends Controller
                 $query->where('nome', 'like', "%{$q}%")
                     ->orWhere('codigo', 'like', "%{$q}%");
             })
+            ->with('arquivoPrincipal')
             ->limit(10)
-            ->get(['id', 'nome', 'valor_venda', 'quantidade']);
+            ->get(['id', 'nome', 'valor_venda', 'quantidade'])
+            ->map(fn (Produto $p) => [
+                'id' => $p->id,
+                'nome' => $p->nome,
+                'valor_venda' => $p->valor_venda,
+                'quantidade' => $p->quantidade,
+                'imagem_thumb_url' => $p->imagem_thumb_url,
+            ]);
 
         return response()->json($produtos);
     }
