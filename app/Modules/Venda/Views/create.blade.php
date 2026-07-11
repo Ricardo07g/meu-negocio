@@ -248,6 +248,49 @@
         {{-- Hidden inputs montados pelo JS antes do submit --}}
         <div id="carrinhoHiddenInputs"></div>
 
+        {{-- Preview das etapas — logo após a configuração do serviço, antes do pagamento --}}
+        <div class="card stretch stretch-full mt-4" id="previewCard" style="display:none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Preview das etapas</h5>
+                <span id="qtdEtapasBadge" class="badge bg-soft-primary text-primary"></span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted fs-13 mb-3">
+                    <i class="feather-edit-2 me-1"></i>
+                    Ajuste a data e o horário de cada sessão antes de salvar. O dia da semana e o término recalculam automaticamente.
+                </p>
+
+                {{-- Aviso de sessões repetidas (mostrado via JS ao detectar duplicatas) --}}
+                <div class="alert alert-danger d-flex align-items-center d-none" id="avisoEtapasDuplicadas">
+                    <i class="feather-alert-triangle me-2"></i>
+                    <span>Há sessões com a mesma data e horário (destacadas em vermelho). Ajuste-as para concluir a venda.</span>
+                </div>
+
+                <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0" id="tabelaSessoes">
+                        <thead class="position-sticky top-0 bg-white" style="z-index:1;">
+                            <tr class="text-muted fs-12 text-uppercase">
+                                <th style="width:8%;">#</th>
+                                <th style="width:22%;">Dia</th>
+                                <th style="width:30%;">Data</th>
+                                <th style="width:22%;">Início</th>
+                                <th style="width:18%;">Fim</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessoesTbody"></tbody>
+                    </table>
+                </div>
+
+                {{-- Resumo (Total + valor por etapa) --}}
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" id="resumoEtapas">
+                    <span class="text-muted fs-13" data-cel="resumo-etapa"></span>
+                    <span class="fw-semibold text-dark">Total
+                        <span class="fw-bold fs-4 ms-1" data-cel="resumo-total" style="color:var(--cor-destaque);">R$ 0,00</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
         {{-- Pagamento --}}
         <div class="card stretch stretch-full mt-4" id="cardPagamento">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -327,49 +370,6 @@
                             Cada parcela é recebida e baixada individualmente.
                         </small>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Preview das etapas — acima do preview das parcelas --}}
-        <div class="card stretch stretch-full mt-4" id="previewCard" style="display:none;">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Preview das etapas</h5>
-                <span id="qtdEtapasBadge" class="badge bg-soft-primary text-primary"></span>
-            </div>
-            <div class="card-body">
-                <p class="text-muted fs-13 mb-3">
-                    <i class="feather-edit-2 me-1"></i>
-                    Ajuste a data e o horário de cada sessão antes de salvar. O dia da semana e o término recalculam automaticamente.
-                </p>
-
-                {{-- Aviso de sessões repetidas (mostrado via JS ao detectar duplicatas) --}}
-                <div class="alert alert-danger d-flex align-items-center d-none" id="avisoEtapasDuplicadas">
-                    <i class="feather-alert-triangle me-2"></i>
-                    <span>Há sessões com a mesma data e horário (destacadas em vermelho). Ajuste-as para concluir a venda.</span>
-                </div>
-
-                <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
-                    <table class="table table-hover align-middle mb-0" id="tabelaSessoes">
-                        <thead class="position-sticky top-0 bg-white" style="z-index:1;">
-                            <tr class="text-muted fs-12 text-uppercase">
-                                <th style="width:8%;">#</th>
-                                <th style="width:22%;">Dia</th>
-                                <th style="width:30%;">Data</th>
-                                <th style="width:22%;">Início</th>
-                                <th style="width:18%;">Fim</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sessoesTbody"></tbody>
-                    </table>
-                </div>
-
-                {{-- Resumo (Total + valor por etapa) --}}
-                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" id="resumoEtapas">
-                    <span class="text-muted fs-13" data-cel="resumo-etapa"></span>
-                    <span class="fw-semibold text-dark">Total
-                        <span class="fw-bold fs-4 ms-1" data-cel="resumo-total" style="color:var(--cor-destaque);">R$ 0,00</span>
-                    </span>
                 </div>
             </div>
         </div>
