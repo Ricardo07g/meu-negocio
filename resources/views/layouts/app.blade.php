@@ -313,6 +313,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Minhas Empresas --}}
+                    @can('empresa.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('empresas.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Minhas Empresas</span>
+                        </a>
+                    </li>
+                    @endcan
                     {{-- Perfis de Acesso --}}
                     @can('papel.ver')
                     <li class="nxl-item">
