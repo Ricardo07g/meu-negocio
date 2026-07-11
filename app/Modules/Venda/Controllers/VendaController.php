@@ -97,7 +97,16 @@ class VendaController extends Controller
     public function store(CriarVendaRequest $request): RedirectResponse
     {
         try {
-            $empresaId = $request->filled('empresa_id') ? (int) $request->empresa_id : null;
+            /** @var Usuario $usuario */
+            $usuario = $request->user();
+
+            // Resolve a empresa da venda: empresa_id explicito (sub-seletor futuro) >
+            // contexto da listagem (filtro/unica empresa acessivel) > empresa padrao do
+            // usuario. Sem o fallback, um usuario com varias empresas acessiveis e sem
+            // contexto selecionado gerava agendamento/venda sem empresa_id (viola NOT NULL).
+            $empresaId = $request->filled('empresa_id')
+                ? (int) $request->empresa_id
+                : (ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id);
 
             return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request));
         } catch (\Throwable $e) {
