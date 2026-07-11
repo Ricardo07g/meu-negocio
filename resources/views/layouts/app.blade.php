@@ -64,9 +64,6 @@
         .btn.flex-fill,
         .d-flex.gap-2 > .btn { min-height: calc(3rem + 2px); }
 
-        /* Alinha btn-sm no carrinho com form-control-sm (~47px: padding 24 + 14*1.5 + 2) */
-        #tabelaCarrinho .btn-sm { min-height: calc(2.8125rem + 2px); }
-
         /* ── Tabelas densas: coluna de referencia fixa ao rolar (mobile) ─── */
         /* Aplique .table-sticky-col na <table> dentro de .table-responsive;   */
         /* combine com um min-width na tabela para acionar o scroll horizontal.*/

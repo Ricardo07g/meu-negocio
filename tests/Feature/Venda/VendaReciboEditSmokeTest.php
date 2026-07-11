@@ -249,5 +249,10 @@ class VendaReciboEditSmokeTest extends TestCase
         $resp->assertViewIs('venda::create');
         // Container onde o JS injeta o card de dados do cliente selecionado.
         $resp->assertSee('id="clienteCard"', false);
+        // Card de produtos reformulado: titulo, estado vazio e containers responsivos (tabela + cards).
+        $resp->assertSee('Produtos da venda');
+        $resp->assertSee('id="carrinhoVazioBlock"', false);
+        $resp->assertSee('id="carrinhoTabelaWrap"', false);
+        $resp->assertSee('id="carrinhoCards"', false);
     }
 }

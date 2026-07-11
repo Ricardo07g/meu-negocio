@@ -151,80 +151,91 @@
             </div>
         </div>
 
-        {{-- Card Produtos e Serviços (visível quando tipo=produto) --}}
+        {{-- Card Produtos da venda (visível quando tipo=produto) --}}
         <div class="card stretch stretch-full mt-4" id="card-carrinho" style="{{ old('tipo_venda', 'servico') === 'servico' ? 'display:none;' : '' }}">
-            <div class="card-header">
-                <h5 class="card-title">Produtos e Serviços</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Produtos da venda</h5>
+                <span id="carrinhoContador" class="badge bg-soft-primary text-primary d-none"></span>
             </div>
             <div class="card-body">
-                {{-- Linha de inclusão: Produto + Qtd + Preço + Botão --}}
-                <div class="row g-3 mb-4 align-items-end">
-                    <div class="col-12 col-md-4">
-                        <label class="form-label">Produto</label>
-                        <div>
-                            <input type="text" id="produtoSearch" class="form-control" placeholder="Digite o nome do produto..." autocomplete="off" disabled>
-                            <input type="hidden" id="produtoHidden" value="">
+                {{-- Barra de inclusão: Produto + Qtd + Preço + Botão --}}
+                <div class="bg-light border rounded p-3 mb-4">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-12 col-md-5">
+                            <label class="form-label fs-12 text-muted mb-1">Produto</label>
+                            <div>
+                                <input type="text" id="produtoSearch" class="form-control" placeholder="Digite o nome do produto..." autocomplete="off" disabled>
+                                <input type="hidden" id="produtoHidden" value="">
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fs-12 text-muted mb-1">Quantidade</label>
+                            <input type="number" id="produtoQtd" class="form-control" value="1" min="1" disabled>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fs-12 text-muted mb-1">Preço venda</label>
+                            <input type="number" id="produtoPreco" class="form-control" step="0.50" min="0" placeholder="0,00" disabled>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <button type="button" id="btnAdicionarProduto" class="btn btn-primary w-100" disabled>
+                                <i class="feather-plus me-1"></i> Incluir item
+                            </button>
                         </div>
                     </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label">Quantidade</label>
-                        <input type="number" id="produtoQtd" class="form-control" value="1" min="1" disabled>
-                    </div>
-                    <div class="col-6 col-md-2">
-                        <label class="form-label">Preço Venda</label>
-                        <input type="number" id="produtoPreco" class="form-control" step="0.01" min="0" placeholder="0,00" disabled>
-                    </div>
-                    <div class="col-12 col-md-4">
-                        <button type="button" id="btnAdicionarProduto" class="btn btn-outline-primary w-100" disabled>
-                            <i class="feather-shopping-cart me-1"></i> Incluir Item
-                        </button>
-                    </div>
                 </div>
 
-                {{-- Tabela de itens --}}
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover mb-0 table-sticky-col" id="tabelaCarrinho" style="min-width: 720px;">
+                {{-- Estado vazio (sem itens) --}}
+                <div id="carrinhoVazioBlock" class="text-center text-muted py-5">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-soft-primary text-primary mb-3" style="width:64px;height:64px;">
+                        <i class="feather-shopping-cart" style="font-size:26px;"></i>
+                    </span>
+                    <div class="fw-semibold text-dark">Nenhum item adicionado</div>
+                    <div class="fs-13">Busque um produto acima para começar.</div>
+                </div>
+
+                {{-- Lista de itens — DESKTOP (tabela) --}}
+                <div class="d-none" id="carrinhoTabelaWrap">
+                    <table class="table table-hover align-middle mb-0" id="tabelaCarrinho">
                         <thead>
-                            <tr>
-                                <th style="width:40%;">Produto</th>
-                                <th class="text-center" style="width:7%;">Qtd</th>
-                                <th class="text-end" style="width:11%;">Vl. Unit.</th>
-                                <th class="text-end" style="width:11%;">Desconto</th>
-                                <th class="text-end" style="width:11%;">Acréscimo</th>
-                                <th class="text-end" style="width:13%;">Vl. Total</th>
-                                <th class="text-center" style="width:7%;"></th>
+                            <tr class="text-muted fs-12 text-uppercase">
+                                <th style="width:38%;">Produto</th>
+                                <th class="text-center" style="width:10%;">Qtd</th>
+                                <th class="text-end" style="width:13%;">Vl. unit.</th>
+                                <th class="text-end" style="width:12%;">Desconto</th>
+                                <th class="text-end" style="width:12%;">Acréscimo</th>
+                                <th class="text-end" style="width:12%;">Total</th>
+                                <th class="text-center" style="width:5%;"></th>
                             </tr>
                         </thead>
-                        <tbody id="carrinhoTbody">
-                            <tr id="carrinhoVazio"><td colspan="7" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>
-                        </tbody>
+                        <tbody id="carrinhoTbody"></tbody>
                     </table>
                 </div>
-                <small class="d-md-none text-muted d-block mt-2">
-                    <i class="feather-arrow-right me-1"></i>Deslize a tabela para o lado para ver todas as colunas.
-                </small>
+
+                {{-- Lista de itens — MOBILE (cards) --}}
+                <div class="d-none" id="carrinhoCards"></div>
 
                 {{-- Resumo financeiro --}}
-                <div class="row mt-4 pt-3" id="carrinhoResumo" style="display:none; border-top: 1px solid #eee;">
-                    <div class="col-md-5 offset-md-7 col-lg-4 offset-lg-8">
-                        <table class="table table-sm mb-0">
-                            <tr>
-                                <td class="text-end text-muted">Subtotal:</td>
-                                <td class="text-end" id="carrinhoSubtotal">R$ 0,00</td>
-                            </tr>
-                            <tr>
-                                <td class="text-end text-danger">Descontos:</td>
-                                <td class="text-end text-danger" id="carrinhoDescontos">R$ 0,00</td>
-                            </tr>
-                            <tr>
-                                <td class="text-end text-success">Acréscimos:</td>
-                                <td class="text-end text-success" id="carrinhoAcrescimos">R$ 0,00</td>
-                            </tr>
-                            <tr class="fw-bold fs-5">
-                                <td class="text-end">Total:</td>
-                                <td class="text-end text-success" id="carrinhoTotal">R$ 0,00</td>
-                            </tr>
-                        </table>
+                <div class="row mt-4 d-none" id="carrinhoResumo">
+                    <div class="col-12 col-md-6 offset-md-6 col-lg-5 offset-lg-7 col-xl-4 offset-xl-8">
+                        <div class="border rounded p-3 bg-light">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Subtotal</span>
+                                <span class="fw-medium" id="carrinhoSubtotal">R$ 0,00</span>
+                            </div>
+                            <div class="justify-content-between mb-2 d-none" id="carrinhoDescontosRow" style="display:flex;">
+                                <span class="text-muted">Descontos</span>
+                                <span class="text-danger" id="carrinhoDescontos">R$ 0,00</span>
+                            </div>
+                            <div class="justify-content-between mb-2 d-none" id="carrinhoAcrescimosRow" style="display:flex;">
+                                <span class="text-muted">Acréscimos</span>
+                                <span id="carrinhoAcrescimos">R$ 0,00</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold text-dark">Total</span>
+                                <span class="fw-bold fs-4" id="carrinhoTotal" style="color:var(--cor-destaque);">R$ 0,00</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
