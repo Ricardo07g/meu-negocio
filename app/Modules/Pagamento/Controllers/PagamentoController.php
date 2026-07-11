@@ -117,8 +117,8 @@ class PagamentoController extends Controller
     {
         try {
             $this->authorize('view', $pagamento);
-            $pagamento->load(['cliente', 'parcelas.baixas', 'agendamento.servico', 'vendaEtapas.servico', 'vendaProduto.itens']);
-            $empresa = auth()->user()->empresa ?? null;
+            $pagamento->load(['empresa', 'cliente', 'parcelas.baixas', 'agendamento.servico', 'vendaEtapas.servico', 'vendaProduto.itens']);
+            $empresa = $pagamento->empresa;
 
             $pdf = Pdf::loadView('pagamento::recibo', compact('pagamento', 'empresa'));
 

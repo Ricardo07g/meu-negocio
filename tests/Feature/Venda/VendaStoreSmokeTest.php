@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Venda;
 
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
-use Database\Factories\{CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
+use Database\Factories\{AgendamentoFactory, CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;
@@ -228,5 +229,144 @@ class VendaStoreSmokeTest extends TestCase
 
         $this->assertSame(1, VendaProduto::count());
         $this->assertSame(4, $produto->fresh()->quantidade);
+    }
+
+    /**
+     * Conflito de agenda ao vender servico em etapas: quando o profissional ja
+     * possui agendamento em uma das datas, VenderEtapasAction lanca
+     * ConflitoAgendamentoException com uma mensagem que NOMEIA o profissional e
+     * lista o dia/horario ocupado, revertendo tudo (rollback). Regressao da
+     * mensagem generica antiga ("Conflito de horario nas datas: ...").
+     */
+    public function test_conflito_de_etapas_informa_profissional_e_datas(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+        $profissional = $contexto['usuario'];
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $rede->id]);
+        $servico = ServicoFactory::new()->etapas(2)->create([
+            'rede_id' => $rede->id,
+            'valor' => 200.00,
+        ]);
+
+        // Agendamento ja existente do profissional na 1a data/horario da venda.
+        $inicioOcupado = now()->addDays(1)->setTime(9, 0, 0);
+        AgendamentoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $profissional->id,
+            'inicio' => $inicioOcupado,
+            'fim' => $inicioOcupado->copy()->addMinutes(60),
+        ]);
+
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'servico',
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $profissional->id,
+            'valor_total' => 200.00,
+            'horario' => '09:00',
+            'datas' => [
+                $inicioOcupado->format('Y-m-d'),
+                now()->addDays(8)->format('Y-m-d'),
+            ],
+            'condicao_pagamento' => 'a_prazo',
+            'forma_pagamento' => 'pix',
+            'forma_recebimento_prazo' => 'carne',
+            'numero_parcelas' => 2,
+            'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertSessionHas('erro');
+        $resp->assertSessionMissing('sucesso');
+
+        $erro = session('erro');
+        $this->assertStringContainsString($profissional->nome, $erro);
+        $this->assertStringContainsString($inicioOcupado->format('d/m/Y'), $erro);
+        $this->assertStringContainsString('ocupada', $erro);
+
+        // Rollback total: nenhuma VendaEtapas e apenas o agendamento pre-existente.
+        $this->assertSame(0, VendaEtapas::count());
+        $this->assertSame(1, Agendamento::count());
+    }
+
+    /**
+     * Regressao: usuario com MAIS DE UMA empresa acessivel e SEM contexto
+     * explicito selecionado gerava agendamento sem empresa_id (viola NOT NULL,
+     * "Field 'empresa_id' doesn't have a default value") ao registrar a venda.
+     * VendaController::store agora faz o fallback para a empresa padrao do
+     * usuario, entao a venda cai numa empresa valida em vez de quebrar.
+     */
+    public function test_venda_sem_contexto_de_empresa_usa_empresa_padrao_do_usuario(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+        $empresaPadrao = $contexto['empresa'];
+
+        // Rede multi-empresa; sessao com todas e SEM empresa_contexto_atual (cenario do bug).
+        $empresa2 = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial Norte']);
+        $empresa3 = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial Sul']);
+        session(['empresas_atuais' => [$empresaPadrao->id, $empresa2->id, $empresa3->id]]);
+        session()->forget('empresa_contexto_atual');
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $rede->id]);
+        $servico = ServicoFactory::new()->avulso()->create([
+            'rede_id' => $rede->id,
+            'valor' => 150.00,
+        ]);
+
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'servico',
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $contexto['usuario']->id,
+            'data' => now()->addDay()->format('Y-m-d'),
+            'horario' => '10:00',
+            'condicao_pagamento' => 'a_prazo',
+            'forma_pagamento' => 'pix',
+            'forma_recebimento_prazo' => 'carne',
+            'numero_parcelas' => 2,
+            'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertRedirect(route('vendas.index'));
+        $resp->assertSessionHas('sucesso');
+        $resp->assertSessionMissing('erro');
+
+        // A venda cai na empresa padrao do usuario (fallback), sem quebrar.
+        $this->assertDatabaseHas('agendamentos', [
+            'servico_id' => $servico->id,
+            'empresa_id' => $empresaPadrao->id,
+        ]);
+    }
+
+    /**
+     * Contrato de validacao do servidor que a validacao via JS espelha: uma venda
+     * de servico sem os campos obrigatorios volta com erros por campo (o layout
+     * os exibe num SweetAlert), sem persistir nada.
+     */
+    public function test_venda_servico_sem_campos_obrigatorios_retorna_erros_de_validacao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $servico = ServicoFactory::new()->avulso()->create([
+            'rede_id' => $contexto['rede']->id,
+            'valor' => 100.00,
+        ]);
+
+        // Servico unico sem cliente, atendente, data, horario nem forma de pagamento.
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'servico',
+            'servico_id' => $servico->id,
+            'condicao_pagamento' => 'a_vista',
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertSessionHasErrors(['cliente_id', 'atendente_id', 'data', 'horario', 'forma_pagamento']);
+        $this->assertSame(0, Agendamento::count());
     }
 }

@@ -88,7 +88,7 @@ class VendaController extends Controller
                 }
             }
 
-            return view('venda::create', compact('atendentes', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld'));
+            return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -97,7 +97,16 @@ class VendaController extends Controller
     public function store(CriarVendaRequest $request): RedirectResponse
     {
         try {
-            $empresaId = $request->filled('empresa_id') ? (int) $request->empresa_id : null;
+            /** @var Usuario $usuario */
+            $usuario = $request->user();
+
+            // Resolve a empresa da venda: empresa_id explicito (sub-seletor futuro) >
+            // contexto da listagem (filtro/unica empresa acessivel) > empresa padrao do
+            // usuario. Sem o fallback, um usuario com varias empresas acessiveis e sem
+            // contexto selecionado gerava agendamento/venda sem empresa_id (viola NOT NULL).
+            $empresaId = $request->filled('empresa_id')
+                ? (int) $request->empresa_id
+                : (ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id);
 
             return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request));
         } catch (\Throwable $e) {
@@ -327,8 +336,6 @@ class VendaController extends Controller
     public function recibo(string $tipo, int $id): Response|RedirectResponse
     {
         try {
-            $empresa = auth()->user()->empresa ?? null;
-
             $dados = match ($tipo) {
                 'unico' => $this->dadosReciboUnico($id),
                 'etapas' => $this->dadosReciboEtapas($id),
@@ -336,8 +343,9 @@ class VendaController extends Controller
                 default => abort(404, 'Tipo de venda inválido'),
             };
 
+            // A empresa do comprovante vem do proprio registro da venda (nao da
+            // empresa-padrao de quem imprime) — ver 'empresa' em cada dadosRecibo*.
             $pdf = Pdf::loadView('venda::recibo', array_merge($dados, [
-                'empresa' => $empresa,
                 'tipo' => $tipo,
             ]));
 
@@ -349,11 +357,12 @@ class VendaController extends Controller
 
     private function dadosReciboUnico(int $id): array
     {
-        $agendamento = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])->findOrFail($id);
+        $agendamento = Agendamento::with(['empresa', 'cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])->findOrFail($id);
         $pagamento = $agendamento->pagamento;
         $valor = $agendamento->servico->valor ?? 0;
 
         return [
+            'empresa' => $agendamento->empresa,
             'numero' => $agendamento->id,
             'tipoLabel' => 'Serviço Único',
             'statusLabel' => $agendamento->status->label(),
@@ -378,11 +387,12 @@ class VendaController extends Controller
 
     private function dadosReciboEtapas(int $id): array
     {
-        $etapas = VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])->findOrFail($id);
+        $etapas = VendaEtapas::with(['empresa', 'cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])->findOrFail($id);
         $this->authorize('view', $etapas);
         $subtotal = $etapas->valor_total + $etapas->desconto - $etapas->acrescimo;
 
         return [
+            'empresa' => $etapas->empresa,
             'numero' => $etapas->id,
             'tipoLabel' => 'Serviço em Etapas',
             'statusLabel' => $etapas->status->label(),
@@ -407,9 +417,10 @@ class VendaController extends Controller
 
     private function dadosReciboProduto(int $id): array
     {
-        $venda = VendaProduto::with(['cliente', 'usuario', 'itens.produto', 'pagamento.parcelas.baixas'])->findOrFail($id);
+        $venda = VendaProduto::with(['empresa', 'cliente', 'usuario', 'itens.produto', 'pagamento.parcelas.baixas'])->findOrFail($id);
 
         return [
+            'empresa' => $venda->empresa,
             'numero' => $venda->id,
             'tipoLabel' => 'Venda de produtos',
             'statusLabel' => $venda->status->label(),

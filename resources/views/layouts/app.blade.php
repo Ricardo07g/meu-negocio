@@ -313,6 +313,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Minhas Empresas --}}
+                    @can('empresa.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('empresas.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Minhas Empresas</span>
+                        </a>
+                    </li>
+                    @endcan
                     {{-- Perfis de Acesso --}}
                     @can('papel.ver')
                     <li class="nxl-item">
@@ -616,6 +625,21 @@
     @if(session('erro'))
     <script>
         Swal.fire({ icon: 'error', title: 'Erro', text: '{{ session('erro') }}' });
+    </script>
+    @endif
+    @if($errors->any())
+    <script>
+        (function () {
+            var msgs = @json($errors->all());
+            Swal.fire({
+                icon: 'warning',
+                title: 'Revise os campos destacados',
+                html: '<ul style="text-align:left;margin:0;padding-left:1.2rem;line-height:1.7;">' + msgs.map(function (m) {
+                    var d = document.createElement('div'); d.textContent = m; return '<li>' + d.innerHTML + '</li>';
+                }).join('') + '</ul>',
+                confirmButtonColor: '#3454d1',
+            });
+        })();
     </script>
     @endif
     {{-- Máscaras e CEP auto-fill --}}

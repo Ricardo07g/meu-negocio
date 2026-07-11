@@ -203,8 +203,8 @@ class DespesaController extends Controller
     {
         try {
             $this->authorize('view', $despesa);
-            $despesa->load(['categoria', 'parcelas.baixas']);
-            $empresa = auth()->user()->empresa ?? null;
+            $despesa->load(['empresa', 'categoria', 'parcelas.baixas']);
+            $empresa = $despesa->empresa;
 
             $pdf = Pdf::loadView('despesa::recibo', compact('despesa', 'empresa'));
 

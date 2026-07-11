@@ -47,7 +47,7 @@ class VenderEtapasAction
                     ->exists();
 
                 if ($temConflito) {
-                    $conflitos[] = $inicio->format('d/m/Y H:i');
+                    $conflitos[] = $inicio->format('d/m/Y').' às '.$inicio->format('H:i');
 
                     continue;
                 }
@@ -64,9 +64,13 @@ class VenderEtapasAction
             }
 
             if (! empty($conflitos)) {
-                throw new ConflitoAgendamentoException(
-                    'Conflito de horario nas datas: '.implode(', ', $conflitos)
-                );
+                $profissional = $venda->atendente->nome;
+
+                throw new ConflitoAgendamentoException(sprintf(
+                    '%s já está com a agenda ocupada em: %s. Ajuste a data ou o horário dessas sessões para concluir a venda.',
+                    $profissional,
+                    implode('; ', $conflitos),
+                ));
             }
 
             return $venda;
