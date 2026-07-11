@@ -43,6 +43,16 @@
                 {{-- Card com os dados do cliente selecionado (preenchido via JS) --}}
                 <div id="clienteCard" class="mb-4" style="display:none;"></div>
 
+                {{-- Empresa da venda (indicador quando 1 empresa; seletor quando várias) --}}
+                <div class="row mb-4">
+                    @include('partials.sub-seletor-empresa', [
+                        'valorAtual' => $empresaId,
+                        'modo' => 'editar',
+                        'colunaCss' => 'col-md-6',
+                        'rotulo' => 'Empresa da venda',
+                    ])
+                </div>
+
                 {{-- ===== CAMPOS DE SERVIÇO ===== --}}
                 <div id="campos-servico" style="{{ old('tipo_venda') === 'produto' ? 'display:none;' : '' }}">
                     <div class="row mb-4">

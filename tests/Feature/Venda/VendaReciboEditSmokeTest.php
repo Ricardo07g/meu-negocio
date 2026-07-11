@@ -6,7 +6,9 @@ namespace Tests\Feature\Venda;
 
 use App\Enums\{StatusVendaEtapas, StatusVendaProduto};
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use Barryvdh\DomPDF\Facade\Pdf;
 use Database\Factories\{AgendamentoFactory, ClienteFactory, PagamentoFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
@@ -260,5 +262,64 @@ class VendaReciboEditSmokeTest extends TestCase
         $resp->assertSee('>Fim<', false);
         $resp->assertSee('id="resumoEtapas"', false);
         $resp->assertSee('id="avisoEtapasDuplicadas"', false);
+        // Seletor/indicador da empresa da venda (com 1 empresa: hidden name="empresa_id").
+        $resp->assertSee('Empresa da venda');
+        $resp->assertSee('name="empresa_id"', false);
+    }
+
+    /**
+     * O comprovante deve refletir a empresa DA VENDA, nao a empresa-padrao de
+     * quem imprime. Cria a venda numa empresa diferente da default do usuario e
+     * captura os dados enviados a view do PDF (facade Pdf mockada) para conferir
+     * que `empresa` e a do registro.
+     */
+    public function test_recibo_de_venda_usa_a_empresa_do_registro(): void
+    {
+        $ctx = $this->montarContexto();
+        $empresaPadrao = $ctx['empresa'];
+        $empresaOutra = Empresa::create(['rede_id' => $ctx['rede']->id, 'nome' => 'Filial Norte']);
+        // Admin enxerga as duas empresas (senao o global scope esconderia a venda da Filial).
+        session(['empresas_atuais' => [$empresaPadrao->id, $empresaOutra->id]]);
+
+        $servico = ServicoFactory::new()->avulso()->create([
+            'rede_id' => $ctx['rede']->id,
+            'valor' => 120.00,
+        ]);
+        $agendamento = AgendamentoFactory::new()->create([
+            'rede_id' => $ctx['rede']->id,
+            'empresa_id' => $empresaOutra->id,
+            'cliente_id' => $ctx['cliente']->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $ctx['usuario']->id,
+        ]);
+
+        $capturado = $this->capturarDadosDoRecibo();
+
+        $this->get(route('vendas.recibo', ['unico', $agendamento->id]))->assertOk();
+
+        $this->assertNotNull($capturado->dados);
+        $this->assertSame($empresaOutra->id, $capturado->dados['empresa']->id);
+        $this->assertSame('Filial Norte', $capturado->dados['empresa']->nome);
+        $this->assertNotSame($empresaPadrao->id, $capturado->dados['empresa']->id);
+    }
+
+    /** Mocka a facade Pdf e devolve um objeto cujo ->dados recebe o array passado ao loadView. */
+    private function capturarDadosDoRecibo(): object
+    {
+        $captura = new class
+        {
+            public ?array $dados = null;
+        };
+
+        $pdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $pdf->shouldReceive('stream')->andReturn(response('%PDF-1.4', 200, ['Content-Type' => 'application/pdf']));
+
+        Pdf::shouldReceive('loadView')->once()->andReturnUsing(function ($view, $dados) use ($captura, $pdf) {
+            $captura->dados = $dados;
+
+            return $pdf;
+        });
+
+        return $captura;
     }
 }
