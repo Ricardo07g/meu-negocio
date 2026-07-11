@@ -254,5 +254,11 @@ class VendaReciboEditSmokeTest extends TestCase
         $resp->assertSee('id="carrinhoVazioBlock"', false);
         $resp->assertSee('id="carrinhoTabelaWrap"', false);
         $resp->assertSee('id="carrinhoCards"', false);
+        // Preview das etapas reformulado: colunas Inicio/Fim, resumo e aviso de duplicatas.
+        $resp->assertSee('Preview das etapas');
+        $resp->assertSee('>Início<', false);
+        $resp->assertSee('>Fim<', false);
+        $resp->assertSee('id="resumoEtapas"', false);
+        $resp->assertSee('id="avisoEtapasDuplicadas"', false);
     }
 }

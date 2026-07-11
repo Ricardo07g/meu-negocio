@@ -350,6 +350,118 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             valorPorSessao.textContent = '';
         }
+        atualizarResumoEtapas();
+    }
+
+    // ===== Preview de etapas: render reativo + validação de duplicatas =====
+    const sessoesTbody = document.getElementById('sessoesTbody');
+    const resumoEtapas = document.getElementById('resumoEtapas');
+    const avisoEtapasDuplicadas = document.getElementById('avisoEtapasDuplicadas');
+    let temEtapasDuplicadas = false;
+
+    function formatarReais(valor) {
+        return 'R$ ' + (parseFloat(valor) || 0).toFixed(2).replace('.', ',');
+    }
+
+    function duracaoServico() {
+        return parseInt(servicoSelecionado && servicoSelecionado.duracao) || 0;
+    }
+
+    function calcularFimSessao(horario, duracao) {
+        if (!horario || duracao <= 0) return '—';
+        const partes = horario.split(':').map(Number);
+        if (partes.length < 2 || isNaN(partes[0]) || isNaN(partes[1])) return '—';
+        const totalMin = partes[0] * 60 + partes[1] + duracao;
+        return String(Math.floor(totalMin / 60) % 24).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
+    }
+
+    function ehFimDeSemana(dia) {
+        return dia === 0 || dia === 6;
+    }
+
+    // Monta a <tr> de uma sessão (usada tanto ao gerar o preview quanto ao repopular após erro)
+    function renderLinhaSessao(indice, dataStr, horarioStr) {
+        const dia = new Date(dataStr + 'T12:00:00').getDay();
+        const tr = document.createElement('tr');
+        tr.dataset.fds = ehFimDeSemana(dia) ? '1' : '0';
+        tr.innerHTML =
+            '<td class="text-muted">' + (indice + 1) + '</td>' +
+            '<td data-cel="dia" class="fw-medium">' + diasNomes[dia] + '</td>' +
+            '<td><input type="date" name="datas[]" value="' + dataStr + '" class="form-control form-control-sm" required></td>' +
+            '<td><input type="time" name="horarios[]" value="' + horarioStr + '" class="form-control form-control-sm" required></td>' +
+            '<td data-cel="fim" class="text-muted">' + calcularFimSessao(horarioStr, duracaoServico()) + '</td>';
+        return tr;
+    }
+
+    function atualizarResumoEtapas() {
+        if (!resumoEtapas || !sessoesTbody) return;
+        const qtd = sessoesTbody.querySelectorAll('tr').length;
+        const total = parseFloat(valorTotal.value) || 0;
+        const celTotal = resumoEtapas.querySelector('[data-cel="resumo-total"]');
+        const celEtapa = resumoEtapas.querySelector('[data-cel="resumo-etapa"]');
+        if (celTotal) celTotal.textContent = formatarReais(total);
+        if (celEtapa) celEtapa.textContent = (qtd > 0 && total > 0) ? (formatarReais(total / qtd) + ' por etapa') : '';
+    }
+
+    // Marca em vermelho as sessões com a mesma data+horário e liga o flag de bloqueio do submit
+    function revalidarEtapas() {
+        if (!sessoesTbody) return;
+        const linhas = Array.from(sessoesTbody.querySelectorAll('tr'));
+        const contagem = {};
+        linhas.forEach(function(tr) {
+            const d = tr.querySelector('input[name="datas[]"]');
+            const h = tr.querySelector('input[name="horarios[]"]');
+            if (!d || !h) return;
+            const chave = d.value + '|' + h.value;
+            contagem[chave] = (contagem[chave] || 0) + 1;
+        });
+
+        temEtapasDuplicadas = false;
+        linhas.forEach(function(tr) {
+            const d = tr.querySelector('input[name="datas[]"]');
+            const h = tr.querySelector('input[name="horarios[]"]');
+            if (!d || !h) return;
+            const duplicada = contagem[d.value + '|' + h.value] > 1;
+            tr.classList.toggle('table-danger', duplicada);
+            if (duplicada) {
+                temEtapasDuplicadas = true;
+                tr.classList.remove('table-secondary');
+            } else {
+                tr.classList.toggle('table-secondary', tr.dataset.fds === '1');
+            }
+        });
+
+        if (avisoEtapasDuplicadas) avisoEtapasDuplicadas.classList.toggle('d-none', !temEtapasDuplicadas);
+        atualizarResumoEtapas();
+    }
+
+    // Edição inline de uma sessão: recalcula o dia da semana e o término, e revalida duplicatas
+    function aoEditarSessao(e) {
+        const alvo = e.target;
+        const tr = alvo.closest ? alvo.closest('tr') : null;
+        if (!tr) return;
+
+        if (alvo.matches('input[name="datas[]"]') && alvo.value) {
+            const dia = new Date(alvo.value + 'T12:00:00').getDay();
+            if (!isNaN(dia)) {
+                const celDia = tr.querySelector('[data-cel="dia"]');
+                if (celDia) celDia.textContent = diasNomes[dia];
+                tr.dataset.fds = ehFimDeSemana(dia) ? '1' : '0';
+            }
+        }
+
+        if (alvo.matches('input[name="datas[]"]') || alvo.matches('input[name="horarios[]"]')) {
+            const h = tr.querySelector('input[name="horarios[]"]');
+            const celFim = tr.querySelector('[data-cel="fim"]');
+            if (h && celFim) celFim.textContent = calcularFimSessao(h.value, duracaoServico());
+        }
+
+        revalidarEtapas();
+    }
+
+    if (sessoesTbody) {
+        sessoesTbody.addEventListener('input', aoEditarSessao);
+        sessoesTbody.addEventListener('change', aoEditarSessao);
     }
 
     // Calcula e exibe o horario de termino para servico unico
@@ -390,7 +502,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.dias-semana-check:checked').forEach(cb => diasSemana.push(parseInt(cb.value)));
         if (diasSemana.length === 0) { swalAlerta('Selecione pelo menos um dia da semana.'); return; }
 
-        const duracao = parseInt(servicoSelecionado.duracao);
         const inicio = new Date(dataInicio.value + 'T12:00:00');
         const datas = [];
         let cursor = new Date(inicio);
@@ -402,22 +513,16 @@ document.addEventListener('DOMContentLoaded', function() {
             seguranca++;
         }
 
-        const tbody = document.getElementById('sessoesTbody');
-        tbody.innerHTML = '';
+        sessoesTbody.innerHTML = '';
         datas.forEach((data, i) => {
-            const dataStr = data.toISOString().split('T')[0];
-            const tr = document.createElement('tr');
-            const fh = horario.value.split(':').map(Number);
-            const totalMin = fh[0] * 60 + fh[1] + duracao;
-            const fim = String(Math.floor(totalMin / 60) % 24).padStart(2, '0') + ':' + String(totalMin % 60).padStart(2, '0');
-            tr.innerHTML = `<td>${i + 1}</td><td>${diasNomes[data.getDay()]}</td><td><input type="date" name="datas[]" value="${dataStr}" class="form-control form-control-sm" required></td><td><input type="time" name="horarios[]" value="${horario.value}" class="form-control form-control-sm" required></td>`;
-            tbody.appendChild(tr);
+            sessoesTbody.appendChild(renderLinhaSessao(i, data.toISOString().split('T')[0], horario.value));
         });
 
-        document.getElementById('qtdEtapasBadge').textContent = datas.length + ' etapas';
+        document.getElementById('qtdEtapasBadge').textContent = datas.length + (datas.length === 1 ? ' etapa' : ' etapas');
         previewCard.style.display = 'block';
         previewCard.scrollIntoView({ behavior: 'smooth' });
         atualizarValorPorSessao();
+        revalidarEtapas();
     });
 
     // Inicializar estado
@@ -450,20 +555,13 @@ document.addEventListener('DOMContentLoaded', function() {
         (function() {
             const oldDatas = cfg.oldDatas;
             const oldHorarios = cfg.oldHorarios || [];
-            const tbody = document.getElementById('sessoesTbody');
-            tbody.innerHTML = '';
+            sessoesTbody.innerHTML = '';
             oldDatas.forEach(function(dataStr, i) {
-                const horario = oldHorarios[i] || '09:00';
-                const dateObj = new Date(dataStr + 'T12:00:00');
-                const tr = document.createElement('tr');
-                tr.innerHTML = '<td>' + (i + 1) + '</td>' +
-                               '<td>' + diasNomes[dateObj.getDay()] + '</td>' +
-                               '<td><input type="date" name="datas[]" value="' + dataStr + '" class="form-control form-control-sm" required></td>' +
-                               '<td><input type="time" name="horarios[]" value="' + horario + '" class="form-control form-control-sm" required></td>';
-                tbody.appendChild(tr);
+                sessoesTbody.appendChild(renderLinhaSessao(i, dataStr, oldHorarios[i] || '09:00'));
             });
-            document.getElementById('qtdEtapasBadge').textContent = oldDatas.length + ' etapas';
+            document.getElementById('qtdEtapasBadge').textContent = oldDatas.length + (oldDatas.length === 1 ? ' etapa' : ' etapas');
             previewCard.style.display = 'block';
+            revalidarEtapas();
         })();
     }
 
@@ -720,6 +818,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tipoServ === 'etapas') {
             const vt = parseFloat(document.getElementById('valorTotal').value) || 0;
             if (vt <= 0) return { pronto: false, motivo: 'Informe o valor total da venda.' };
+            if (temEtapasDuplicadas) return { pronto: false, motivo: 'Há sessões repetidas (mesma data e horário). Ajuste as datas destacadas antes de salvar.' };
         }
         return { pronto: true, motivo: '' };
     }

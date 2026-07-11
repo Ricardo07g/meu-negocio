@@ -87,50 +87,44 @@
 
                     {{-- Campos Servico em Etapas --}}
                     <div id="campos-etapas" style="display:none;">
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label">Data Início <span class="text-danger">*</span></label>
-                                <input type="date" id="dataInicio" class="form-control" value="{{ old('data_inicio', now()->format('Y-m-d')) }}" disabled>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Horário <span class="text-danger">*</span></label>
-                                <input type="time" name="horario" id="horario" class="form-control @error('horario') is-invalid @enderror" value="{{ old('horario', '09:00') }}" disabled>
-                                @error('horario') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Qtd Etapas <span class="text-danger">*</span></label>
-                                <input type="number" id="qtdEtapasInput" class="form-control" value="{{ old('qtd_etapas') }}" min="2" disabled>
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-12">
-                                <label class="form-label">Dias da Semana <span class="text-danger">*</span></label>
-                                <div class="d-flex flex-wrap gap-3 mt-1">
-                                    @php $diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']; @endphp
-                                    @foreach($diasNomes as $i => $dia)
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input dias-semana-check" value="{{ $i }}"
-                                            id="dia{{ $i }}" {{ in_array($i, old('dias_semana', [])) ? 'checked' : '' }} disabled>
-                                        <label class="form-check-label" for="dia{{ $i }}">{{ $dia }}</label>
+                        <div class="bg-light border rounded p-3 mb-4">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label fs-12 text-muted mb-1">Data de início <span class="text-danger">*</span></label>
+                                    <input type="date" id="dataInicio" class="form-control" value="{{ old('data_inicio', now()->format('Y-m-d')) }}" disabled>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label fs-12 text-muted mb-1">Horário <span class="text-danger">*</span></label>
+                                    <input type="time" name="horario" id="horario" class="form-control @error('horario') is-invalid @enderror" value="{{ old('horario', '09:00') }}" disabled>
+                                    @error('horario') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <label class="form-label fs-12 text-muted mb-1">Qtd. de etapas <span class="text-danger">*</span></label>
+                                    <input type="number" id="qtdEtapasInput" class="form-control" value="{{ old('qtd_etapas') }}" min="2" disabled>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fs-12 text-muted mb-1">Dias da semana <span class="text-danger">*</span></label>
+                                    <div class="d-flex flex-wrap gap-2 mt-1">
+                                        @php $diasNomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']; @endphp
+                                        @foreach($diasNomes as $i => $dia)
+                                        <input type="checkbox" class="btn-check dias-semana-check" value="{{ $i }}"
+                                            id="dia{{ $i }}" autocomplete="off" {{ in_array($i, old('dias_semana', [])) ? 'checked' : '' }} disabled>
+                                        <label class="btn btn-sm btn-outline-primary rounded-pill px-3" for="dia{{ $i }}">{{ $dia }}</label>
+                                        @endforeach
                                     </div>
-                                    @endforeach
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <label class="form-label fs-12 text-muted mb-1">Valor total (R$) <span class="text-danger">*</span></label>
+                                    <input type="number" name="valor_total" id="valorTotal" class="form-control @error('valor_total') is-invalid @enderror" step="0.50" min="0.01" value="{{ old('valor_total') }}" disabled>
+                                    @error('valor_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                    <div class="form-text"><span id="valorPorSessao"></span></div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label">Valor Total (R$) <span class="text-danger">*</span></label>
-                                <input type="number" name="valor_total" id="valorTotal" class="form-control @error('valor_total') is-invalid @enderror" step="0.01" min="0.01" value="{{ old('valor_total') }}" disabled>
-                                @error('valor_total') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <div class="mt-3">
+                                <button type="button" id="btnGerarPreview" class="btn btn-primary">
+                                    <i class="feather-calendar me-1"></i> Gerar preview das etapas
+                                </button>
                             </div>
-                            <div class="col-md-4 d-flex align-items-end">
-                                <span id="valorPorSessao" class="text-muted fs-13"></span>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" id="btnGerarPreview" class="btn btn-outline-primary">
-                                <i class="feather-calendar me-1"></i> Gerar Preview das Etapas
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -329,23 +323,43 @@
 
         {{-- Preview das etapas — acima do preview das parcelas --}}
         <div class="card stretch stretch-full mt-4" id="previewCard" style="display:none;">
-            <div class="card-header">
-                <h5 class="card-title">Preview das Etapas <span id="qtdEtapasBadge" class="badge bg-primary ms-2"></span></h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Preview das etapas</h5>
+                <span id="qtdEtapasBadge" class="badge bg-soft-primary text-primary"></span>
             </div>
             <div class="card-body">
-                <p class="text-muted fs-13 mb-3">Você pode editar as datas individualmente antes de salvar.</p>
+                <p class="text-muted fs-13 mb-3">
+                    <i class="feather-edit-2 me-1"></i>
+                    Ajuste a data e o horário de cada sessão antes de salvar. O dia da semana e o término recalculam automaticamente.
+                </p>
+
+                {{-- Aviso de sessões repetidas (mostrado via JS ao detectar duplicatas) --}}
+                <div class="alert alert-danger d-flex align-items-center d-none" id="avisoEtapasDuplicadas">
+                    <i class="feather-alert-triangle me-2"></i>
+                    <span>Há sessões com a mesma data e horário (destacadas em vermelho). Ajuste-as para concluir a venda.</span>
+                </div>
+
                 <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
-                    <table class="table table-hover" id="tabelaSessoes">
+                    <table class="table table-hover align-middle mb-0" id="tabelaSessoes">
                         <thead class="position-sticky top-0 bg-white" style="z-index:1;">
-                            <tr>
-                                <th>#</th>
-                                <th>Dia da Semana</th>
-                                <th>Data</th>
-                                <th>Horário</th>
+                            <tr class="text-muted fs-12 text-uppercase">
+                                <th style="width:8%;">#</th>
+                                <th style="width:22%;">Dia</th>
+                                <th style="width:30%;">Data</th>
+                                <th style="width:22%;">Início</th>
+                                <th style="width:18%;">Fim</th>
                             </tr>
                         </thead>
                         <tbody id="sessoesTbody"></tbody>
                     </table>
+                </div>
+
+                {{-- Resumo (Total + valor por etapa) --}}
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" id="resumoEtapas">
+                    <span class="text-muted fs-13" data-cel="resumo-etapa"></span>
+                    <span class="fw-semibold text-dark">Total
+                        <span class="fw-bold fs-4 ms-1" data-cel="resumo-total" style="color:var(--cor-destaque);">R$ 0,00</span>
+                    </span>
                 </div>
             </div>
         </div>
