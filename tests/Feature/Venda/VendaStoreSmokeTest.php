@@ -6,7 +6,7 @@ namespace Tests\Feature\Venda;
 
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
-use Database\Factories\{CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
+use Database\Factories\{AgendamentoFactory, CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;
@@ -228,5 +228,68 @@ class VendaStoreSmokeTest extends TestCase
 
         $this->assertSame(1, VendaProduto::count());
         $this->assertSame(4, $produto->fresh()->quantidade);
+    }
+
+    /**
+     * Conflito de agenda ao vender servico em etapas: quando o profissional ja
+     * possui agendamento em uma das datas, VenderEtapasAction lanca
+     * ConflitoAgendamentoException com uma mensagem que NOMEIA o profissional e
+     * lista o dia/horario ocupado, revertendo tudo (rollback). Regressao da
+     * mensagem generica antiga ("Conflito de horario nas datas: ...").
+     */
+    public function test_conflito_de_etapas_informa_profissional_e_datas(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+        $profissional = $contexto['usuario'];
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $rede->id]);
+        $servico = ServicoFactory::new()->etapas(2)->create([
+            'rede_id' => $rede->id,
+            'valor' => 200.00,
+        ]);
+
+        // Agendamento ja existente do profissional na 1a data/horario da venda.
+        $inicioOcupado = now()->addDays(1)->setTime(9, 0, 0);
+        AgendamentoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $profissional->id,
+            'inicio' => $inicioOcupado,
+            'fim' => $inicioOcupado->copy()->addMinutes(60),
+        ]);
+
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'servico',
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $profissional->id,
+            'valor_total' => 200.00,
+            'horario' => '09:00',
+            'datas' => [
+                $inicioOcupado->format('Y-m-d'),
+                now()->addDays(8)->format('Y-m-d'),
+            ],
+            'condicao_pagamento' => 'a_prazo',
+            'forma_pagamento' => 'pix',
+            'forma_recebimento_prazo' => 'carne',
+            'numero_parcelas' => 2,
+            'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertSessionHas('erro');
+        $resp->assertSessionMissing('sucesso');
+
+        $erro = session('erro');
+        $this->assertStringContainsString($profissional->nome, $erro);
+        $this->assertStringContainsString($inicioOcupado->format('d/m/Y'), $erro);
+        $this->assertStringContainsString('ocupada', $erro);
+
+        // Rollback total: nenhuma VendaEtapas e apenas o agendamento pre-existente.
+        $this->assertSame(0, VendaEtapas::count());
+        $this->assertSame(1, Agendamento::count());
     }
 }
