@@ -701,6 +701,111 @@ document.addEventListener('DOMContentLoaded', function() {
         },
     });
 
+    // ===== Card do cliente selecionado =====
+    function escaparHtml(valor) {
+        if (valor === null || valor === undefined) return '';
+        return String(valor)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function limparClienteCard() {
+        var card = document.getElementById('clienteCard');
+        if (!card) return;
+        card.innerHTML = '';
+        card.style.display = 'none';
+    }
+
+    function trocarCliente() {
+        var input = document.getElementById('clienteSearch');
+        var hidden = document.getElementById('clienteHidden');
+        if (input) input.value = '';
+        if (hidden) hidden.value = '';
+        limparClienteCard();
+        if (input) input.focus();
+    }
+
+    function renderClienteCard(item) {
+        var card = document.getElementById('clienteCard');
+        if (!card || !item) return;
+
+        var inicial = item.nome ? item.nome.trim().charAt(0).toUpperCase() : '?';
+        var fotoUrl = item.imagem_thumb_url || item.imagem_url;
+        var avatar = fotoUrl
+            ? '<img src="' + escaparHtml(fotoUrl) + '" alt="' + escaparHtml(item.nome) + '" class="rounded-circle flex-shrink-0" style="width:40px;height:40px;object-fit:cover;">'
+            : '<div class="bg-primary text-white rounded-circle fw-bold d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:40px;height:40px;">' + escaparHtml(inicial) + '</div>';
+
+        var telefone = item.telefone ? escaparHtml(item.telefone) : '-';
+        if (item.telefone && item.telefone_whatsapp) {
+            telefone += ' <span class="badge bg-success ms-1"><i class="feather-message-circle me-1"></i>WhatsApp</span>';
+        }
+
+        var sexo = item.sexo === 'M' ? 'Masculino'
+            : item.sexo === 'F' ? 'Feminino'
+            : item.sexo === 'outro' ? 'Outro'
+            : '-';
+
+        var nascimento = '-';
+        if (item.data_nascimento) {
+            nascimento = escaparHtml(item.data_nascimento);
+            if (item.idade !== null && item.idade !== undefined) {
+                nascimento += ' <small class="text-muted">(' + escaparHtml(item.idade) + ' anos)</small>';
+            }
+        }
+
+        var endLinhas = [];
+        if (item.logradouro) {
+            endLinhas.push(escaparHtml(item.logradouro)
+                + (item.numero ? ', ' + escaparHtml(item.numero) : '')
+                + (item.complemento ? ' - ' + escaparHtml(item.complemento) : ''));
+        }
+        if (item.bairro) endLinhas.push(escaparHtml(item.bairro));
+        if (item.cidade || item.estado) {
+            endLinhas.push(escaparHtml(item.cidade || '')
+                + (item.estado ? (item.cidade ? ' - ' : '') + escaparHtml(item.estado) : ''));
+        }
+        if (item.cep) endLinhas.push('CEP: ' + escaparHtml(item.cep));
+        var endereco = endLinhas.length ? endLinhas.join('<br>') : '-';
+
+        function campo(label, valor, colClass) {
+            return '<div class="' + colClass + '">'
+                + '<div class="fs-11 text-uppercase text-muted mb-1">' + label + '</div>'
+                + '<div class="fw-semibold">' + valor + '</div>'
+                + '</div>';
+        }
+
+        card.innerHTML =
+            '<div class="card border shadow-none mb-0">'
+                + '<div class="card-body">'
+                    + '<div class="d-flex align-items-center justify-content-between mb-3">'
+                        + '<div class="hstack gap-3">'
+                            + avatar
+                            + '<h6 class="mb-0 fw-bold">' + escaparHtml(item.nome || '') + '</h6>'
+                        + '</div>'
+                        + '<button type="button" id="clienteTrocar" class="btn btn-sm btn-light">'
+                            + '<i class="feather-refresh-cw me-1"></i>Trocar cliente'
+                        + '</button>'
+                    + '</div>'
+                    + '<div class="row g-3">'
+                        + campo('Telefone', telefone, 'col-6 col-md-4')
+                        + campo('Email', item.email ? escaparHtml(item.email) : '-', 'col-6 col-md-4')
+                        + campo('CPF', item.cpf ? escaparHtml(item.cpf) : '-', 'col-6 col-md-4')
+                        + campo('Nascimento', nascimento, 'col-6 col-md-4')
+                        + campo('Sexo', sexo, 'col-6 col-md-4')
+                        + campo('Endereço', endereco, 'col-12 col-md-8')
+                    + '</div>'
+                + '</div>'
+            + '</div>';
+
+        card.style.display = '';
+
+        var btnTrocar = document.getElementById('clienteTrocar');
+        if (btnTrocar) btnTrocar.addEventListener('click', trocarCliente);
+    }
+
     // AJAX Search — Cliente
     initAjaxSearch({
         inputId: 'clienteSearch',
@@ -711,7 +816,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return mini + '<strong>' + item.nome + '</strong>' + (item.telefone ? '<br><small class="text-muted">' + item.telefone + '</small>' : '');
         },
         displayText: function(item) { return item.nome; },
+        onSelect: function(item) { renderClienteCard(item); },
+        onClear: function() { limparClienteCard(); },
     });
+
+    // Renderiza o card se houver cliente pré-selecionado (repopulação após erro de validação)
+    if (cfg.clienteSelecionado) {
+        renderClienteCard(cfg.clienteSelecionado);
+    }
 
     // AJAX Search — Produto
     initAjaxSearch({

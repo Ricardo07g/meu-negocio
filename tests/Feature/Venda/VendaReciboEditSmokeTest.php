@@ -236,4 +236,18 @@ class VendaReciboEditSmokeTest extends TestCase
         $resp->assertOk();
         $resp->assertViewIs('venda::edit-produto');
     }
+
+    // ─── CREATE FORM ───────────────────────────────────────────────────────
+
+    public function test_pagina_nova_venda_renderiza_container_do_card_de_cliente(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $resp = $this->get(route('vendas.create'));
+
+        $resp->assertOk();
+        $resp->assertViewIs('venda::create');
+        // Container onde o JS injeta o card de dados do cliente selecionado.
+        $resp->assertSee('id="clienteCard"', false);
+    }
 }

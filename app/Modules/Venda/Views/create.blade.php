@@ -40,6 +40,9 @@
                     </div>
                 </div>
 
+                {{-- Card com os dados do cliente selecionado (preenchido via JS) --}}
+                <div id="clienteCard" class="mb-4" style="display:none;"></div>
+
                 {{-- ===== CAMPOS DE SERVIÇO ===== --}}
                 <div id="campos-servico" style="{{ old('tipo_venda') === 'produto' ? 'display:none;' : '' }}">
                     <div class="row mb-4">
@@ -378,6 +381,7 @@
 <script>
 window.vendaCreateConfig = {
     itensOld: @json($itensOld ?? []),
+    clienteSelecionado: @json($clienteSelecionado ?? null),
     servicoOld: @if($servicoOld ?? false) {
         id: {{ $servicoOld->id }},
         nome: @json($servicoOld->nome),
