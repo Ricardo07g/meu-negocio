@@ -823,6 +823,58 @@ document.addEventListener('DOMContentLoaded', function() {
         return { pronto: true, motivo: '' };
     }
 
+    // Coleta TODAS as pendencias que impedem salvar, com rotulo amigavel e o
+    // elemento a destacar/focar — usado no submit para dizer exatamente o que falta.
+    function coletarPendencias() {
+        const pend = [];
+        const add = (el, label) => pend.push({ el: el || null, label });
+        const tipo = tipoVendaInput.value;
+
+        if (tipo === 'produto') {
+            if (carrinhoItens.length === 0) {
+                add(document.getElementById('produtoSearch'), 'Adicione ao menos 1 produto ao carrinho');
+            }
+        } else {
+            if (!document.getElementById('clienteHidden').value) {
+                add(document.getElementById('clienteSearch'), 'Selecione o cliente');
+            }
+            if (!servicoSelecionado) {
+                add(document.getElementById('servicoSearch'), 'Selecione o serviço');
+            }
+            if (!document.getElementById('atendenteSelect').value) {
+                add(document.getElementById('atendenteSelect'), 'Selecione o atendente');
+            }
+            if (servicoSelecionado) {
+                const tipoServ = (typeof servicoSelecionado.tipo === 'object' && servicoSelecionado.tipo !== null)
+                    ? (servicoSelecionado.tipo.value || servicoSelecionado.tipo)
+                    : servicoSelecionado.tipo;
+                if (tipoServ === 'etapas') {
+                    if (!document.getElementById('horario').value) add(document.getElementById('horario'), 'Informe o horário das sessões');
+                    if ((parseFloat(document.getElementById('valorTotal').value) || 0) <= 0) add(document.getElementById('valorTotal'), 'Informe o valor total');
+                    if (sessoesTbody.querySelectorAll('tr').length === 0) add(document.getElementById('btnGerarPreview'), 'Gere o preview das etapas para definir as datas');
+                    if (temEtapasDuplicadas) add(sessoesTbody, 'Há sessões repetidas (mesma data e horário)');
+                } else {
+                    if (!document.getElementById('dataUnico').value) add(document.getElementById('dataUnico'), 'Informe a data do atendimento');
+                    if (!document.getElementById('horarioUnico').value) add(document.getElementById('horarioUnico'), 'Informe o horário');
+                }
+            }
+        }
+
+        // Pagamento: so cobra quando o card ja esta habilitado (dados basicos ok).
+        if (!cardPagamento.classList.contains('opacity-50')) {
+            if (!formaPagamentoSelect.value) add(formaPagamentoSelect, 'Selecione a forma de pagamento');
+            if (!mesReferencia.value) add(mesReferencia, 'Informe o mês de referência');
+            if (condicaoSelect.value === 'a_prazo') {
+                if (!(parseInt(numeroParcelasInput.value) >= 2)) add(numeroParcelasInput, 'Informe o número de parcelas (mínimo 2)');
+                if (!primeiroVencimento.value) add(primeiroVencimento, 'Informe o primeiro vencimento');
+                const formaReceb = document.getElementById('formaRecebimentoPrazoSelect');
+                if (formaReceb && !formaReceb.value) add(formaReceb, 'Selecione a forma de recebimento');
+            }
+        }
+
+        return pend;
+    }
+
     const PAGAMENTO_DEFAULTS = {
         condicao: 'a_vista',
         forma: '',
@@ -880,13 +932,47 @@ document.addEventListener('DOMContentLoaded', function() {
     aplicarCondicaoPagamento();
     atualizarHabilitacaoPagamento();
 
-    // Bloqueia submit se a venda não estiver pronta
-    document.getElementById('formNovaVenda').addEventListener('submit', function(e) {
-        const { pronto, motivo } = obterEstadoVenda();
-        if (!pronto) {
-            e.preventDefault();
-            swalAlerta(motivo);
+    // Bloqueia o submit e lista TUDO que falta, destacando e rolando ate o 1o campo.
+    const formNovaVenda = document.getElementById('formNovaVenda');
+
+    formNovaVenda.addEventListener('submit', function(e) {
+        formNovaVenda.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        const pendencias = coletarPendencias();
+        if (pendencias.length === 0) return; // tudo certo — deixa enviar
+
+        e.preventDefault();
+        pendencias.forEach(function(p) {
+            if (p.el && p.el.classList) p.el.classList.add('is-invalid');
+        });
+
+        const primeiro = pendencias[0].el;
+        if (primeiro) {
+            primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (typeof primeiro.focus === 'function') {
+                try { primeiro.focus({ preventScroll: true }); } catch (_) { primeiro.focus(); }
+            }
         }
+
+        const itens = pendencias.map(function(p) {
+            const d = document.createElement('div');
+            d.textContent = p.label;
+            return '<li>' + d.innerHTML + '</li>';
+        }).join('');
+        window.Swal.fire({
+            icon: 'warning',
+            title: 'Faltam dados para concluir a venda',
+            html: '<ul style="text-align:left;margin:0;padding-left:1.2rem;line-height:1.7;">' + itens + '</ul>',
+            confirmButtonColor: '#3454d1',
+        });
+    });
+
+    // Limpa o destaque de erro assim que o usuario corrige o campo.
+    formNovaVenda.addEventListener('input', function(e) {
+        if (e.target && e.target.classList) e.target.classList.remove('is-invalid');
+    });
+    formNovaVenda.addEventListener('change', function(e) {
+        if (e.target && e.target.classList) e.target.classList.remove('is-invalid');
     });
 
     // AJAX Search — Serviço

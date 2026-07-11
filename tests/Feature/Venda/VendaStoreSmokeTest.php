@@ -344,4 +344,29 @@ class VendaStoreSmokeTest extends TestCase
             'empresa_id' => $empresaPadrao->id,
         ]);
     }
+
+    /**
+     * Contrato de validacao do servidor que a validacao via JS espelha: uma venda
+     * de servico sem os campos obrigatorios volta com erros por campo (o layout
+     * os exibe num SweetAlert), sem persistir nada.
+     */
+    public function test_venda_servico_sem_campos_obrigatorios_retorna_erros_de_validacao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $servico = ServicoFactory::new()->avulso()->create([
+            'rede_id' => $contexto['rede']->id,
+            'valor' => 100.00,
+        ]);
+
+        // Servico unico sem cliente, atendente, data, horario nem forma de pagamento.
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'servico',
+            'servico_id' => $servico->id,
+            'condicao_pagamento' => 'a_vista',
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertSessionHasErrors(['cliente_id', 'atendente_id', 'data', 'horario', 'forma_pagamento']);
+        $this->assertSame(0, Agendamento::count());
+    }
 }
