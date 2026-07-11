@@ -10,7 +10,7 @@
     $inputId = $nome.'-'.uniqid();
 @endphp
 
-<div class="campo-imagem" data-campo-imagem>
+<div class="campo-imagem" data-campo-imagem data-formato="{{ $formato }}">
     <label class="form-label d-block" for="{{ $inputId }}">{{ $label }}</label>
 
     <div class="d-flex align-items-center gap-3">
@@ -23,20 +23,23 @@
             <span data-ci-placeholder class="ci-placeholder" @if($atual) hidden @endif>
                 <i class="feather-camera"></i>
             </span>
-            <span class="ci-overlay" aria-hidden="true">
-                <i class="feather-camera"></i>
-                <span class="ci-overlay-txt" data-ci-overlay-txt>{{ $atual ? 'Alterar' : 'Enviar' }}</span>
-            </span>
-            <button type="button" class="ci-remove" data-ci-remove title="Remover imagem"
-                    aria-label="Remover imagem" @unless($atual) hidden @endunless>
-                <i class="feather-x"></i>
-            </button>
         </div>
 
         <div class="ci-meta">
             <input type="file" id="{{ $inputId }}" name="{{ $nome }}" accept="image/jpeg,image/png,image/webp"
                    class="d-none" data-ci-input>
-            <p class="ci-hint mb-1">Clique no círculo ou arraste uma imagem.</p>
+
+            <div class="ci-actions">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-ci-change>
+                    <i class="feather-edit-2 me-1"></i><span data-ci-change-txt>{{ $atual ? 'Alterar' : 'Enviar' }}</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-ci-remove
+                        @unless($atual) hidden @endunless>
+                    <i class="feather-trash-2 me-1"></i>Remover
+                </button>
+            </div>
+
+            <p class="ci-hint mb-0 mt-2">Clique ou arraste uma imagem — você poderá recortá-la.</p>
             <p class="ci-sub mb-0">JPG, PNG ou WEBP · até 2&nbsp;MB.</p>
             @error($nome) <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
             @if($atual)
@@ -71,97 +74,24 @@
             .ci-img { width: 100%; height: 100%; object-fit: cover; grid-area: 1 / 1; }
             .ci-placeholder { grid-area: 1 / 1; font-size: 26px; line-height: 0; }
 
-            .ci-overlay {
-                grid-area: 1 / 1;
-                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-                background: rgba(15, 23, 42, .55);
-                color: #fff; font-size: 20px;
-                opacity: 0; transition: opacity .15s ease;
-            }
-            .ci-overlay-txt { font-size: 11px; font-weight: 600; letter-spacing: .02em; }
-            .ci-well:hover .ci-overlay, .ci-well:focus-visible .ci-overlay { opacity: 1; }
-
-            .ci-remove {
-                position: absolute; top: 4px; right: 4px; z-index: 2;
-                width: 24px; height: 24px; padding: 0;
-                display: inline-flex; align-items: center; justify-content: center;
-                border: 0; border-radius: 50%;
-                background: var(--bs-danger, #dc3545); color: #fff; font-size: 13px;
-                box-shadow: 0 1px 4px rgba(0,0,0,.3);
-                opacity: 0; transform: scale(.85); transition: opacity .15s ease, transform .15s ease;
-            }
-            .ci-well:hover .ci-remove:not([hidden]),
-            .ci-well:focus-within .ci-remove:not([hidden]) { opacity: 1; transform: scale(1); }
-            .ci-remove:hover { filter: brightness(1.08); }
-
+            .ci-actions { display: flex; flex-wrap: wrap; gap: 8px; }
             .ci-hint { font-size: 13px; font-weight: 500; color: var(--bs-body-color, #3b4453); }
             .ci-sub { font-size: 12px; color: var(--bs-secondary-color, #8a94a6); }
 
+            /* Modal de recorte (Cropper.js) */
+            .ci-crop-stage { max-height: 60vh; }
+            .ci-crop-stage img { display: block; max-width: 100%; max-height: 58vh; }
+            .ci-crop-tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 14px; }
+            .ci-crop-stage.is-round .cropper-view-box,
+            .ci-crop-stage.is-round .cropper-face { border-radius: 50%; }
+
             @media (prefers-reduced-motion: reduce) {
-                .ci-well, .ci-overlay, .ci-remove { transition: none; }
+                .ci-well { transition: none; }
             }
         </style>
     @endpush
 
     @push('js')
-        <script>
-            document.querySelectorAll('[data-campo-imagem]').forEach(function (raiz) {
-                var well = raiz.querySelector('[data-ci-well]');
-                var input = raiz.querySelector('[data-ci-input]');
-                var preview = raiz.querySelector('[data-ci-preview]');
-                var placeholder = raiz.querySelector('[data-ci-placeholder]');
-                var remover = raiz.querySelector('[data-ci-remove]');
-                var overlayTxt = raiz.querySelector('[data-ci-overlay-txt]');
-                var flag = raiz.querySelector('[data-ci-remove-flag]');
-
-                function mostrar(url) {
-                    preview.src = url;
-                    preview.hidden = false;
-                    placeholder.hidden = true;
-                    remover.hidden = false;
-                    overlayTxt.textContent = 'Alterar';
-                    if (flag) flag.value = '0';
-                }
-
-                function limpar() {
-                    input.value = '';
-                    preview.removeAttribute('src');
-                    preview.hidden = true;
-                    placeholder.hidden = false;
-                    remover.hidden = true;
-                    overlayTxt.textContent = 'Enviar';
-                    if (flag) flag.value = '1'; // remove a imagem existente ao salvar
-                }
-
-                well.addEventListener('click', function () { input.click(); });
-                well.addEventListener('keydown', function (e) {
-                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
-                });
-
-                input.addEventListener('change', function () {
-                    var f = input.files && input.files[0];
-                    if (f) mostrar(URL.createObjectURL(f));
-                });
-
-                remover.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    limpar();
-                });
-
-                ['dragenter', 'dragover'].forEach(function (ev) {
-                    well.addEventListener(ev, function (e) { e.preventDefault(); well.classList.add('ci-drag'); });
-                });
-                ['dragleave', 'dragend', 'drop'].forEach(function (ev) {
-                    well.addEventListener(ev, function () { well.classList.remove('ci-drag'); });
-                });
-                well.addEventListener('drop', function (e) {
-                    e.preventDefault();
-                    if (e.dataTransfer.files && e.dataTransfer.files.length) {
-                        input.files = e.dataTransfer.files;
-                        input.dispatchEvent(new Event('change'));
-                    }
-                });
-            });
-        </script>
+        @vite('resources/js/campo-imagem.js')
     @endpush
 @endonce
