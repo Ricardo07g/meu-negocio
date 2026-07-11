@@ -100,6 +100,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== CARRINHO DE PRODUTOS =====
     const carrinhoItens = [];
     const carrinhoTbody = document.getElementById('carrinhoTbody');
+    const carrinhoCards = document.getElementById('carrinhoCards');
+    const carrinhoVazioBlock = document.getElementById('carrinhoVazioBlock');
+    const carrinhoTabelaWrap = document.getElementById('carrinhoTabelaWrap');
+    const carrinhoContador = document.getElementById('carrinhoContador');
+    const carrinhoDescontosRow = document.getElementById('carrinhoDescontosRow');
+    const carrinhoAcrescimosRow = document.getElementById('carrinhoAcrescimosRow');
     const carrinhoTotal = document.getElementById('carrinhoTotal');
     const carrinhoSubtotal = document.getElementById('carrinhoSubtotal');
     const carrinhoDescontos = document.getElementById('carrinhoDescontos');
@@ -144,61 +150,169 @@ document.addEventListener('DOMContentLoaded', function() {
         produtoSearch.focus();
     });
 
-    function renderCarrinho() {
-        carrinhoTbody.innerHTML = '';
+    function formatarMoedaCarrinho(valor) {
+        return 'R$ ' + valor.toFixed(2).replace('.', ',');
+    }
 
-        if (carrinhoItens.length === 0) {
-            carrinhoTbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Nenhum item adicionado.</td></tr>';
-            carrinhoResumo.style.display = 'none';
-            return;
-        }
+    function totalDoItemCarrinho(item) {
+        return (item.quantidade * item.valor_unitario) - item.desconto + item.acrescimo;
+    }
 
-        let subtotalGeral = 0;
-        let descontoGeral = 0;
-        let acrescimoGeral = 0;
+    function miniaturaCarrinho(item) {
+        return item.imagem_thumb_url
+            ? '<img src="' + escaparHtml(item.imagem_thumb_url) + '" class="rounded flex-shrink-0" style="width:40px;height:40px;object-fit:cover;">'
+            : '<span class="d-inline-flex align-items-center justify-content-center rounded bg-soft-primary text-primary flex-shrink-0" style="width:40px;height:40px;"><i class="feather-package"></i></span>';
+    }
 
-        carrinhoItens.forEach(function(item, idx) {
-            const itemTotal = (item.quantidade * item.valor_unitario) - item.desconto + item.acrescimo;
+    function campoCarrinhoMobile(idx, campo, label, valor, step, min) {
+        return '<div class="col-6">' +
+            '<label class="form-label fs-12 text-muted mb-1">' + label + '</label>' +
+            '<input type="number" class="form-control form-control-sm text-end" value="' + valor + '" step="' + step + '" min="' + min + '" data-idx="' + idx + '" data-campo="' + campo + '">' +
+        '</div>';
+    }
+
+    const PASSO_VALOR = '0.50'; // passo das setinhas dos campos de valor: R$ 0,50
+
+    // Reflete o valor de um campo em todos os layouts (tabela + cards), opcionalmente exceto um elemento
+    function setCampoInputsCarrinho(idx, campo, valor, exceto) {
+        document.querySelectorAll('[data-idx="' + idx + '"][data-campo="' + campo + '"]').forEach(function(el) {
+            if (el !== exceto) el.value = valor;
+        });
+    }
+
+    // Atualiza apenas o total de uma linha (desktop + card mobile compartilham o mesmo data-total-idx)
+    function atualizarTotalLinhaCarrinho(idx) {
+        const texto = formatarMoedaCarrinho(totalDoItemCarrinho(carrinhoItens[idx]));
+        document.querySelectorAll('[data-total-idx="' + idx + '"]').forEach(function(el) {
+            el.textContent = texto;
+        });
+    }
+
+    // Atualiza o painel de resumo e o contador (sem reconstruir as linhas)
+    function atualizarResumoCarrinho() {
+        let subtotalGeral = 0, descontoGeral = 0, acrescimoGeral = 0;
+        carrinhoItens.forEach(function(item) {
             subtotalGeral += item.quantidade * item.valor_unitario;
             descontoGeral += item.desconto;
             acrescimoGeral += item.acrescimo;
+        });
+        const totalGeral = subtotalGeral - descontoGeral + acrescimoGeral;
 
+        carrinhoSubtotal.textContent = formatarMoedaCarrinho(subtotalGeral);
+        carrinhoDescontos.textContent = '- ' + formatarMoedaCarrinho(descontoGeral);
+        carrinhoAcrescimos.textContent = '+ ' + formatarMoedaCarrinho(acrescimoGeral);
+        // Definir o total dispara o MutationObserver de #carrinhoTotal (recalcula pagamento/parcelas)
+        carrinhoTotal.textContent = formatarMoedaCarrinho(totalGeral);
+
+        // d-flex é !important e venceria style.display; controlar visibilidade só pela classe d-none
+        carrinhoDescontosRow.classList.toggle('d-none', descontoGeral <= 0);
+        carrinhoAcrescimosRow.classList.toggle('d-none', acrescimoGeral <= 0);
+
+        carrinhoContador.textContent = carrinhoItens.length + (carrinhoItens.length === 1 ? ' item' : ' itens');
+        carrinhoContador.classList.toggle('d-none', carrinhoItens.length === 0);
+    }
+
+    function renderCarrinho() {
+        carrinhoTbody.innerHTML = '';
+        carrinhoCards.innerHTML = '';
+
+        // Alterna via classes (as utilitarias d-* do Bootstrap sao !important e venceriam style.display)
+        if (carrinhoItens.length === 0) {
+            carrinhoVazioBlock.classList.remove('d-none');
+            carrinhoTabelaWrap.className = 'd-none';
+            carrinhoCards.className = 'd-none';
+            carrinhoResumo.classList.add('d-none');
+            carrinhoContador.classList.add('d-none');
+            return;
+        }
+
+        carrinhoVazioBlock.classList.add('d-none');
+        carrinhoTabelaWrap.className = 'd-none d-md-block';
+        carrinhoCards.className = 'd-md-none';
+        carrinhoResumo.classList.remove('d-none');
+
+        carrinhoItens.forEach(function(item, idx) {
+            const nome = escaparHtml(item.nome);
+            const mini = miniaturaCarrinho(item);
+            const totalLinha = formatarMoedaCarrinho(totalDoItemCarrinho(item));
+
+            // Linha da tabela (desktop)
             const tr = document.createElement('tr');
-            const miniatura = item.imagem_thumb_url
-                ? '<img src="' + item.imagem_thumb_url + '" class="rounded me-2" style="width:28px;height:28px;object-fit:cover;vertical-align:middle;">'
-                : '';
             tr.innerHTML =
-                '<td>' + miniatura + item.nome + '</td>' +
+                '<td><div class="d-flex align-items-center gap-2">' + mini + '<span class="fw-semibold">' + nome + '</span></div></td>' +
                 '<td class="text-center"><input type="number" class="form-control form-control-sm text-center" value="' + item.quantidade + '" min="1" data-idx="' + idx + '" data-campo="quantidade"></td>' +
-                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.valor_unitario.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="valor_unitario"></td>' +
-                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.desconto.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="desconto"></td>' +
-                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.acrescimo.toFixed(2) + '" step="0.01" min="0" data-idx="' + idx + '" data-campo="acrescimo"></td>' +
-                '<td class="text-end fw-bold">R$ ' + itemTotal.toFixed(2).replace('.', ',') + '</td>' +
-                '<td class="text-center py-2"><button type="button" class="btn btn-sm btn-danger text-white" data-remover="' + idx + '"><i class="feather-trash-2"></i></button></td>';
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.valor_unitario.toFixed(2) + '" step="' + PASSO_VALOR + '" min="0" data-idx="' + idx + '" data-campo="valor_unitario"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.desconto.toFixed(2) + '" step="' + PASSO_VALOR + '" min="0" data-idx="' + idx + '" data-campo="desconto"></td>' +
+                '<td><input type="number" class="form-control form-control-sm text-end" value="' + item.acrescimo.toFixed(2) + '" step="' + PASSO_VALOR + '" min="0" data-idx="' + idx + '" data-campo="acrescimo"></td>' +
+                '<td class="text-end fw-semibold" data-total-idx="' + idx + '">' + totalLinha + '</td>' +
+                '<td class="text-center"><button type="button" class="btn btn-sm btn-light text-danger" data-remover="' + idx + '" aria-label="Remover item"><i class="feather-trash-2"></i></button></td>';
             carrinhoTbody.appendChild(tr);
+
+            // Card do item (mobile)
+            const card = document.createElement('div');
+            card.className = 'border rounded p-3' + (idx < carrinhoItens.length - 1 ? ' mb-2' : '');
+            card.innerHTML =
+                '<div class="d-flex align-items-center gap-2 mb-3">' +
+                    mini +
+                    '<div class="flex-grow-1" style="min-width:0;">' +
+                        '<div class="fw-semibold text-truncate">' + nome + '</div>' +
+                        '<div class="fs-13 text-muted">Total: <span class="fw-semibold" style="color:var(--cor-destaque);" data-total-idx="' + idx + '">' + totalLinha + '</span></div>' +
+                    '</div>' +
+                    '<button type="button" class="btn btn-sm btn-light text-danger flex-shrink-0" data-remover="' + idx + '" aria-label="Remover item"><i class="feather-trash-2"></i></button>' +
+                '</div>' +
+                '<div class="row g-2">' +
+                    campoCarrinhoMobile(idx, 'quantidade', 'Qtd', item.quantidade, '1', '1') +
+                    campoCarrinhoMobile(idx, 'valor_unitario', 'Vl. unit.', item.valor_unitario.toFixed(2), PASSO_VALOR, '0') +
+                    campoCarrinhoMobile(idx, 'desconto', 'Desconto', item.desconto.toFixed(2), PASSO_VALOR, '0') +
+                    campoCarrinhoMobile(idx, 'acrescimo', 'Acréscimo', item.acrescimo.toFixed(2), PASSO_VALOR, '0') +
+                '</div>';
+            carrinhoCards.appendChild(card);
         });
 
-        const totalGeral = subtotalGeral - descontoGeral + acrescimoGeral;
-        carrinhoSubtotal.textContent = 'R$ ' + subtotalGeral.toFixed(2).replace('.', ',');
-        carrinhoDescontos.textContent = descontoGeral > 0 ? '- R$ ' + descontoGeral.toFixed(2).replace('.', ',') : 'R$ 0,00';
-        carrinhoAcrescimos.textContent = acrescimoGeral > 0 ? '+ R$ ' + acrescimoGeral.toFixed(2).replace('.', ',') : 'R$ 0,00';
-        carrinhoTotal.textContent = 'R$ ' + totalGeral.toFixed(2).replace('.', ',');
-        carrinhoResumo.style.display = 'flex';
+        atualizarResumoCarrinho();
 
-        // Eventos de edicao inline
-        carrinhoTbody.querySelectorAll('input[data-campo]').forEach(function(input) {
+        // Edição inline: atualiza modelo, total da linha e resumo sem reconstruir (mantém o foco no campo)
+        document.querySelectorAll('#carrinhoTbody input[data-campo], #carrinhoCards input[data-campo]').forEach(function(input) {
             input.addEventListener('input', function() {
                 const idx = parseInt(this.dataset.idx);
                 const campo = this.dataset.campo;
                 let val = parseFloat(this.value) || 0;
-                if (campo === 'quantidade') val = Math.max(1, Math.round(val));
+                if (campo === 'quantidade') {
+                    val = Math.max(1, Math.round(val));
+                    if (parseInt(this.value) !== val) this.value = val;
+                } else if (val < 0) {
+                    val = 0;
+                }
                 carrinhoItens[idx][campo] = val;
-                renderCarrinho();
+
+                // Desconto e acréscimo são mutuamente exclusivos: ao preencher um, zera o outro
+                if (campo === 'desconto' && val > 0 && carrinhoItens[idx].acrescimo !== 0) {
+                    carrinhoItens[idx].acrescimo = 0;
+                    setCampoInputsCarrinho(idx, 'acrescimo', '0.00');
+                } else if (campo === 'acrescimo' && val > 0 && carrinhoItens[idx].desconto !== 0) {
+                    carrinhoItens[idx].desconto = 0;
+                    setCampoInputsCarrinho(idx, 'desconto', '0.00');
+                }
+
+                // Mantém o mesmo campo em sincronia no outro layout (tabela/cards)
+                setCampoInputsCarrinho(idx, campo, this.value, this);
+
+                atualizarTotalLinhaCarrinho(idx);
+                atualizarResumoCarrinho();
+            });
+
+            // Ao sair do campo, nunca deixa vazio: reexibe o valor do modelo (quantidade inteira, valores com 2 casas)
+            input.addEventListener('blur', function() {
+                const idx = parseInt(this.dataset.idx);
+                const campo = this.dataset.campo;
+                const item = carrinhoItens[idx];
+                if (!item) return;
+                this.value = campo === 'quantidade' ? item[campo] : Number(item[campo]).toFixed(2);
             });
         });
 
-        // Eventos de remover
-        carrinhoTbody.querySelectorAll('button[data-remover]').forEach(function(btn) {
+        // Remover item
+        document.querySelectorAll('#carrinhoTbody button[data-remover], #carrinhoCards button[data-remover]').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 carrinhoItens.splice(parseInt(this.dataset.remover), 1);
                 renderCarrinho();
@@ -722,7 +836,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function trocarCliente() {
         var input = document.getElementById('clienteSearch');
         var hidden = document.getElementById('clienteHidden');
-        if (input) input.value = '';
+        if (input) { input.value = ''; input.disabled = false; }
         if (hidden) hidden.value = '';
         limparClienteCard();
         if (input) input.focus();
@@ -801,6 +915,10 @@ document.addEventListener('DOMContentLoaded', function() {
             + '</div>';
 
         card.style.display = '';
+
+        // Trava o campo de busca enquanto há cliente selecionado (evita troca acidental)
+        var clienteInput = document.getElementById('clienteSearch');
+        if (clienteInput) clienteInput.disabled = true;
 
         var btnTrocar = document.getElementById('clienteTrocar');
         if (btnTrocar) btnTrocar.addEventListener('click', trocarCliente);
