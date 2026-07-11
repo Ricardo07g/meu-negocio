@@ -70,6 +70,7 @@ class VendaController extends Controller
                 ->orderBy('nome')->get();
 
             $clienteOld = old('cliente_id') ? Cliente::find(old('cliente_id')) : null;
+            $clienteSelecionado = $clienteOld?->dadosParaCard();
             $servicoOld = old('servico_id') ? Servico::find(old('servico_id')) : null;
 
             $itensOld = [];
@@ -87,7 +88,7 @@ class VendaController extends Controller
                 }
             }
 
-            return view('venda::create', compact('atendentes', 'clienteOld', 'servicoOld', 'itensOld'));
+            return view('venda::create', compact('atendentes', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }

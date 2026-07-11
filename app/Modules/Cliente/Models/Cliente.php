@@ -112,4 +112,34 @@ class Cliente extends BaseModel implements PossuiArquivos
             ],
         ];
     }
+
+    /**
+     * Representacao resumida do cliente usada na busca AJAX (`clientes.buscar`) e no
+     * card de selecao de cliente (ex.: tela de nova venda). Fonte unica do formato.
+     *
+     * @return array<string, mixed>
+     */
+    public function dadosParaCard(): array
+    {
+        return [
+            'id' => $this->id,
+            'nome' => $this->nome,
+            'telefone' => $this->telefone,
+            'telefone_whatsapp' => $this->telefone_whatsapp,
+            'email' => $this->email,
+            'cpf' => $this->cpf,
+            'sexo' => $this->sexo,
+            'data_nascimento' => $this->data_nascimento?->format('d/m/Y'),
+            'idade' => $this->data_nascimento?->age,
+            'cep' => $this->cep,
+            'estado' => $this->estado,
+            'cidade' => $this->cidade,
+            'bairro' => $this->bairro,
+            'logradouro' => $this->logradouro,
+            'numero' => $this->numero,
+            'complemento' => $this->complemento,
+            'imagem_thumb_url' => $this->imagem_thumb_url,
+            'imagem_url' => $this->imagem_url,
+        ];
+    }
 }

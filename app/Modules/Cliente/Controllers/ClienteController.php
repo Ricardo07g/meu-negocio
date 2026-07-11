@@ -123,13 +123,8 @@ class ClienteController extends Controller
             ->orWhere('telefone', 'like', "%{$q}%")
             ->with('arquivoPrincipal')
             ->limit(10)
-            ->get(['id', 'nome', 'telefone'])
-            ->map(fn (Cliente $c) => [
-                'id' => $c->id,
-                'nome' => $c->nome,
-                'telefone' => $c->telefone,
-                'imagem_thumb_url' => $c->imagem_thumb_url,
-            ]);
+            ->get()
+            ->map(fn (Cliente $c) => $c->dadosParaCard());
 
         return response()->json($clientes);
     }
