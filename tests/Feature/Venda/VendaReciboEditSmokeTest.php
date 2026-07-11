@@ -265,6 +265,9 @@ class VendaReciboEditSmokeTest extends TestCase
         // Seletor/indicador da empresa da venda (com 1 empresa: hidden name="empresa_id").
         $resp->assertSee('Empresa da venda');
         $resp->assertSee('name="empresa_id"', false);
+        // Form com novalidate: a validacao do cliente e via JS (sem bloqueio nativo silencioso).
+        $resp->assertSee('id="formNovaVenda"', false);
+        $resp->assertSee('novalidate', false);
     }
 
     /**

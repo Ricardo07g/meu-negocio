@@ -8,7 +8,9 @@
 @endsection
 
 @section('content')
-    <form action="{{ route('vendas.store') }}" method="POST" id="formNovaVenda">
+    {{-- novalidate: a validacao do cliente e feita 100% via JS (coletarPendencias),
+         evitando bloqueios nativos silenciosos (ex.: stepMismatch em valores). --}}
+    <form action="{{ route('vendas.store') }}" method="POST" id="formNovaVenda" novalidate>
         @csrf
         <input type="hidden" name="tipo_venda" id="tipoVendaInput" value="{{ old('tipo_venda', 'servico') }}">
 
