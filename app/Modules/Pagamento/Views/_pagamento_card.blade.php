@@ -34,6 +34,19 @@
     $proxima = $pagamento->proximaParcela();
     $condicaoLabel = $pagamento->condicao_pagamento->label();
     $algumaVencida = $parcelas->contains(fn ($p) => $p->estaVencida());
+
+    // Link para a tela de detalhes da venda que originou este pagamento.
+    $rotaVenda = match (true) {
+        (bool) $pagamento->agendamento_id => route('vendas.show', ['unico', $pagamento->agendamento_id]),
+        (bool) $pagamento->venda_etapas_id => route('vendas.show', ['etapas', $pagamento->venda_etapas_id]),
+        (bool) $pagamento->venda_produto_id => route('vendas.show', ['produto', $pagamento->venda_produto_id]),
+        default => null,
+    };
+    // So mostra o menu de acoes quando ha ao menos uma acao disponivel (evita
+    // o botao de tres pontinhos abrindo um menu vazio numa venda cancelada).
+    $temAcaoPagamento = ($rotaVenda && auth()->user()->can('agendamento.ver'))
+        || $valorPago > 0
+        || $proxima;
 @endphp
 
 <div class="d-flex align-items-stretch">
@@ -74,11 +87,21 @@
                 <x-badge-status :cor="$cor" :label="$statusLabel" />
                 <span class="badge {{ $origemBadge }}">{{ $origemTipo }}</span>
             </div>
+            @if($temAcaoPagamento)
             <div class="dropdown">
                 <a href="javascript:void(0);" class="avatar-text avatar-sm" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false">
                     <i class="feather-more-vertical"></i>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
+                    @if($rotaVenda)
+                        @can('agendamento.ver')
+                        <li>
+                            <a href="{{ $rotaVenda }}" class="dropdown-item">
+                                <i class="feather-eye me-2"></i>Ver detalhes da venda
+                            </a>
+                        </li>
+                        @endcan
+                    @endif
                     @if($valorPago > 0)
                     <li>
                         <a href="javascript:void(0)" class="dropdown-item"
@@ -98,6 +121,7 @@
                     @endif
                 </ul>
             </div>
+            @endif
         </div>
     </div>
 </div>
