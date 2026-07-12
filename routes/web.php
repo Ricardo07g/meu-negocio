@@ -72,12 +72,10 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         Route::patch('vendas/etapas/{etapas}/cancelar', [VendaController::class, 'cancelarEtapas'])->name('vendas.cancelar-etapas');
         Route::patch('vendas/produto/{vendaProduto}/cancelar', [VendaController::class, 'cancelarProduto'])->name('vendas.cancelar-produto');
         Route::get('vendas/recibo/{tipo}/{id}', [VendaController::class, 'recibo'])->name('vendas.recibo')->whereIn('tipo', ['unico', 'etapas', 'produto']);
-        Route::get('vendas/unico/{agendamento}/editar', [VendaController::class, 'editUnico'])->name('vendas.edit-unico');
-        Route::patch('vendas/unico/{agendamento}', [VendaController::class, 'updateUnico'])->name('vendas.update-unico');
-        Route::get('vendas/etapas/{etapas}/editar', [VendaController::class, 'editEtapas'])->name('vendas.edit-etapas');
-        Route::patch('vendas/etapas/{etapas}', [VendaController::class, 'updateEtapas'])->name('vendas.update-etapas');
-        Route::get('vendas/produto/{vendaProduto}/editar', [VendaController::class, 'editProduto'])->name('vendas.edit-produto');
-        Route::patch('vendas/produto/{vendaProduto}', [VendaController::class, 'updateProduto'])->name('vendas.update-produto');
+        Route::get('vendas/detalhes/{tipo}/{id}', [VendaController::class, 'show'])->name('vendas.show')->whereIn('tipo', ['unico', 'etapas', 'produto']);
+        Route::delete('vendas/unico/{agendamento}', [VendaController::class, 'excluirUnico'])->name('vendas.excluir-unico');
+        Route::delete('vendas/etapas/{etapas}', [VendaController::class, 'excluirEtapas'])->name('vendas.excluir-etapas');
+        Route::delete('vendas/produto/{vendaProduto}', [VendaController::class, 'excluirProduto'])->name('vendas.excluir-produto');
 
         // Clientes
         Route::get('clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');

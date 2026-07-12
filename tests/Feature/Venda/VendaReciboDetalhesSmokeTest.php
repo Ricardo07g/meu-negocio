@@ -15,18 +15,18 @@ use Tests\Concerns\CriaTenant;
 use Tests\TestCase;
 
 /**
- * Smoke dos GETs de leitura de Venda: recibo (PDF) e formularios de edicao
- * (editUnico / editEtapas / editProduto). Estes caminhos carregam relacoes
- * (pagamento, parcelas, agendamentos, itens) que sofreram o refactor
- * pacote->etapas — qualquer eager-load de relacao/coluna inexistente cairia
+ * Smoke dos GETs de leitura de Venda: recibo (PDF) e a tela de detalhes
+ * (somente-leitura) `vendas.show` para os tres tipos. Estes caminhos carregam
+ * relacoes (pagamento, parcelas, agendamentos, itens) via o partial
+ * `_venda_detalhe` — qualquer eager-load de relacao/coluna inexistente cairia
  * no tratarErro -> redirect-back com 'erro'. Por isso os asserts exigem 200
- * (recibo PDF / view de edicao) e ausencia de redirect de erro.
+ * (recibo PDF / view de detalhes) e ausencia de redirect de erro.
  *
  * As entidades sao criadas via Model::create + factories de Pagamento (em vez
  * de POST /vendas) para isolar estes caminhos do bug de store de etapas
  * (vendas_etapas.data NOT NULL, ver VendaStoreSmokeTest).
  */
-class VendaReciboEditSmokeTest extends TestCase
+class VendaReciboDetalhesSmokeTest extends TestCase
 {
     use CriaTenant;
     use RefreshDatabase;
@@ -204,39 +204,43 @@ class VendaReciboEditSmokeTest extends TestCase
         $this->assertSame('application/pdf', $resp->headers->get('content-type'));
     }
 
-    // ─── EDIT FORMS ────────────────────────────────────────────────────────
+    // ─── TELA DE DETALHES (somente-leitura) ────────────────────────────────
 
-    public function test_edit_unico_abre_formulario(): void
+    public function test_detalhes_unico_renderiza_view(): void
     {
         $ctx = $this->montarContexto();
         $agendamento = $this->criarVendaUnica($ctx);
 
-        $resp = $this->get(route('vendas.edit-unico', ['agendamento' => $agendamento->id]));
+        $resp = $this->get(route('vendas.show', ['tipo' => 'unico', 'id' => $agendamento->id]));
 
         $resp->assertOk();
-        $resp->assertViewIs('venda::edit-unico');
+        $resp->assertViewIs('venda::show');
+        $resp->assertSee($ctx['cliente']->nome);
+        $resp->assertSee('Voltar');
     }
 
-    public function test_edit_etapas_abre_formulario(): void
+    public function test_detalhes_etapas_renderiza_view(): void
     {
         $ctx = $this->montarContexto();
         $etapas = $this->criarVendaEtapas($ctx);
 
-        $resp = $this->get(route('vendas.edit-etapas', ['etapas' => $etapas->id]));
+        $resp = $this->get(route('vendas.show', ['tipo' => 'etapas', 'id' => $etapas->id]));
 
         $resp->assertOk();
-        $resp->assertViewIs('venda::edit-etapas');
+        $resp->assertViewIs('venda::show');
+        $resp->assertSee($ctx['cliente']->nome);
     }
 
-    public function test_edit_produto_abre_formulario(): void
+    public function test_detalhes_produto_renderiza_view(): void
     {
         $ctx = $this->montarContexto();
         $venda = $this->criarVendaProduto($ctx);
 
-        $resp = $this->get(route('vendas.edit-produto', ['vendaProduto' => $venda->id]));
+        $resp = $this->get(route('vendas.show', ['tipo' => 'produto', 'id' => $venda->id]));
 
         $resp->assertOk();
-        $resp->assertViewIs('venda::edit-produto');
+        $resp->assertViewIs('venda::show');
+        $resp->assertSee($ctx['cliente']->nome);
     }
 
     // ─── CREATE FORM ───────────────────────────────────────────────────────

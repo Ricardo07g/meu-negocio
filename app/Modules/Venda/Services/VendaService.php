@@ -15,7 +15,7 @@ use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
-use App\Modules\Venda\Actions\{CriarVendaProdutoAction, SincronizarItensVendaProdutoAction, VenderEtapasAction};
+use App\Modules\Venda\Actions\{CriarVendaProdutoAction, VenderEtapasAction};
 use App\Modules\Venda\DTOs\VenderEtapasData;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Carbon\Carbon;
@@ -31,7 +31,6 @@ class VendaService
         private CaixaService $caixaService,
         private CriarPagamentoComParcelasAction $criarPagamento,
         private CriarVendaProdutoAction $criarVendaProdutoAction,
-        private SincronizarItensVendaProdutoAction $sincronizarItens,
     ) {}
 
     public function listar(array $filtros = [], int $perPage = 20): LengthAwarePaginator
@@ -49,19 +48,7 @@ class VendaService
             $this->aplicarFiltrosComuns($etapasQuery, $filtros, $dataInicio, $dataFim, 'etapas');
             $this->aplicarBuscaEtapas($etapasQuery, $filtros['q'] ?? null);
             $this->aplicarStatusEtapas($etapasQuery, $filtros['status_venda'] ?? null);
-            $etapas = $etapasQuery->get()->map(fn ($p) => (object) [
-                'tipo' => 'etapas',
-                'id' => $p->id,
-                'cliente' => $p->cliente->nome,
-                'servico' => $p->servico->nome,
-                'info' => $p->qtd_etapas.' sessões',
-                'valor' => $p->valor_total,
-                'status' => $p->status->value,
-                'status_label' => $p->status->label(),
-                'cor' => $p->status->cor(),
-                'data' => $p->created_at,
-                'model' => $p,
-            ]);
+            $etapas = $etapasQuery->get()->map(fn ($p) => $this->mapearEtapas($p));
 
             $unicosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas'])
                 ->whereNull('venda_etapas_id')
@@ -70,19 +57,7 @@ class VendaService
             $this->aplicarBuscaUnico($unicosQuery, $filtros['q'] ?? null);
             $this->aplicarStatusUnico($unicosQuery, $filtros['status_venda'] ?? null);
             $this->aplicarValorUnico($unicosQuery, $filtros);
-            $unicos = $unicosQuery->get()->map(fn ($a) => (object) [
-                'tipo' => 'unico',
-                'id' => $a->id,
-                'cliente' => $a->cliente->nome,
-                'servico' => $a->servico->nome,
-                'info' => $a->inicio->format('d/m/Y H:i'),
-                'valor' => $a->servico->valor,
-                'status' => $a->status->value,
-                'status_label' => $a->status->label(),
-                'cor' => $a->status->cor(),
-                'data' => $a->created_at,
-                'model' => $a,
-            ]);
+            $unicos = $unicosQuery->get()->map(fn ($a) => $this->mapearUnico($a));
         }
 
         if ($tipo !== 'servico') {
@@ -91,19 +66,7 @@ class VendaService
             $this->aplicarFiltrosComuns($produtosQuery, $filtros, $dataInicio, $dataFim, 'produto');
             $this->aplicarBuscaProduto($produtosQuery, $filtros['q'] ?? null);
             $this->aplicarStatusProduto($produtosQuery, $filtros['status_venda'] ?? null);
-            $produtos = $produtosQuery->get()->map(fn ($vp) => (object) [
-                'tipo' => 'produto',
-                'id' => $vp->id,
-                'cliente' => $vp->cliente->nome ?? '-',
-                'servico' => $vp->itens->count().' produto(s)',
-                'info' => $vp->itens->sum('quantidade').' un.',
-                'valor' => $vp->valor_total,
-                'status' => $vp->status->value,
-                'status_label' => $vp->status->label(),
-                'cor' => $vp->status->cor(),
-                'data' => $vp->data ?? $vp->created_at,
-                'model' => $vp,
-            ]);
+            $produtos = $produtosQuery->get()->map(fn ($vp) => $this->mapearProduto($vp));
         }
 
         $vendas = collect($etapas)->merge($unicos)->merge($produtos)->sortByDesc('data')->values();
@@ -282,6 +245,77 @@ class VendaService
             'cancelado' => $query->where('status', 'cancelada'),
             'concluido' => $query->whereRaw('1 = 0'),
             default => null,
+        };
+    }
+
+    private function mapearEtapas(VendaEtapas $p): object
+    {
+        return (object) [
+            'tipo' => 'etapas',
+            'id' => $p->id,
+            'cliente' => $p->cliente->nome,
+            'servico' => $p->servico->nome,
+            'info' => $p->qtd_etapas.' sessões',
+            'valor' => $p->valor_total,
+            'status' => $p->status->value,
+            'status_label' => $p->status->label(),
+            'cor' => $p->status->cor(),
+            'data' => $p->created_at,
+            'model' => $p,
+        ];
+    }
+
+    private function mapearUnico(Agendamento $a): object
+    {
+        return (object) [
+            'tipo' => 'unico',
+            'id' => $a->id,
+            'cliente' => $a->cliente->nome,
+            'servico' => $a->servico->nome,
+            'info' => $a->inicio->format('d/m/Y H:i'),
+            'valor' => $a->servico->valor,
+            'status' => $a->status->value,
+            'status_label' => $a->status->label(),
+            'cor' => $a->status->cor(),
+            'data' => $a->created_at,
+            'model' => $a,
+        ];
+    }
+
+    private function mapearProduto(VendaProduto $vp): object
+    {
+        return (object) [
+            'tipo' => 'produto',
+            'id' => $vp->id,
+            'cliente' => $vp->cliente->nome ?? '-',
+            'servico' => $vp->itens->count().' produto(s)',
+            'info' => $vp->itens->sum('quantidade').' un.',
+            'valor' => $vp->valor_total,
+            'status' => $vp->status->value,
+            'status_label' => $vp->status->label(),
+            'cor' => $vp->status->cor(),
+            'data' => $vp->data ?? $vp->created_at,
+            'model' => $vp,
+        ];
+    }
+
+    /**
+     * Carrega uma venda (por tipo) com as relações necessárias para a tela de
+     * detalhes e devolve o mesmo objeto de linha usado na listagem.
+     */
+    public function detalhar(string $tipo, int $id): object
+    {
+        return match ($tipo) {
+            'unico' => $this->mapearUnico(
+                Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])->findOrFail($id),
+            ),
+            'etapas' => $this->mapearEtapas(
+                VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos.atendente', 'pagamento.parcelas.baixas'])->findOrFail($id),
+            ),
+            'produto' => $this->mapearProduto(
+                VendaProduto::with(['cliente', 'usuario', 'itens.produto.arquivoPrincipal', 'pagamento.parcelas.baixas'])->findOrFail($id),
+            ),
+            default => abort(404, 'Tipo de venda inválido'),
         };
     }
 
@@ -468,123 +502,56 @@ class VendaService
         $this->caixaService->estornarPagamento($pagamento);
     }
 
-    public function podeEditar(?Pagamento $pagamento): bool
+    /**
+     * Remove uma venda de serviço único: desfaz os lançamentos (mesmo estorno
+     * do cancelamento) e aplica soft delete no agendamento e no pagamento.
+     * Se já estiver cancelada, apenas o soft delete é aplicado.
+     */
+    public function removerUnico(Agendamento $agendamento): void
     {
-        if (! $pagamento) {
-            return true;
-        }
-
-        return $pagamento->valorPago() <= 0.0;
-    }
-
-    public function atualizarUnico(Agendamento $agendamento, array $data): Agendamento
-    {
-        return DB::transaction(function () use ($agendamento, $data) {
-            if (! in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
-                throw new \DomainException('Agendamento não pode ser editado nesse status.');
-            }
-            if (! $this->podeEditar($agendamento->pagamento)) {
-                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
+        DB::transaction(function () use ($agendamento) {
+            if ($agendamento->status->value !== 'cancelado') {
+                $this->cancelarUnico($agendamento);
+                $agendamento->refresh();
             }
 
-            $agendamento->update([
-                'cliente_id' => $data['cliente_id'] ?? $agendamento->cliente_id,
-                'observacoes' => $data['observacao'] ?? null,
-            ]);
-
-            if ($agendamento->pagamento && isset($data['cliente_id'])) {
-                $agendamento->pagamento->update(['cliente_id' => $data['cliente_id']]);
-            }
-
-            return $agendamento->fresh();
+            $agendamento->pagamento?->delete();
+            $agendamento->delete();
         });
     }
 
-    public function atualizarEtapas(VendaEtapas $etapas, array $data): VendaEtapas
+    /**
+     * Remove uma venda em etapas: estorna (se ainda ativa) e aplica soft delete
+     * na venda, no pagamento e nos agendamentos das sessões.
+     */
+    public function removerEtapas(VendaEtapas $etapas): void
     {
-        return DB::transaction(function () use ($etapas, $data) {
-            if ($etapas->status !== StatusVendaEtapas::Ativo) {
-                throw new \DomainException('Venda em etapas não pode ser editada nesse status.');
-            }
-            if (! $this->podeEditar($etapas->pagamento)) {
-                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
+        DB::transaction(function () use ($etapas) {
+            if ($etapas->status !== StatusVendaEtapas::Cancelado) {
+                $this->cancelarEtapas($etapas);
+                $etapas->refresh();
             }
 
-            $desconto = (float) ($data['desconto'] ?? $etapas->desconto);
-            $acrescimo = (float) ($data['acrescimo'] ?? $etapas->acrescimo);
-            $subtotal = (float) $etapas->valor_total + (float) $etapas->desconto - (float) $etapas->acrescimo;
-            $novoValorTotal = $subtotal - $desconto + $acrescimo;
-
-            $etapas->update([
-                'cliente_id' => $data['cliente_id'] ?? $etapas->cliente_id,
-                'desconto' => $desconto,
-                'acrescimo' => $acrescimo,
-                'valor_total' => $novoValorTotal,
-                'observacao' => $data['observacao'] ?? null,
-            ]);
-
-            if ($etapas->pagamento) {
-                $updates = ['valor_total' => $novoValorTotal];
-                if (isset($data['cliente_id'])) {
-                    $updates['cliente_id'] = $data['cliente_id'];
-                }
-                $etapas->pagamento->update($updates);
-
-                // Se for parcela única (à vista) ou qualquer 1 parcela, propagar o novo valor
-                if ($etapas->pagamento->parcelas->count() === 1) {
-                    $etapas->pagamento->parcelas->first()->update(['valor' => $novoValorTotal]);
-                }
-            }
-
-            return $etapas->fresh();
+            $etapas->agendamentos()->get()->each->delete();
+            $etapas->pagamento?->delete();
+            $etapas->delete();
         });
     }
 
-    public function atualizarVendaProduto(VendaProduto $venda, array $data): VendaProduto
+    /**
+     * Remove uma venda de produto: devolve estoque e estorna (se ainda ativa) e
+     * aplica soft delete na venda e no pagamento.
+     */
+    public function removerVendaProduto(VendaProduto $venda): void
     {
-        return DB::transaction(function () use ($venda, $data) {
-            if ($venda->status !== StatusVendaProduto::Ativa) {
-                throw new \DomainException('Venda não pode ser editada nesse status.');
-            }
-            if (! $this->podeEditar($venda->pagamento)) {
-                throw new \DomainException('Venda já possui parcelas pagas; edição bloqueada.');
-            }
-
-            $venda->load('itens');
-
-            if (isset($data['itens']) && is_array($data['itens'])) {
-                $this->sincronizarItens->executar($venda, $data['itens']);
+        DB::transaction(function () use ($venda) {
+            if ($venda->status !== StatusVendaProduto::Cancelada) {
+                $this->cancelarVendaProduto($venda);
                 $venda->refresh();
-                $venda->load('itens');
             }
 
-            $subtotal = $venda->itens->sum('subtotal');
-            $desconto = (float) ($data['desconto'] ?? $venda->desconto);
-            $acrescimo = (float) ($data['acrescimo'] ?? $venda->acrescimo);
-            $valorTotal = $subtotal - $desconto + $acrescimo;
-
-            $venda->update([
-                'cliente_id' => $data['cliente_id'] ?? $venda->cliente_id,
-                'subtotal' => $subtotal,
-                'desconto' => $desconto,
-                'acrescimo' => $acrescimo,
-                'valor_total' => $valorTotal,
-                'observacao' => $data['observacao'] ?? $venda->observacao,
-            ]);
-
-            if ($venda->pagamento) {
-                $updates = ['valor_total' => $valorTotal];
-                if (isset($data['cliente_id'])) {
-                    $updates['cliente_id'] = $data['cliente_id'];
-                }
-                $venda->pagamento->update($updates);
-
-                if ($venda->pagamento->parcelas->count() === 1) {
-                    $venda->pagamento->parcelas->first()->update(['valor' => $valorTotal]);
-                }
-            }
-
-            return $venda->fresh()->load('itens');
+            $venda->pagamento?->delete();
+            $venda->delete();
         });
     }
 }
