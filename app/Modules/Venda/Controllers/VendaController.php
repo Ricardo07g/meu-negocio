@@ -108,7 +108,7 @@ class VendaController extends Controller
                 ? (int) $request->empresa_id
                 : (ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id);
 
-            return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request));
+            return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request, $empresaId));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
         }
@@ -119,7 +119,7 @@ class VendaController extends Controller
      * vendas a vista) e delega a criacao ao service conforme o tipo de venda:
      * produto, servico em etapas ou agendamento unico.
      */
-    private function processarVenda(CriarVendaRequest $request): RedirectResponse
+    private function processarVenda(CriarVendaRequest $request, int $empresaId): RedirectResponse
     {
         $condicao = CondicaoPagamento::from($request->condicao_pagamento);
         $aVista = $condicao === CondicaoPagamento::AVista;
@@ -140,9 +140,9 @@ class VendaController extends Controller
 
         $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
-        if ($aVista && ! $this->caixaService->caixaAberto()) {
+        if ($aVista && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
             return redirect()->back()->withInput()
-                ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
+                ->with('erro', 'É necessário abrir o caixa de hoje desta empresa para registrar vendas à vista.');
         }
 
         if ($request->tipo_venda === 'produto') {

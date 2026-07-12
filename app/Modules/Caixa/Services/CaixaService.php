@@ -13,14 +13,31 @@ use Illuminate\Support\Facades\DB;
 
 class CaixaService
 {
-    public function caixaAberto(): ?Caixa
-    {
-        return Caixa::where('status', StatusCaixa::Aberto)->first();
-    }
-
     public function caixaDoDia(string $data): ?Caixa
     {
         return Caixa::where('data', $data)->first();
+    }
+
+    /**
+     * Caixa aberto de uma empresa especifica (opcionalmente de uma data).
+     *
+     * Usado por baixa/estorno para NAO depender do contexto de empresa
+     * ambiente (empresas_atuais/empresa_contexto_atual): a operacao acontece
+     * sobre a empresa da propria parcela/baixa (ja autorizada). Por isso
+     * removemos o global scope 'empresa' e filtramos empresa_id na mao — o
+     * scope de rede (RedeTrait) continua ativo, entao nunca cruza redes.
+     */
+    public function caixaAbertoDaEmpresa(int $empresaId, ?string $data = null): ?Caixa
+    {
+        $query = Caixa::withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresaId)
+            ->where('status', StatusCaixa::Aberto);
+
+        if ($data !== null) {
+            $query->whereDate('data', $data);
+        }
+
+        return $query->first();
     }
 
     public function abrir(float $saldoAbertura, string $data, ?string $observacao = null): Caixa
@@ -133,7 +150,7 @@ class CaixaService
             movimentoFk: 'baixa_pagamento_id',
             tituloLabel: 'do pagamento',
             tituloId: $parcela->pagamento_id,
-            mensagemSemCaixa: 'É necessário um caixa aberto para registrar a baixa.',
+            mensagemSemCaixa: 'É necessário um caixa aberto de hoje desta empresa para registrar a baixa.',
             mensagemLiquidoInvalido: 'O total líquido do recebimento precisa ser positivo.',
             recalcularTitulo: fn () => $parcela->pagamento?->recalcularStatus(),
         );
@@ -166,7 +183,7 @@ class CaixaService
             movimentoFk: 'baixa_despesa_id',
             tituloLabel: 'da despesa',
             tituloId: $parcela->despesa_id,
-            mensagemSemCaixa: 'É necessário um caixa aberto para registrar o pagamento.',
+            mensagemSemCaixa: 'É necessário um caixa aberto de hoje desta empresa para registrar o pagamento.',
             mensagemLiquidoInvalido: 'O total líquido do pagamento precisa ser positivo.',
             recalcularTitulo: fn () => $parcela->despesa?->recalcularStatus(),
         );
@@ -220,7 +237,7 @@ class CaixaService
                 throw new NegocioException($mensagemLiquidoInvalido);
             }
 
-            $caixa = $this->caixaAberto();
+            $caixa = $this->caixaAbertoDaEmpresa($parcela->empresa_id, now()->toDateString());
             if (! $caixa) {
                 throw new NegocioException($mensagemSemCaixa);
             }
@@ -281,40 +298,50 @@ class CaixaService
 
     /**
      * Estorna um título de Pagamento (na prática: cancelamento da venda).
-     * - Parcelas pagas: permanecem marcadas como pagas (histórico), mas geram saída no caixa aberto.
+     * - Cada baixa recebida gera uma saída NO MESMO caixa em que entrou, pelo
+     *   valor líquido real (principal + multa + juros − desconto), vinculada à
+     *   baixa (rastro completo) — entrada e saída se anulam no caixa de origem.
      * - Parcelas pendentes: marcadas como canceladas.
      * - Título: status = estornado.
      *
-     * Se o titulo ja tem valor recebido (parcelas pagas), exige caixa aberto
-     * para registrar a saida. Sem essa validacao o saldo do caixa ficaria
-     * inconsistente com o historico contabil.
+     * Se o caixa de origem de alguma baixa estiver fechado, exige reabri-lo
+     * antes (NegocioException). Sem isso o estorno alteraria o saldo de um dia
+     * já fechado — inconsistente com o histórico contábil.
      */
     public function estornarPagamento(Pagamento $pagamento): void
     {
         DB::transaction(function () use ($pagamento) {
-            $pagamento->load('parcelas');
+            $pagamento->load('parcelas.baixas');
 
-            $totalPago = (float) $pagamento->valorPago();
-
-            if ($totalPago > 0 && ! $this->caixaAberto()) {
-                throw new NegocioException(
-                    'Não é possível estornar um pagamento com valores recebidos sem caixa aberto. Abra o caixa antes de cancelar a venda.'
-                );
-            }
-
+            // Estorna cada baixa NO MESMO caixa em que ela entrou, pelo valor
+            // liquido real recebido — assim entrada e saida se anulam no caixa
+            // certo (empresa/dia de origem) e o rastro fica ligado a baixa.
             foreach ($pagamento->parcelas as $parcela) {
+                foreach ($parcela->baixas as $baixa) {
+                    // Busca o caixa de origem sem depender do contexto de empresa
+                    // ambiente (mesma estrategia de caixaAbertoDaEmpresa): assim o
+                    // guard de caixa fechado nunca e silenciosamente pulado.
+                    $caixaOrigem = Caixa::withoutGlobalScope('empresa')->find($baixa->caixa_id);
+                    if ($caixaOrigem && $caixaOrigem->status === StatusCaixa::Fechado) {
+                        throw new NegocioException(
+                            'Não é possível estornar: o caixa em que o recebimento entrou está fechado. '
+                            .'Reabra o caixa da respectiva data antes de cancelar a venda.'
+                        );
+                    }
+
+                    MovimentoCaixa::create([
+                        'caixa_id' => $baixa->caixa_id,
+                        'tipo' => TipoMovimentoCaixa::Saida,
+                        'valor' => $baixa->valorTotal(),
+                        'descricao' => "Estorno da parcela {$parcela->numero}/{$parcela->total} do pagamento #{$pagamento->id}",
+                        'forma_pagamento' => $baixa->forma_pagamento,
+                        'baixa_pagamento_id' => $baixa->id,
+                    ]);
+                }
+
                 if ($parcela->status === StatusParcela::Pendente) {
                     $parcela->update(['status' => StatusParcela::Cancelado]);
                 }
-            }
-
-            if ($totalPago > 0) {
-                MovimentoCaixa::create([
-                    'caixa_id' => $this->caixaAberto()->id,
-                    'tipo' => TipoMovimentoCaixa::Saida,
-                    'valor' => $totalPago,
-                    'descricao' => "Estorno pagamento #{$pagamento->id}",
-                ]);
             }
 
             $pagamento->update(['status' => StatusPagamento::Estornado]);

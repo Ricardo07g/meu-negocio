@@ -8,7 +8,8 @@ use App\Enums\FormaPagamento;
 use App\Models\BaseModel;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Traits\EmpresaTrait;
-use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasOne};
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Support\Carbon;
 
 /**
@@ -28,7 +29,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read ParcelaPagamento $parcela
  * @property-read Caixa|null $caixa
- * @property-read MovimentoCaixa|null $movimentoCaixa
+ * @property-read Collection<int, MovimentoCaixa> $movimentos
  */
 class BaixaPagamento extends BaseModel
 {
@@ -85,8 +86,12 @@ class BaixaPagamento extends BaseModel
         return $this->belongsTo(Caixa::class, 'caixa_id');
     }
 
-    public function movimentoCaixa(): HasOne
+    /**
+     * Movimentos de caixa ligados a esta baixa: a entrada do recebimento e,
+     * se a venda for cancelada, a saída de estorno.
+     */
+    public function movimentos(): HasMany
     {
-        return $this->hasOne(MovimentoCaixa::class, 'baixa_pagamento_id');
+        return $this->hasMany(MovimentoCaixa::class, 'baixa_pagamento_id');
     }
 }
