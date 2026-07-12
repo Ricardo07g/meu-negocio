@@ -105,7 +105,11 @@ class DashboardService
 
     public function caixaAberto(): ?Caixa
     {
-        return Caixa::where('status', StatusCaixa::Aberto)->first();
+        // Caixa aberto de HOJE (na empresa em contexto, via EmpresaTrait) —
+        // evita exibir um caixa de dia anterior deixado em aberto.
+        return Caixa::where('status', StatusCaixa::Aberto)
+            ->whereDate('data', today()->toDateString())
+            ->first();
     }
 
     /**

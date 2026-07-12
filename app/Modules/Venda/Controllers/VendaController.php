@@ -15,7 +15,7 @@ use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Venda\DTOs\VenderEtapasData;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
-use App\Modules\Venda\Requests\{AtualizarVendaEtapasRequest, AtualizarVendaProdutoRequest, AtualizarVendaUnicoRequest, CriarVendaRequest};
+use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
 use App\Support\ContextoEmpresa;
 use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
@@ -108,7 +108,7 @@ class VendaController extends Controller
                 ? (int) $request->empresa_id
                 : (ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id);
 
-            return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request));
+            return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request, $empresaId));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar venda');
         }
@@ -119,7 +119,7 @@ class VendaController extends Controller
      * vendas a vista) e delega a criacao ao service conforme o tipo de venda:
      * produto, servico em etapas ou agendamento unico.
      */
-    private function processarVenda(CriarVendaRequest $request): RedirectResponse
+    private function processarVenda(CriarVendaRequest $request, int $empresaId): RedirectResponse
     {
         $condicao = CondicaoPagamento::from($request->condicao_pagamento);
         $aVista = $condicao === CondicaoPagamento::AVista;
@@ -140,9 +140,9 @@ class VendaController extends Controller
 
         $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
-        if ($aVista && ! $this->caixaService->caixaAberto()) {
+        if ($aVista && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
             return redirect()->back()->withInput()
-                ->with('erro', 'É necessário abrir o caixa para registrar vendas à vista.');
+                ->with('erro', 'É necessário abrir o caixa de hoje desta empresa para registrar vendas à vista.');
         }
 
         if ($request->tipo_venda === 'produto') {
@@ -248,6 +248,7 @@ class VendaController extends Controller
     public function cancelarProduto(VendaProduto $vendaProduto): RedirectResponse
     {
         try {
+            $this->authorize('cancel', $vendaProduto);
             $this->service->cancelarVendaProduto($vendaProduto);
 
             return redirect()->route('vendas.index')->with('sucesso', 'Venda cancelada. Estoque devolvido e pagamento estornado.');
@@ -256,80 +257,51 @@ class VendaController extends Controller
         }
     }
 
-    public function editUnico(Agendamento $agendamento): View|RedirectResponse
+    public function show(string $tipo, int $id): View|RedirectResponse
     {
         try {
-            $agendamento->load(['cliente', 'servico', 'pagamento.parcelas']);
-            if (! $this->service->podeEditar($agendamento->pagamento) || ! in_array($agendamento->status->value, ['agendado', 'confirmado'])) {
-                return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
-            }
+            $venda = $this->service->detalhar($tipo, $id);
+            $this->authorize('view', $venda->model);
 
-            return view('venda::edit-unico', compact('agendamento'));
+            return view('venda::show', compact('venda'));
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao abrir edição de venda de serviço único');
+            return $this->tratarErro($e, 'Erro ao abrir detalhes da venda');
         }
     }
 
-    public function updateUnico(AtualizarVendaUnicoRequest $request, Agendamento $agendamento): RedirectResponse
+    public function excluirUnico(Agendamento $agendamento): RedirectResponse
     {
         try {
-            $this->service->atualizarUnico($agendamento, $request->validated());
+            $this->authorize('delete', $agendamento);
+            $this->service->removerUnico($agendamento);
 
-            return redirect()->route('vendas.index')->with('sucesso', 'Agendamento atualizado.');
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda removida. Lançamentos desfeitos.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar venda de serviço único');
+            return $this->tratarErro($e, 'Erro ao remover venda de serviço único');
         }
     }
 
-    public function editEtapas(VendaEtapas $etapas): View|RedirectResponse
+    public function excluirEtapas(VendaEtapas $etapas): RedirectResponse
     {
         try {
-            $this->authorize('view', $etapas);
-            $etapas->load(['cliente', 'servico', 'pagamento.parcelas']);
-            if (! $this->service->podeEditar($etapas->pagamento) || $etapas->status->value !== 'ativo') {
-                return redirect()->route('vendas.index')->with('erro', 'Venda em etapas não pode ser editada.');
-            }
+            $this->authorize('delete', $etapas);
+            $this->service->removerEtapas($etapas);
 
-            return view('venda::edit-etapas', compact('etapas'));
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda removida. Lançamentos desfeitos.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao abrir edição de venda em etapas');
+            return $this->tratarErro($e, 'Erro ao remover venda em etapas');
         }
     }
 
-    public function updateEtapas(AtualizarVendaEtapasRequest $request, VendaEtapas $etapas): RedirectResponse
+    public function excluirProduto(VendaProduto $vendaProduto): RedirectResponse
     {
         try {
-            $this->authorize('view', $etapas);
-            $this->service->atualizarEtapas($etapas, $request->validated());
+            $this->authorize('delete', $vendaProduto);
+            $this->service->removerVendaProduto($vendaProduto);
 
-            return redirect()->route('vendas.index')->with('sucesso', 'Venda em etapas atualizada.');
+            return redirect()->route('vendas.index')->with('sucesso', 'Venda removida. Lançamentos desfeitos.');
         } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar venda em etapas');
-        }
-    }
-
-    public function editProduto(VendaProduto $vendaProduto): View|RedirectResponse
-    {
-        try {
-            $vendaProduto->load(['cliente', 'itens.produto', 'pagamento.parcelas']);
-            if (! $this->service->podeEditar($vendaProduto->pagamento) || $vendaProduto->status->value !== 'ativa') {
-                return redirect()->route('vendas.index')->with('erro', 'Venda não pode ser editada.');
-            }
-
-            return view('venda::edit-produto', compact('vendaProduto'));
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao abrir edição de venda de produto');
-        }
-    }
-
-    public function updateProduto(AtualizarVendaProdutoRequest $request, VendaProduto $vendaProduto): RedirectResponse
-    {
-        try {
-            $this->service->atualizarVendaProduto($vendaProduto, $request->validated());
-
-            return redirect()->route('vendas.index')->with('sucesso', 'Venda atualizada.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao atualizar venda de produto');
+            return $this->tratarErro($e, 'Erro ao remover venda de produto');
         }
     }
 

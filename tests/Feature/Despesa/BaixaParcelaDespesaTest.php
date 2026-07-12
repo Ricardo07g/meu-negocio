@@ -145,7 +145,7 @@ class BaixaParcelaDespesaTest extends TestCase
         $primeira = $cenario['parcelas']->first();
 
         $this->expectException(NegocioException::class);
-        $this->expectExceptionMessage('É necessário um caixa aberto para registrar o pagamento.');
+        $this->expectExceptionMessage('É necessário um caixa aberto de hoje desta empresa para registrar o pagamento.');
 
         try {
             app(CaixaService::class)->darBaixaParcelaDespesa(

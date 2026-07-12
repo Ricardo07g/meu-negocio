@@ -25,8 +25,8 @@ use App\Modules\Tenant\Models\{Empresa, Fatura};
 use App\Modules\Tenant\Policies\{EmpresaPolicy, FaturaPolicy};
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
-use App\Modules\Venda\Models\VendaEtapas;
-use App\Modules\Venda\Policies\VendaEtapasPolicy;
+use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
+use App\Modules\Venda\Policies\{VendaEtapasPolicy, VendaProdutoPolicy};
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\{Gate, Route};
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +54,7 @@ class AppServiceProvider extends ServiceProvider
         Servico::class => ServicoPolicy::class,
         Usuario::class => UsuarioPolicy::class,
         VendaEtapas::class => VendaEtapasPolicy::class,
+        VendaProduto::class => VendaProdutoPolicy::class,
     ];
 
     public function register(): void
