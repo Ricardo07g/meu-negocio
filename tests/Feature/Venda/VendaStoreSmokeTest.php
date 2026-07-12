@@ -191,6 +191,54 @@ class VendaStoreSmokeTest extends TestCase
         $this->assertSame(18, $produto->fresh()->quantidade);
     }
 
+    /**
+     * Regressao: um formulario real envia todos os campos como STRING
+     * ("cliente_id=422"), enquanto os testes acima passavam int nativo e por
+     * isso nao pegavam o bug. VendaController::store repassava $request->cliente_id
+     * cru a VendaService::criarVendaProduto(?int $cliente_id) e, sob
+     * declare(strict_types=1), PHP recusava a string -> TypeError (mascarado
+     * como redirect-back 'erro' pelo tratarErro). Corrigido castando para ?int
+     * no controller, preservando null na venda balcao.
+     */
+    public function test_cria_venda_de_produto_com_cliente_id_string_do_formulario(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $rede->id]);
+        $produto = ProdutoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'quantidade' => 10,
+            'valor_venda' => 50.00,
+        ]);
+
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'produto',
+            'cliente_id' => (string) $cliente->id,
+            'itens' => [[
+                'produto_id' => (string) $produto->id,
+                'quantidade' => '2',
+                'valor_unitario' => '50.00',
+                'desconto' => '0',
+                'acrescimo' => '0',
+            ]],
+            'condicao_pagamento' => 'a_prazo',
+            'forma_pagamento' => 'pix',
+            'forma_recebimento_prazo' => 'carne',
+            'numero_parcelas' => '2',
+            'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertRedirect(route('vendas.index'));
+        $resp->assertSessionHas('sucesso');
+        $resp->assertSessionMissing('erro');
+
+        $this->assertSame(1, VendaProduto::count());
+        $this->assertSame($cliente->id, VendaProduto::firstOrFail()->cliente_id);
+        $this->assertDatabaseHas('pagamentos', ['valor_total' => 100.00]);
+    }
+
     public function test_cria_venda_de_produto_a_vista_com_caixa_aberto(): void
     {
         $contexto = $this->criarRedeAutenticada();

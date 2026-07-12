@@ -148,8 +148,12 @@ class VendaController extends Controller
         if ($request->tipo_venda === 'produto') {
             $itens = $request->input('itens', []);
 
+            // Form envia tudo como string ("cliente_id=422"); a assinatura do
+            // service e ?int (strict_types). Casta preservando null (venda balcao).
+            $clienteId = $request->filled('cliente_id') ? (int) $request->cliente_id : null;
+
             $this->service->criarVendaProduto(
-                $request->cliente_id,
+                $clienteId,
                 $itens,
                 $condicao,
                 $mesReferencia,
