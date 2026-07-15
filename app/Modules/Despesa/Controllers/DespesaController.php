@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Despesa\Controllers;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo};
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Despesa\Requests\SalvarDespesaRequest;
 use App\Modules\Despesa\Services\DespesaService;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, SalvarBaixaParcelaRequest};
 use App\Traits\{DefineEmpresaDeCriacao, TratamentoErros};
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -47,8 +48,9 @@ class DespesaController extends Controller
         try {
             $this->authorize('create', Despesa::class);
             $categorias = CategoriaDespesa::ativos()->orderBy('descricao')->get();
+            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
 
-            return view('despesa::create', compact('categorias'));
+            return view('despesa::create', compact('categorias', 'formas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de despesa');
         }
@@ -77,8 +79,8 @@ class DespesaController extends Controller
     {
         $condicao = CondicaoPagamento::from($request->condicao_pagamento);
 
-        $forma = $request->forma_pagamento
-            ? FormaPagamento::from($request->forma_pagamento)
+        $forma = $request->filled('forma_pagamento')
+            ? FormaPagamento::findOrFail((int) $request->forma_pagamento)
             : null;
 
         $formaRecebimentoPrazo = $request->forma_recebimento_prazo
@@ -154,7 +156,9 @@ class DespesaController extends Controller
                 return redirect()->route('despesas.index')->with('erro', 'Esta parcela já está quitada.');
             }
 
-            return view('despesa::baixa', compact('parcela'));
+            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
+
+            return view('despesa::baixa', compact('parcela', 'formas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de baixa');
         }
@@ -167,7 +171,7 @@ class DespesaController extends Controller
                 $this->caixaService->darBaixaParcelaDespesa(
                     $parcela,
                     (float) $request->valor,
-                    FormaPagamento::from($request->forma_pagamento),
+                    FormaPagamento::findOrFail((int) $request->forma_pagamento),
                     $request->observacao,
                     (float) ($request->multa ?? 0),
                     (float) ($request->juros ?? 0),

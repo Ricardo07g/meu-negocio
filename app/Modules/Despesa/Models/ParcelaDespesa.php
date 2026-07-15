@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Despesa\Models;
 
-use App\Enums\{FormaPagamento, StatusParcela};
+use App\Enums\StatusParcela;
 use App\Models\BaseModel;
 use App\Modules\Caixa\Models\BaixaDespesa;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
@@ -23,13 +24,15 @@ use Illuminate\Support\Carbon;
  * @property float $valor_pago
  * @property Carbon $data_vencimento
  * @property Carbon|null $mes_referencia
- * @property FormaPagamento|null $forma_pagamento
+ * @property int|null $forma_pagamento_id
+ * @property string|null $forma_pagamento_nome
  * @property StatusParcela $status
  * @property string|null $observacao
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Despesa $despesa
+ * @property-read FormaPagamento|null $formaPagamento
  * @property-read Collection<int, BaixaDespesa> $baixas
  */
 class ParcelaDespesa extends BaseModel
@@ -48,7 +51,8 @@ class ParcelaDespesa extends BaseModel
         'valor_pago',
         'data_vencimento',
         'mes_referencia',
-        'forma_pagamento',
+        'forma_pagamento_id',
+        'forma_pagamento_nome',
         'status',
         'observacao',
     ];
@@ -62,7 +66,6 @@ class ParcelaDespesa extends BaseModel
             'valor_pago' => 'decimal:2',
             'data_vencimento' => 'date',
             'mes_referencia' => 'date',
-            'forma_pagamento' => FormaPagamento::class,
             'status' => StatusParcela::class,
         ];
     }
@@ -77,6 +80,11 @@ class ParcelaDespesa extends BaseModel
     public function despesa(): BelongsTo
     {
         return $this->belongsTo(Despesa::class, 'despesa_id');
+    }
+
+    public function formaPagamento(): BelongsTo
+    {
+        return $this->belongsTo(FormaPagamento::class, 'forma_pagamento_id');
     }
 
     public function baixas(): HasMany

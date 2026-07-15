@@ -336,7 +336,7 @@
                                     @endswitch
                                 </td>
                                 <td>{{ $movimento->descricao }}</td>
-                                <td>{{ $movimento->forma_pagamento ? ucfirst($movimento->forma_pagamento->value) : '-' }}</td>
+                                <td>{{ $movimento->forma_pagamento_nome ?? '-' }}</td>
                                 <td class="text-end">R$ {{ number_format($movimento->valor, 2, ',', '.') }}</td>
                             </tr>
                             @empty

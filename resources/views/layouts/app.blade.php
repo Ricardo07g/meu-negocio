@@ -258,6 +258,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Formas de Pagamento --}}
+                    @can('forma_pagamento.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('formas-pagamento.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-credit-card"></i></span>
+                            <span class="nxl-mtext">Formas de Pagamento</span>
+                        </a>
+                    </li>
+                    @endcan
                     @endif
 
                     @if(auth()->user()->rede->plano->tem_estoque)

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Caixa;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, StatusCaixa, StatusPagamento, StatusVendaProduto, TipoMovimentoCaixa};
+use App\Enums\{CondicaoPagamento, StatusCaixa, StatusPagamento, StatusVendaProduto, TipoFormaPagamento, TipoMovimentoCaixa};
 use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
@@ -60,7 +60,7 @@ class EstornoTest extends TestCase
             ]],
             condicao: CondicaoPagamento::AVista,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Dinheiro,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
             numeroParcelas: null,
             primeiroVencimento: now(),
         );

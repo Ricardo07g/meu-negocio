@@ -88,10 +88,9 @@
                 <label class="form-label" id="despFormaLabel">Forma de Pagamento <span class="text-danger">*</span></label>
                 <select name="forma_pagamento" class="form-select @error('forma_pagamento') is-invalid @enderror">
                     <option value="">Selecione...</option>
-                    <option value="pix" {{ old('forma_pagamento') === 'pix' ? 'selected' : '' }}>Pix</option>
-                    <option value="dinheiro" {{ old('forma_pagamento') === 'dinheiro' ? 'selected' : '' }}>Dinheiro</option>
-                    <option value="cartao" {{ old('forma_pagamento') === 'cartao' ? 'selected' : '' }}>Cartão</option>
-                    <option value="boleto" {{ old('forma_pagamento') === 'boleto' ? 'selected' : '' }}>Boleto</option>
+                    @foreach(($formas ?? []) as $forma)
+                        <option value="{{ $forma->id }}" {{ (int) old('forma_pagamento') === $forma->id ? 'selected' : '' }}>{{ $forma->nome }}</option>
+                    @endforeach
                 </select>
                 @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>

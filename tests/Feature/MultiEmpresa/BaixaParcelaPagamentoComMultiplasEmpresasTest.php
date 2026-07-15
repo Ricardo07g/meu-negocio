@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\MultiEmpresa;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusCaixa};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusCaixa, TipoFormaPagamento};
 use App\Modules\Caixa\Models\{BaixaPagamento, Caixa};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
@@ -68,7 +68,7 @@ class BaixaParcelaPagamentoComMultiplasEmpresasTest extends TestCase
             ]],
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Pix,
+            formaAvista: $this->formaPagamento($rede, TipoFormaPagamento::Pix),
             numeroParcelas: 2,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,
@@ -84,7 +84,7 @@ class BaixaParcelaPagamentoComMultiplasEmpresasTest extends TestCase
 
         $resp = $this->post(route('parcelas-pagamento.baixa', $parcela), [
             'valor' => (float) $parcela->valor,
-            'forma_pagamento' => FormaPagamento::Pix->value,
+            'forma_pagamento' => $this->formaPagamento($rede, TipoFormaPagamento::Pix)->id,
             'observacao' => 'baixa via teste',
         ]);
 

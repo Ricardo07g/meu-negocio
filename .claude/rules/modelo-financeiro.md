@@ -10,7 +10,9 @@ paths:
 # Modelo financeiro: Titulo + Parcela + Baixa
 
 Carrega ao mexer em Pagamento, Despesa, Venda, Caixa ou no parcelamento. Regra de ouro:
-`forma_pagamento` mora na **parcela/baixa**, NUNCA no titulo. Fiado = `condicao_pagamento = a_prazo`.
+a **forma** mora na parcela/baixa (via `forma_pagamento_id` FK + snapshot `forma_pagamento_nome`),
+NUNCA no titulo. Fiado = `condicao_pagamento = a_prazo`. A forma e um CATALOGO por rede
+(`formas_pagamento`), nao mais um enum fixo — ver `.claude/rules/modulos/forma-pagamento.md` e ADR-0009.
 
 ## Tres entidades
 - **Titulo** = `Pagamento` (a receber) ou `Despesa` (a pagar). Tem `condicao_pagamento`,
@@ -25,7 +27,17 @@ Carrega ao mexer em Pagamento, Despesa, Venda, Caixa ou no parcelamento. Regra d
 - `CondicaoPagamento`: `a_vista`, `a_prazo`, `boleto`, `pix_parcelado`.
 - `FormaRecebimentoPrazo`: canais esperados de recebimento do titulo a prazo.
 - `StatusParcela`: `Pendente`, `Pago`, `Vencido`, `Cancelado`, `Renegociado`.
-- `FormaPagamento`: pix, dinheiro, cartao etc. — **na parcela/baixa, nao no titulo.**
+- `TipoFormaPagamento`: `dinheiro`, `pix`, `cartao_debito`, `cartao_credito`, `boleto` — tipo-base de
+  uma `FormaPagamento` do catalogo (NAO e a forma em si; a forma e uma linha de `formas_pagamento`).
+- `StatusRecebivel`: `Previsto`, `Recebido`, `Cancelado` (derivado por data).
+
+## Recebiveis de cartao (a receber do banco)
+Forma com `gera_recebivel = true` (cartao): a baixa quita o cliente e cria a `BaixaPagamento`, mas
+**nao exige caixa aberto e nao gera `MovimentoCaixa`** — gera N `Recebivel` (um por parcela do cartao),
+`valor_liquido = bruto × (1 − taxa/100)`, `data_prevista = venda + dias_liquidacao + 30×(i−1)`. Status
+computado por data (sem job). Estorno cancela os recebiveis (por-baixa; baixa de cartao tem `caixa_id`
+NULL). Dinheiro/Pix (`gera_recebivel = false`) seguem o fluxo antigo: caixa + `MovimentoCaixa`. Despesa
+NUNCA gera recebivel. Ver `.claude/rules/modulos/forma-pagamento.md`, `modulos/caixa.md` e ADR-0009.
 
 ## Venda -> Pagamento -> Caixa
 - **A vista**: `CriarPagamentoComParcelasAction` cria Pagamento + 1 parcela e baixa automaticamente

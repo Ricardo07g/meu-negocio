@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Concerns;
 
-use App\Enums\StatusRede;
+use App\Enums\{StatusRede, TipoFormaPagamento};
+use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
 use App\Modules\Usuario\Models\Usuario;
 use Database\Seeders\{PermissaoSeeder, PlanoSeeder};
@@ -80,7 +82,22 @@ trait CriaTenant
 
         $usuario->assignRole('Admin');
 
+        // Formas de pagamento padrão da rede (Dinheiro/Pix caixa; Débito/Crédito recebível).
+        app(FormaPagamentoService::class)->semearPadrao($rede->id);
+
         return compact('rede', 'empresa', 'usuario');
+    }
+
+    /**
+     * Retorna uma forma de pagamento padrão da rede pelo tipo.
+     * (Sem global scope: útil mesmo antes/depois do actingAs.)
+     */
+    protected function formaPagamento(Rede $rede, TipoFormaPagamento $tipo = TipoFormaPagamento::Dinheiro): FormaPagamento
+    {
+        return FormaPagamento::withoutGlobalScopes()
+            ->where('rede_id', $rede->id)
+            ->where('tipo', $tipo->value)
+            ->firstOrFail();
     }
 
     /**

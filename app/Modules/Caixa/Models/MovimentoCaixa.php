@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Caixa\Models;
 
-use App\Enums\{FormaPagamento, TipoMovimentoCaixa};
+use App\Enums\TipoMovimentoCaixa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  * @property TipoMovimentoCaixa $tipo
  * @property float $valor
  * @property string $descricao
- * @property FormaPagamento|null $forma_pagamento
+ * @property string|null $forma_pagamento_nome
  * @property int|null $baixa_pagamento_id
  * @property int|null $baixa_despesa_id
  * @property Carbon|null $created_at
@@ -33,7 +33,7 @@ class MovimentoCaixa extends Model
         'tipo',
         'valor',
         'descricao',
-        'forma_pagamento',
+        'forma_pagamento_nome',
         'baixa_pagamento_id',
         'baixa_despesa_id',
     ];
@@ -43,7 +43,6 @@ class MovimentoCaixa extends Model
         return [
             'tipo' => TipoMovimentoCaixa::class,
             'valor' => 'decimal:2',
-            'forma_pagamento' => FormaPagamento::class,
         ];
     }
 

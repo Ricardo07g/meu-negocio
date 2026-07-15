@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\{FormaPagamento, TipoMovimentoCaixa};
+use App\Enums\TipoMovimentoCaixa;
 use App\Modules\Caixa\Models\MovimentoCaixa;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -22,7 +22,7 @@ class MovimentoCaixaFactory extends Factory
             'tipo' => TipoMovimentoCaixa::Entrada,
             'valor' => fake()->randomFloat(2, 10, 500),
             'descricao' => fake('pt_BR')->sentence(3),
-            'forma_pagamento' => FormaPagamento::Dinheiro,
+            'forma_pagamento_nome' => 'Dinheiro',
             'baixa_pagamento_id' => null,
             'baixa_despesa_id' => null,
         ];

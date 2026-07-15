@@ -106,7 +106,7 @@
                         @foreach($parcela->baixas->sortByDesc('data') as $baixa)
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
-                            <td>{{ $baixa->forma_pagamento?->label() ?? '—' }}</td>
+                            <td>{{ $baixa->forma_pagamento_nome ?? '—' }}</td>
                             <td>{{ $baixa->observacao ?? '—' }}</td>
                             <td class="text-end">R$ {{ number_format($baixa->valor, 2, ',', '.') }}</td>
                             <td class="text-end {{ $baixa->desconto > 0 ? 'text-danger' : 'text-muted' }}">
@@ -172,8 +172,8 @@
                     <div class="col-md-6">
                         <label for="forma_pagamento" class="form-label">Forma de Pagamento <span class="text-danger">*</span></label>
                         <select name="forma_pagamento" id="forma_pagamento" class="form-select @error('forma_pagamento') is-invalid @enderror" required>
-                            @foreach(\App\Enums\FormaPagamento::cases() as $forma)
-                                <option value="{{ $forma->value }}" @selected(old('forma_pagamento') === $forma->value)>{{ $forma->label() }}</option>
+                            @foreach($formas as $forma)
+                                <option value="{{ $forma->id }}" @selected((int) old('forma_pagamento') === $forma->id)>{{ $forma->nome }}</option>
                             @endforeach
                         </select>
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror

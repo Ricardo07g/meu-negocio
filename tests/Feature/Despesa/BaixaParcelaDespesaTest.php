@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Despesa;
 
-use App\Enums\{FormaPagamento, StatusCaixa, StatusDespesa, StatusParcela, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, StatusDespesa, StatusParcela, TipoFormaPagamento, TipoMovimentoCaixa};
 use App\Exceptions\NegocioException;
 use App\Modules\Caixa\Models\{BaixaDespesa, MovimentoCaixa};
 use App\Modules\Caixa\Services\CaixaService;
@@ -74,7 +74,7 @@ class BaixaParcelaDespesaTest extends TestCase
         $baixa = app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $primeira,
             valor: 40.00,
-            formaPagamento: FormaPagamento::Dinheiro,
+            forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro),
         );
 
         $primeira->refresh();
@@ -100,12 +100,12 @@ class BaixaParcelaDespesaTest extends TestCase
 
         $service = app(CaixaService::class);
 
-        $service->darBaixaParcelaDespesa($primeira, 100.00, FormaPagamento::Pix);
+        $service->darBaixaParcelaDespesa($primeira, 100.00, $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Pix));
         $primeira->refresh();
         $this->assertSame(StatusParcela::Pago, $primeira->status, 'Parcela quitada deveria ficar Paga.');
         $this->assertSame(StatusDespesa::Parcial, $cenario['despesa']->fresh()->status, 'Com 1 de 2 paga, o titulo deveria ficar Parcial.');
 
-        $service->darBaixaParcelaDespesa($segunda, 100.00, FormaPagamento::Pix);
+        $service->darBaixaParcelaDespesa($segunda, 100.00, $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Pix));
         $segunda->refresh();
         $this->assertSame(StatusParcela::Pago, $segunda->status);
         $this->assertSame(StatusDespesa::Paga, $cenario['despesa']->fresh()->status, 'Com todas pagas, o titulo deveria ficar Pago.');
@@ -123,7 +123,7 @@ class BaixaParcelaDespesaTest extends TestCase
         $baixa = app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $primeira,
             valor: 100.00,
-            formaPagamento: FormaPagamento::Boleto,
+            forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Pix),
             observacao: null,
             multa: 5.00,
             juros: 3.00,
@@ -151,7 +151,7 @@ class BaixaParcelaDespesaTest extends TestCase
             app(CaixaService::class)->darBaixaParcelaDespesa(
                 parcela: $primeira,
                 valor: 100.00,
-                formaPagamento: FormaPagamento::Dinheiro,
+                forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro),
             );
         } finally {
             // Nada deveria ter sido persistido (transacao revertida).
@@ -193,7 +193,7 @@ class BaixaParcelaDespesaTest extends TestCase
         app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $parcela,
             valor: 100.00,
-            formaPagamento: FormaPagamento::Dinheiro,
+            forma: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
         );
     }
 }

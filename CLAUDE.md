@@ -53,7 +53,8 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
-Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), Caixa, Dashboard,
+Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
+(catalogo de formas + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (troca de plano pro-rata, sem gateway — ADR-0007), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
@@ -62,7 +63,8 @@ imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto,
 venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas,
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
-movimentos_estoque, caixas, movimentos_caixa, **faturas**, **arquivos** (polimorfica).
+movimentos_estoque, caixas, movimentos_caixa, **formas_pagamento**, **formas_pagamento_taxas**,
+**recebiveis**, **faturas**, **arquivos** (polimorfica).
 -> convencoes de migration em `.claude/rules/banco-de-dados.md` e skill `criar-migration`.
 
 ## Traits

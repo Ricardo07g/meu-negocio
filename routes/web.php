@@ -9,6 +9,7 @@ use App\Modules\Cliente\Controllers\ClienteController;
 use App\Modules\Dashboard\Controllers\DashboardController;
 use App\Modules\Despesa\Controllers\{CategoriaDespesaController, DespesaController};
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
+use App\Modules\FormaPagamento\Controllers\FormaPagamentoController;
 use App\Modules\Pagamento\Controllers\PagamentoController;
 use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\{CategoriaProdutoController, ProdutoArquivoController, ProdutoController};
@@ -109,6 +110,9 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
             Route::get('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcelaForm'])->name('parcelas-despesa.baixa-form');
             Route::post('parcelas-despesa/{parcela}/baixa', [DespesaController::class, 'baixaParcela'])->name('parcelas-despesa.baixa');
             Route::patch('parcelas-despesa/{parcela}/cancelar', [DespesaController::class, 'cancelarParcela'])->name('parcelas-despesa.cancelar');
+
+            // Formas de Pagamento (configuração)
+            Route::resource('formas-pagamento', FormaPagamentoController::class)->except(['show']);
 
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Caixa\Services;
 
-use App\Enums\{FormaPagamento, StatusCaixa, StatusPagamento, StatusParcela, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, StatusPagamento, StatusParcela, TipoMovimentoCaixa};
 use App\Exceptions\NegocioException;
-use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
+use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa, Recebivel};
 use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
+use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Support\Facades\DB;
 
 class CaixaService
@@ -130,16 +132,19 @@ class CaixaService
     public function darBaixaParcelaPagamento(
         ParcelaPagamento $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
         ?string $observacao = null,
         float $multa = 0,
         float $juros = 0,
         float $desconto = 0,
+        ?int $parcelasCartao = null,
     ): BaixaPagamento {
         return $this->aplicarBaixaParcela(
             parcela: $parcela,
             valor: $valor,
-            formaPagamento: $formaPagamento,
+            forma: $forma,
+            geraRecebivel: $forma->gera_recebivel,
+            parcelasCartao: $parcelasCartao,
             observacao: $observacao,
             multa: $multa,
             juros: $juros,
@@ -163,7 +168,7 @@ class CaixaService
     public function darBaixaParcelaDespesa(
         ParcelaDespesa $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
         ?string $observacao = null,
         float $multa = 0,
         float $juros = 0,
@@ -172,7 +177,10 @@ class CaixaService
         return $this->aplicarBaixaParcela(
             parcela: $parcela,
             valor: $valor,
-            formaPagamento: $formaPagamento,
+            forma: $forma,
+            // Despesa (contas a pagar) nunca gera recebível: sempre saída de caixa.
+            geraRecebivel: false,
+            parcelasCartao: null,
             observacao: $observacao,
             multa: $multa,
             juros: $juros,
@@ -191,8 +199,14 @@ class CaixaService
 
     /**
      * Template de baixa por parcela (recebimento ou pagamento).
-     * Valida, exige caixa aberto, cria Baixa + MovimentoCaixa, atualiza parcela
-     * e recalcula status do titulo.
+     *
+     * Dois destinos, decididos por $geraRecebivel:
+     *  - false (dinheiro/pix/boleto e TODA despesa): exige caixa aberto e cria
+     *    MovimentoCaixa (entrada/saída) — o dinheiro entra/sai da gaveta na hora.
+     *  - true  (cartão, só no lado do recebimento): NÃO exige caixa e NÃO cria
+     *    MovimentoCaixa; gera N recebíveis do adquirente (D+N, líquido de taxa).
+     *
+     * Em ambos os casos a Baixa é criada, a parcela é quitada e o título recalculado.
      *
      * @param  ParcelaPagamento|ParcelaDespesa  $parcela
      * @param  class-string<BaixaPagamento|BaixaDespesa>  $baixaClass
@@ -202,7 +216,9 @@ class CaixaService
     private function aplicarBaixaParcela(
         $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
+        bool $geraRecebivel,
+        ?int $parcelasCartao,
         ?string $observacao,
         float $multa,
         float $juros,
@@ -218,7 +234,7 @@ class CaixaService
         \Closure $recalcularTitulo,
     ) {
         return DB::transaction(function () use (
-            $parcela, $valor, $formaPagamento, $observacao, $multa, $juros, $desconto,
+            $parcela, $valor, $forma, $geraRecebivel, $parcelasCartao, $observacao, $multa, $juros, $desconto,
             $baixaClass, $parcelaFk, $tipoMovimento, $movimentoFk,
             $tituloLabel, $tituloId, $mensagemSemCaixa, $mensagemLiquidoInvalido, $recalcularTitulo,
         ) {
@@ -237,26 +253,32 @@ class CaixaService
                 throw new NegocioException($mensagemLiquidoInvalido);
             }
 
-            $caixa = $this->caixaAbertoDaEmpresa($parcela->empresa_id, now()->toDateString());
-            if (! $caixa) {
-                throw new NegocioException($mensagemSemCaixa);
+            // Cartão vira recebível do banco: não passa pela gaveta do caixa.
+            $caixa = null;
+            if (! $geraRecebivel) {
+                $caixa = $this->caixaAbertoDaEmpresa($parcela->empresa_id, now()->toDateString());
+                if (! $caixa) {
+                    throw new NegocioException($mensagemSemCaixa);
+                }
             }
 
             $baixa = $baixaClass::create([
                 $parcelaFk => $parcela->id,
-                'caixa_id' => $caixa->id,
+                'caixa_id' => $caixa?->id,
                 'valor' => $valor,
                 'multa' => $multa,
                 'juros' => $juros,
                 'desconto' => $desconto,
-                'forma_pagamento' => $formaPagamento,
+                'forma_pagamento_id' => $forma->id,
+                'forma_pagamento_nome' => $forma->nome,
                 'data' => now(),
                 'observacao' => $observacao,
             ]);
 
             $parcela->update([
                 'valor_pago' => (float) $parcela->valor_pago + $valor,
-                'forma_pagamento' => $formaPagamento,
+                'forma_pagamento_id' => $forma->id,
+                'forma_pagamento_nome' => $forma->nome,
             ]);
 
             $parcela->refresh();
@@ -266,6 +288,24 @@ class CaixaService
             }
 
             $totalLiquido = $valor + $multa + $juros - $desconto;
+
+            if ($geraRecebivel) {
+                // Cliente quitado; a loja recebe do adquirente (D+N, líquido de taxa).
+                $this->gerarRecebiveis(
+                    baixaId: $baixa->id,
+                    redeId: (int) $parcela->rede_id,
+                    empresaId: (int) $parcela->empresa_id,
+                    tituloId: $tituloId,
+                    forma: $forma,
+                    bruto: $totalLiquido,
+                    parcelas: $parcelasCartao ?? 1,
+                );
+
+                $recalcularTitulo();
+
+                return $baixa;
+            }
+
             $descricao = "Parcela {$parcela->numero}/{$parcela->total} {$tituloLabel} #{$tituloId}";
             if ($multa > 0 || $juros > 0 || $desconto > 0) {
                 $partes = ['principal R$ '.number_format($valor, 2, ',', '.')];
@@ -286,7 +326,7 @@ class CaixaService
                 'tipo' => $tipoMovimento,
                 'valor' => $totalLiquido,
                 'descricao' => $descricao,
-                'forma_pagamento' => $formaPagamento,
+                'forma_pagamento_nome' => $forma->nome,
                 $movimentoFk => $baixa->id,
             ]);
 
@@ -294,6 +334,46 @@ class CaixaService
 
             return $baixa;
         });
+    }
+
+    /**
+     * Gera os recebíveis do adquirente para uma baixa de cartão: N parcelas do
+     * lojista (mensais a partir de D+N), cada uma líquida da taxa da faixa.
+     */
+    private function gerarRecebiveis(
+        int $baixaId,
+        int $redeId,
+        int $empresaId,
+        int $tituloId,
+        FormaPagamento $forma,
+        float $bruto,
+        int $parcelas,
+    ): void {
+        $forma->loadMissing('taxas');
+        $taxa = $forma->taxaParaParcelas($parcelas);
+
+        $dataVenda = now();
+        $primeiroVencimento = $dataVenda->copy()->addDays($forma->dias_liquidacao);
+        $split = (new CalculadoraParcelas)->calcular($bruto, max($parcelas, 1), $primeiroVencimento);
+
+        foreach ($split as $p) {
+            $brutoParcela = (float) $p['valor'];
+
+            Recebivel::create([
+                'rede_id' => $redeId,
+                'empresa_id' => $empresaId,
+                'forma_pagamento_id' => $forma->id,
+                'baixa_pagamento_id' => $baixaId,
+                'descricao' => "{$forma->nome} {$p['numero']}/{$p['total']} — recebimento do pagamento #{$tituloId}",
+                'valor_bruto' => $brutoParcela,
+                'taxa_percentual' => $taxa,
+                'valor_liquido' => round($brutoParcela * (1 - $taxa / 100), 2),
+                'parcela_numero' => $p['numero'],
+                'parcela_total' => $p['total'],
+                'data_venda' => $dataVenda->toDateString(),
+                'data_prevista' => $p['data_vencimento']->toDateString(),
+            ]);
+        }
     }
 
     /**
@@ -318,9 +398,21 @@ class CaixaService
             // certo (empresa/dia de origem) e o rastro fica ligado a baixa.
             foreach ($pagamento->parcelas as $parcela) {
                 foreach ($parcela->baixas as $baixa) {
-                    // Busca o caixa de origem sem depender do contexto de empresa
-                    // ambiente (mesma estrategia de caixaAbertoDaEmpresa): assim o
-                    // guard de caixa fechado nunca e silenciosamente pulado.
+                    // Baixa de cartão (sem caixa_id): o dinheiro nunca entrou na
+                    // gaveta — cancela os recebíveis do adquirente, sem saída.
+                    if ($baixa->caixa_id === null) {
+                        Recebivel::withoutGlobalScope('empresa')
+                            ->where('baixa_pagamento_id', $baixa->id)
+                            ->whereNull('cancelado_em')
+                            ->update(['cancelado_em' => now()]);
+
+                        continue;
+                    }
+
+                    // Baixa em caixa (dinheiro/pix): gera saída no mesmo caixa em
+                    // que entrou. Busca o caixa de origem sem depender do contexto
+                    // de empresa (mesma estrategia de caixaAbertoDaEmpresa): assim
+                    // o guard de caixa fechado nunca e silenciosamente pulado.
                     $caixaOrigem = Caixa::withoutGlobalScope('empresa')->find($baixa->caixa_id);
                     if ($caixaOrigem && $caixaOrigem->status === StatusCaixa::Fechado) {
                         throw new NegocioException(
@@ -334,7 +426,7 @@ class CaixaService
                         'tipo' => TipoMovimentoCaixa::Saida,
                         'valor' => $baixa->valorTotal(),
                         'descricao' => "Estorno da parcela {$parcela->numero}/{$parcela->total} do pagamento #{$pagamento->id}",
-                        'forma_pagamento' => $baixa->forma_pagamento,
+                        'forma_pagamento_nome' => $baixa->forma_pagamento_nome,
                         'baixa_pagamento_id' => $baixa->id,
                     ]);
                 }

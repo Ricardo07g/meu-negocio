@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Venda;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, StatusCaixa, StatusParcela, TipoMovimentoCaixa};
+use App\Enums\{CondicaoPagamento, StatusCaixa, StatusParcela, TipoFormaPagamento, TipoMovimentoCaixa};
 use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
@@ -61,7 +61,7 @@ class VendaAVistaTest extends TestCase
             ]],
             condicao: CondicaoPagamento::AVista,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Dinheiro,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
             numeroParcelas: null,
             primeiroVencimento: now(),
         );

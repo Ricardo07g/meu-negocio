@@ -37,6 +37,8 @@ class PermissaoSeeder extends Seeder
             'despesa.ver', 'despesa.criar', 'despesa.editar', 'despesa.excluir',
             // Categoria de Despesa
             'categoria_despesa.ver', 'categoria_despesa.criar', 'categoria_despesa.editar', 'categoria_despesa.excluir',
+            // Forma de Pagamento
+            'forma_pagamento.ver', 'forma_pagamento.criar', 'forma_pagamento.editar', 'forma_pagamento.excluir',
             // Estoque
             'estoque.ver', 'estoque.criar', 'estoque.editar', 'estoque.excluir',
             // Produto

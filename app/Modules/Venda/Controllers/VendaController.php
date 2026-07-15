@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Venda\Controllers;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo};
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
@@ -52,7 +53,9 @@ class VendaController extends Controller
             $atendentes = ($empresaId ? Usuario::atendentesDaEmpresa($empresaId) : Usuario::where('atende', true))
                 ->orderBy('nome')->get();
 
-            return view('venda::index', compact('vendas', 'filtros', 'atendentes'));
+            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
+
+            return view('venda::index', compact('vendas', 'filtros', 'atendentes', 'formas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar vendas');
         }
@@ -88,7 +91,9 @@ class VendaController extends Controller
                 }
             }
 
-            return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld'));
+            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
+
+            return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld', 'formas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -122,11 +127,23 @@ class VendaController extends Controller
     private function processarVenda(CriarVendaRequest $request, int $empresaId): RedirectResponse
     {
         $condicao = CondicaoPagamento::from($request->condicao_pagamento);
-        $aVista = $condicao === CondicaoPagamento::AVista;
 
-        $forma = $request->forma_pagamento
-            ? FormaPagamento::from($request->forma_pagamento)
+        $forma = $request->filled('forma_pagamento')
+            ? FormaPagamento::findOrFail((int) $request->forma_pagamento)
             : null;
+
+        // Cartão quita o cliente na hora (vira recebível): trata como à-vista no
+        // ledger do cliente, independentemente do que o form enviou. O nº de
+        // parcelas informado é do cartão (agenda + taxa), não do cliente.
+        $parcelasCartao = null;
+        if ($forma && $forma->gera_recebivel) {
+            $condicao = CondicaoPagamento::AVista;
+            $parcelasCartao = $forma->permite_parcelas
+                ? min(max(1, (int) $request->input('parcelas_cartao', 1)), $forma->max_parcelas ?? 1)
+                : 1;
+        }
+
+        $aVista = $condicao === CondicaoPagamento::AVista;
 
         $formaRecebimentoPrazo = $request->forma_recebimento_prazo
             ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
@@ -140,7 +157,10 @@ class VendaController extends Controller
 
         $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
-        if ($aVista && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
+        // Só a venda à-vista que entra na gaveta (dinheiro/pix) exige caixa aberto.
+        // Cartão vira recebível e não depende de caixa.
+        $exigeCaixa = $aVista && $forma && ! $forma->gera_recebivel;
+        if ($exigeCaixa && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
             return redirect()->back()->withInput()
                 ->with('erro', 'É necessário abrir o caixa de hoje desta empresa para registrar vendas à vista.');
         }
@@ -164,6 +184,7 @@ class VendaController extends Controller
                 $request->observacao,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
+                $parcelasCartao,
             );
 
             return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
@@ -181,6 +202,7 @@ class VendaController extends Controller
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
+                $parcelasCartao,
             );
             $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
         } else {
@@ -195,6 +217,7 @@ class VendaController extends Controller
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
+                $parcelasCartao,
             );
             $msg = 'Agendamento criado com sucesso.';
         }

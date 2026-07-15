@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Pagamento\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Request compartilhado entre baixa de parcela de Pagamento (contas a
@@ -41,7 +42,15 @@ class SalvarBaixaParcelaRequest extends FormRequest
             'multa' => ['nullable', 'numeric', 'min:0'],
             'juros' => ['nullable', 'numeric', 'min:0'],
             'desconto' => ['nullable', 'numeric', 'min:0'],
-            'forma_pagamento' => ['required', 'string'],
+            // O `exists` cru ignora o global scope de rede — filtramos rede_id na mão
+            // (defesa de tenancy: forma de outra rede é rejeitada).
+            'forma_pagamento' => [
+                'required',
+                'integer',
+                Rule::exists('formas_pagamento', 'id')
+                    ->whereNull('deleted_at')
+                    ->where('rede_id', $this->user()?->rede_id),
+            ],
             'observacao' => ['nullable', 'string'],
         ];
     }

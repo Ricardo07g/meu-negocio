@@ -588,29 +588,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const carneTbody = document.getElementById('carneTbody');
     const carneTotalFoot = document.getElementById('carneTotalFoot');
 
-    // Opcoes de forma_pagamento por condicao. Mantem em sincronia com FormaPagamento.cases().
-    const FORMAS_AVISTA = [
-        { value: 'pix', label: 'Pix' },
-        { value: 'dinheiro', label: 'Dinheiro' },
-        { value: 'cartao', label: 'Cartão' },
-    ];
-    const FORMAS_APRAZO = [
-        { value: 'boleto', label: 'Boleto' },
-        { value: 'pix', label: 'Pix' },
-        { value: 'cartao', label: 'Cartão' },
-    ];
+    // Formas de pagamento configuráveis da rede (vindas do catálogo).
+    const FORMAS = cfg.formas || [];
+    const parcelasCartaoWrapper = document.getElementById('parcelasCartaoWrapper');
+    const parcelasCartaoInput = document.getElementById('parcelasCartao');
 
-    function popularFormasPagamento(opcoes) {
+    function formaSelecionada() {
+        return FORMAS.find(f => String(f.id) === String(formaPagamentoSelect.value)) || null;
+    }
+
+    // Cartão parcelado (permite_parcelas): mostra o nº de parcelas no cartão.
+    function atualizarParcelasCartao() {
+        const forma = formaSelecionada();
+        const mostra = !!(forma && forma.permite_parcelas);
+        if (parcelasCartaoWrapper) parcelasCartaoWrapper.style.display = mostra ? '' : 'none';
+        if (parcelasCartaoInput) {
+            parcelasCartaoInput.disabled = !mostra;
+            if (mostra && forma.max_parcelas) parcelasCartaoInput.max = forma.max_parcelas;
+        }
+    }
+
+    function popularFormasPagamento() {
         const valorAtual = formaPagamentoSelect.value || formaPagamentoSelect.dataset.old || '';
-        formaPagamentoSelect.innerHTML = '<option value="">Selecione...</option>'
-            + opcoes.map(o => `<option value="${o.value}">${o.label}</option>`).join('');
-        // Restaura a selecao se ainda for valida no novo conjunto.
-        if (opcoes.some(o => o.value === valorAtual)) {
+        // DOM seguro (o nome da forma é dado do usuário — evita XSS via innerHTML).
+        formaPagamentoSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Selecione...';
+        formaPagamentoSelect.appendChild(placeholder);
+        FORMAS.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.nome;
+            formaPagamentoSelect.appendChild(opt);
+        });
+        // Restaura a selecao se ainda for valida.
+        if (FORMAS.some(f => String(f.id) === String(valorAtual))) {
             formaPagamentoSelect.value = valorAtual;
         } else {
             formaPagamentoSelect.value = '';
         }
+        atualizarParcelasCartao();
     }
+
+    formaPagamentoSelect.addEventListener('change', atualizarParcelasCartao);
 
     function aplicarCondicaoPagamento() {
         const c = condicaoSelecionada();
@@ -624,8 +645,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!exigeForma) {
             formaPagamentoSelect.value = '';
         } else {
-            popularFormasPagamento(aVista ? FORMAS_AVISTA : FORMAS_APRAZO);
+            popularFormasPagamento();
         }
+        atualizarParcelasCartao();
 
         const formaLabel = document.getElementById('formaPagamentoLabel');
         if (formaLabel) {

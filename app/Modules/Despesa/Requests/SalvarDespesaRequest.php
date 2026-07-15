@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Despesa\Requests;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo};
 use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -50,7 +50,10 @@ class SalvarDespesaRequest extends FormRequest
             'forma_pagamento' => [
                 'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                 'nullable',
-                Rule::enum(FormaPagamento::class),
+                'integer',
+                Rule::exists('formas_pagamento', 'id')
+                    ->whereNull('deleted_at')
+                    ->where('rede_id', $this->user()->rede_id),
             ],
             'numero_parcelas' => [
                 'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),

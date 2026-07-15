@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Pagamento\DTOs;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo};
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use Carbon\Carbon;
 use Spatie\LaravelData\Data;
 

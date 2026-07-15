@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Despesa;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusDespesa, StatusParcela};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusDespesa, StatusParcela, TipoFormaPagamento};
 use App\Modules\Despesa\DTOs\CriarDespesaData;
 use App\Modules\Despesa\Services\DespesaService;
 use Carbon\Carbon;
@@ -41,7 +41,7 @@ class CriarDespesaTest extends TestCase
             data_emissao: Carbon::now(),
             primeiro_vencimento: Carbon::now()->addDays(5),
             categoria_despesa_id: $categoria->id,
-            forma_pagamento_avista: FormaPagamento::Dinheiro,
+            forma_pagamento_avista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
         );
 
         $despesa = app(DespesaService::class)->criar($data);
@@ -77,7 +77,7 @@ class CriarDespesaTest extends TestCase
             primeiro_vencimento: Carbon::now()->addMonth()->startOfDay(),
             categoria_despesa_id: $categoria->id,
             numero_parcelas: 3,
-            forma_pagamento_avista: FormaPagamento::Boleto,
+            forma_pagamento_avista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
             forma_recebimento_prazo: FormaRecebimentoPrazo::Carne,
         );
 

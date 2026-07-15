@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Pagamento;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusCaixa};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusCaixa, TipoFormaPagamento};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
@@ -67,7 +67,7 @@ class PermissoesTest extends TestCase
             ]],
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Pix,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
             numeroParcelas: 2,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,
@@ -82,7 +82,7 @@ class PermissoesTest extends TestCase
 
         $response = $this->post(route('parcelas-pagamento.baixa', $parcela), [
             'valor' => $parcela->valor,
-            'forma_pagamento' => FormaPagamento::Dinheiro->value,
+            'forma_pagamento' => $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro)->id,
         ]);
 
         $response->assertForbidden();

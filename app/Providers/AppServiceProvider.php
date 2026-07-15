@@ -14,6 +14,8 @@ use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa};
 use App\Modules\Despesa\Policies\{CategoriaDespesaPolicy, DespesaPolicy};
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Policies\MovimentoEstoquePolicy;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\FormaPagamento\Policies\FormaPagamentoPolicy;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Policies\PagamentoPolicy;
 use App\Modules\PerfilAcesso\Policies\PerfilAcessoPolicy;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         Despesa::class => DespesaPolicy::class,
         Empresa::class => EmpresaPolicy::class,
         Fatura::class => FaturaPolicy::class,
+        FormaPagamento::class => FormaPagamentoPolicy::class,
         MovimentoEstoque::class => MovimentoEstoquePolicy::class,
         Pagamento::class => PagamentoPolicy::class,
         Produto::class => ProdutoPolicy::class,

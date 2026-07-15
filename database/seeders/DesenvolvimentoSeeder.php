@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, StatusAgendamento, StatusCaixa, StatusDespesa, StatusPagamento, StatusParcela, StatusRede, StatusVendaEtapas, StatusVendaProduto, TipoMovimentoCaixa, TipoMovimentoEstoque, TipoServico};
+use App\Enums\{CondicaoPagamento, StatusAgendamento, StatusCaixa, StatusDespesa, StatusPagamento, StatusParcela, StatusRede, StatusVendaEtapas, StatusVendaProduto, TipoMovimentoCaixa, TipoMovimentoEstoque, TipoServico};
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Estoque\Models\MovimentoEstoque;
+use App\Modules\FormaPagamento\Models\FormaPagamento as FormaPagamentoModel;
+use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Servico\Models\Servico;
@@ -148,6 +150,11 @@ class DesenvolvimentoSeeder extends Seeder
                     'email' => strtolower(str_replace(' ', '', $nome)).'@teste.com',
                 ],
             );
+        }
+
+        // Formas de pagamento padrão da rede demo (idempotente)
+        if (! FormaPagamentoModel::where('rede_id', $this->rede->id)->exists()) {
+            app(FormaPagamentoService::class)->semearPadrao($this->rede->id);
         }
 
         $this->command->info("Rede #{$this->rede->id} criada com 3 empresas (Unidade Central + Filial Norte + Filial Sul).");
@@ -620,6 +627,19 @@ class DesenvolvimentoSeeder extends Seeder
         }
     }
 
+    /**
+     * Forma de pagamento aleatória que cai no caixa (dinheiro/pix) da rede demo.
+     * Evita cartão no seed para não precisar gerar recebíveis manualmente aqui.
+     */
+    private function formaCaixaAleatoria(): FormaPagamentoModel
+    {
+        return FormaPagamentoModel::withoutGlobalScopes()
+            ->where('rede_id', $this->rede->id)
+            ->whereIn('tipo', ['dinheiro', 'pix'])
+            ->inRandomOrder()
+            ->firstOrFail();
+    }
+
     private function criarPagamentoAVista(
         float $valorTotal,
         Carbon $mesReferencia,
@@ -629,7 +649,7 @@ class DesenvolvimentoSeeder extends Seeder
         ?int $vendaEtapasId = null,
         ?int $vendaProdutoId = null,
     ): void {
-        $forma = $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Cartao]);
+        $forma = $this->formaCaixaAleatoria();
 
         $pagamento = Pagamento::create([
             'rede_id' => $this->rede->id,
@@ -653,7 +673,7 @@ class DesenvolvimentoSeeder extends Seeder
             'valor' => $valorTotal,
             'valor_pago' => $valorTotal,
             'data_vencimento' => $dataVenda,
-            'forma_pagamento' => $forma,
+            'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
             'status' => StatusParcela::Pago,
         ]);
 
@@ -665,7 +685,7 @@ class DesenvolvimentoSeeder extends Seeder
                 'parcela_pagamento_id' => $parcela->id,
                 'caixa_id' => $caixa->id,
                 'valor' => $valorTotal,
-                'forma_pagamento' => $forma,
+                'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
                 'data' => $dataVenda,
             ]);
 
@@ -674,7 +694,7 @@ class DesenvolvimentoSeeder extends Seeder
                 'tipo' => TipoMovimentoCaixa::Entrada,
                 'valor' => $valorTotal,
                 'descricao' => "Recebimento venda #{$pagamento->id}",
-                'forma_pagamento' => $forma,
+                'forma_pagamento_nome' => $forma?->nome,
                 'baixa_pagamento_id' => $baixa->id,
             ]);
         }
@@ -717,7 +737,7 @@ class DesenvolvimentoSeeder extends Seeder
 
             $status = $foiPaga ? StatusParcela::Pago : StatusParcela::Pendente;
             $formaBaixa = $foiPaga
-                ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Cartao])
+                ? $this->formaCaixaAleatoria()
                 : null;
 
             $parcela = ParcelaPagamento::create([
@@ -729,7 +749,7 @@ class DesenvolvimentoSeeder extends Seeder
                 'valor' => $valor,
                 'valor_pago' => $foiPaga ? $valor : 0,
                 'data_vencimento' => $venc,
-                'forma_pagamento' => $formaBaixa,
+                'forma_pagamento_id' => $formaBaixa?->id, 'forma_pagamento_nome' => $formaBaixa?->nome,
                 'status' => $status,
             ]);
 
@@ -743,7 +763,7 @@ class DesenvolvimentoSeeder extends Seeder
                         'parcela_pagamento_id' => $parcela->id,
                         'caixa_id' => $caixa->id,
                         'valor' => $valor,
-                        'forma_pagamento' => $formaBaixa,
+                        'forma_pagamento_id' => $formaBaixa?->id, 'forma_pagamento_nome' => $formaBaixa?->nome,
                         'data' => $venc,
                     ]);
                     MovimentoCaixa::create([
@@ -751,7 +771,7 @@ class DesenvolvimentoSeeder extends Seeder
                         'tipo' => TipoMovimentoCaixa::Entrada,
                         'valor' => $valor,
                         'descricao' => "Parcela {$i}/{$numParcelas} do pagamento #{$pagamento->id}",
-                        'forma_pagamento' => $formaBaixa,
+                        'forma_pagamento_nome' => $formaBaixa?->nome,
                         'baixa_pagamento_id' => $baixa->id,
                     ]);
                 }
@@ -822,7 +842,7 @@ class DesenvolvimentoSeeder extends Seeder
     ): void {
         $paga = $vencimento->isPast() && $this->faker->boolean(60);
         $status = $paga ? StatusDespesa::Paga : StatusDespesa::Pendente;
-        $forma = $paga ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Dinheiro, FormaPagamento::Boleto]) : null;
+        $forma = $paga ? $this->formaCaixaAleatoria() : null;
 
         $despesa = Despesa::create([
             'rede_id' => $this->rede->id,
@@ -847,7 +867,7 @@ class DesenvolvimentoSeeder extends Seeder
             'valor' => $valor,
             'valor_pago' => $paga ? $valor : 0,
             'data_vencimento' => $vencimento,
-            'forma_pagamento' => $forma,
+            'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
             'status' => $paga ? StatusParcela::Pago : StatusParcela::Pendente,
         ]);
 
@@ -860,7 +880,7 @@ class DesenvolvimentoSeeder extends Seeder
                     'parcela_despesa_id' => $parcela->id,
                     'caixa_id' => $caixa->id,
                     'valor' => $valor,
-                    'forma_pagamento' => $forma,
+                    'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
                     'data' => $vencimento,
                 ]);
                 MovimentoCaixa::create([
@@ -868,7 +888,7 @@ class DesenvolvimentoSeeder extends Seeder
                     'tipo' => TipoMovimentoCaixa::Saida,
                     'valor' => $valor,
                     'descricao' => "Pagamento despesa #{$despesa->id}",
-                    'forma_pagamento' => $forma,
+                    'forma_pagamento_nome' => $forma?->nome,
                     'baixa_despesa_id' => $baixa->id,
                 ]);
             }
@@ -910,7 +930,7 @@ class DesenvolvimentoSeeder extends Seeder
             $chance = max(15, 70 - ($i - 1) * 20);
             $foiPaga = $venc->isPast() && $this->faker->boolean($chance);
             $status = $foiPaga ? StatusParcela::Pago : StatusParcela::Pendente;
-            $forma = $foiPaga ? $this->faker->randomElement([FormaPagamento::Pix, FormaPagamento::Boleto, FormaPagamento::Dinheiro]) : null;
+            $forma = $foiPaga ? $this->formaCaixaAleatoria() : null;
 
             $parcela = ParcelaDespesa::create([
                 'rede_id' => $this->rede->id,
@@ -921,7 +941,7 @@ class DesenvolvimentoSeeder extends Seeder
                 'valor' => $valor,
                 'valor_pago' => $foiPaga ? $valor : 0,
                 'data_vencimento' => $venc,
-                'forma_pagamento' => $forma,
+                'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
                 'status' => $status,
             ]);
 
@@ -935,7 +955,7 @@ class DesenvolvimentoSeeder extends Seeder
                         'parcela_despesa_id' => $parcela->id,
                         'caixa_id' => $caixa->id,
                         'valor' => $valor,
-                        'forma_pagamento' => $forma,
+                        'forma_pagamento_id' => $forma?->id, 'forma_pagamento_nome' => $forma?->nome,
                         'data' => $venc,
                     ]);
                     MovimentoCaixa::create([
@@ -943,7 +963,7 @@ class DesenvolvimentoSeeder extends Seeder
                         'tipo' => TipoMovimentoCaixa::Saida,
                         'valor' => $valor,
                         'descricao' => "Parcela {$i}/{$numParcelas} da despesa #{$despesa->id}",
-                        'forma_pagamento' => $forma,
+                        'forma_pagamento_nome' => $forma?->nome,
                         'baixa_despesa_id' => $baixa->id,
                     ]);
                 }

@@ -18,8 +18,15 @@ Venda. Aqui tambem vivem os models `BaixaPagamento`, `BaixaDespesa` e `Movimento
   `Sangria`, `Reforco`), `valor`, `descricao`, `forma_pagamento` nullable, FKs nullable
   `baixa_pagamento_id` / `baixa_despesa_id`.
 - `BaixaPagamento` / `BaixaDespesa` (BaseModel + EmpresaTrait): `valor`, `multa`, `juros`, `desconto`,
-  `forma_pagamento`, `data`, FK `caixa_id` nullable. `valorTotal()` = principal + multa + juros −
-  desconto (liquido que entra/sai do caixa). BaixaDespesa tem SoftDeletes; BaixaPagamento nao.
+  `forma_pagamento_id` (FK `formas_pagamento`) + `forma_pagamento_nome` (snapshot), `data`, FK
+  `caixa_id` nullable. `valorTotal()` = principal + multa + juros − desconto (liquido que entra/sai do
+  caixa). BaixaDespesa tem SoftDeletes; BaixaPagamento nao. **Baixa de cartao tem `caixa_id` NULL**
+  (nao entrou na gaveta) e liga-se a N `Recebivel` via `baixa_pagamento_id`.
+- `Recebivel` (tabela `recebiveis`; BaseModel + EmpresaTrait + SoftDeletes): a receber do banco/adquirente
+  numa venda no cartao. Campos: `forma_pagamento_id`, `baixa_pagamento_id`, `valor_bruto`,
+  `taxa_percentual`, `valor_liquido`, `parcela_numero/total`, `data_venda`, `data_prevista`,
+  `cancelado_em`. `statusEfetivo()` (enum `StatusRecebivel`) derivado por data (sem job). Scopes
+  `ativos/recebidos/previstos`. Ver ADR-0009 e `.claude/rules/modulos/forma-pagamento.md`.
 
 ## Camadas-chave
 - `CaixaService`:
@@ -28,12 +35,16 @@ Venda. Aqui tambem vivem os models `BaixaPagamento`, `BaixaDespesa` e `Movimento
   - `abrir(saldo, data, ?obs)` — lanca `NegocioException` se ja existe caixa NA DATA (regra "1 por
     empresa/dia" e validada em codigo, NAO ha unique no schema). `fechar`, `reabrir` (so caixa
     Fechado; loga activity), `registrarSangria`, `registrarReforco`.
-  - `darBaixaParcelaPagamento(...)` -> Entrada; `darBaixaParcelaDespesa(...)` -> Saida. Ambos delegam
-    ao template privado `aplicarBaixaParcela()`: valida multa/juros/desconto >= 0, valor <= saldo da
-    parcela, exige caixa aberto, cria Baixa + MovimentoCaixa, soma `valor_pago` na parcela, marca
-    parcela Pago se quitada, e chama `recalcularStatus()` do titulo. Tudo em `DB::transaction`.
-  - `estornarPagamento(Pagamento)` — parcelas Pendente -> Cancelado; se houve valor recebido EXIGE
-    caixa aberto e gera Saida com `valorPago()`; titulo -> `StatusPagamento::Estornado`.
+  - `darBaixaParcelaPagamento(..., ?int $parcelasCartao)` -> Entrada; `darBaixaParcelaDespesa(...)` ->
+    Saida. Ambos delegam ao template privado `aplicarBaixaParcela(FormaPagamento $forma, bool
+    $geraRecebivel, ?int $parcelasCartao, ...)`: valida, cria a Baixa (com `forma_pagamento_id` +
+    `forma_pagamento_nome`), soma `valor_pago`, marca Pago, `recalcularStatus()`. **Dois destinos:**
+    se `$geraRecebivel` (cartao, so no lado do recebimento — despesa força `false`) NAO exige caixa e
+    NAO cria MovimentoCaixa, gera N `Recebivel` via `gerarRecebiveis()` (D+N, liquido de taxa da
+    faixa); senao (dinheiro/pix) exige caixa aberto e cria MovimentoCaixa. Tudo em `DB::transaction`.
+  - `estornarPagamento(Pagamento)` — parcelas Pendente -> Cancelado; titulo -> `StatusPagamento::Estornado`.
+    **Por-baixa:** baixa de cartao (`caixa_id` NULL) cancela seus `Recebivel` (`cancelado_em`), sem
+    Saida; baixa em dinheiro/pix gera Saida no caixa de ORIGEM (bloqueia se esse caixa estiver fechado).
 - `CaixaController` — `index` (navegacao por `?data=YYYY-MM-DD`, calcula totais/saldo do dia),
   `store` (abrir), `show` (redirect p/ index na data), `fechar`, `reabrir`, `sangria`, `reforco`.
 - DTOs `AbrirCaixaData`, `FecharCaixaData`, `MovimentoCaixaData`, `ReabrirCaixaData`. Requests

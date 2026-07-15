@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Venda;
 
+use App\Enums\TipoFormaPagamento;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Database\Factories\{AgendamentoFactory, CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
@@ -29,6 +31,12 @@ class VendaStoreSmokeTest extends TestCase
     use CriaTenant;
     use RefreshDatabase;
 
+    /** Id da forma de pagamento (por tipo) da rede autenticada. */
+    private function formaId(TipoFormaPagamento $tipo): int
+    {
+        return FormaPagamento::ativos()->where('tipo', $tipo->value)->firstOrFail()->id;
+    }
+
     public function test_cria_venda_de_servico_unico_a_prazo(): void
     {
         $contexto = $this->criarRedeAutenticada();
@@ -48,7 +56,7 @@ class VendaStoreSmokeTest extends TestCase
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '10:00',
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 3,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -92,7 +100,7 @@ class VendaStoreSmokeTest extends TestCase
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '14:30',
             'condicao_pagamento' => 'a_vista',
-            'forma_pagamento' => 'dinheiro',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Dinheiro),
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
         ]);
 
@@ -135,7 +143,7 @@ class VendaStoreSmokeTest extends TestCase
                 now()->addDays(15)->format('Y-m-d'),
             ],
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 3,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -175,7 +183,7 @@ class VendaStoreSmokeTest extends TestCase
                 'acrescimo' => 0,
             ]],
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -223,7 +231,7 @@ class VendaStoreSmokeTest extends TestCase
                 'acrescimo' => '0',
             ]],
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => '2',
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -267,7 +275,7 @@ class VendaStoreSmokeTest extends TestCase
                 'acrescimo' => 0,
             ]],
             'condicao_pagamento' => 'a_vista',
-            'forma_pagamento' => 'dinheiro',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Dinheiro),
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
         ]);
 
@@ -322,7 +330,7 @@ class VendaStoreSmokeTest extends TestCase
                 now()->addDays(8)->format('Y-m-d'),
             ],
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -375,7 +383,7 @@ class VendaStoreSmokeTest extends TestCase
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '10:00',
             'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => 'pix',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Caixa;
 
-use App\Enums\{FormaPagamento, StatusCaixa, StatusPagamento, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, StatusPagamento, TipoFormaPagamento, TipoMovimentoCaixa};
 use App\Exceptions\NegocioException;
 use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
 use App\Modules\Caixa\Services\CaixaService;
@@ -79,7 +79,7 @@ class BaixaCaixaEscopoTest extends TestCase
 
         // Defesa em profundidade que o PagamentoController faz na baixa.
         session(['empresa_criacao_atual' => $emp2->id]);
-        $baixa = app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 75.00, FormaPagamento::Pix);
+        $baixa = app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 75.00, $this->formaPagamento($rede, TipoFormaPagamento::Pix));
         session()->forget('empresa_criacao_atual');
 
         $movimento = MovimentoCaixa::where('baixa_pagamento_id', $baixa->id)->firstOrFail();
@@ -108,7 +108,7 @@ class BaixaCaixaEscopoTest extends TestCase
 
         $parcela = $this->parcelaAPrazo($rede->id, $emp->id, 50.00);
 
-        $baixa = app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 50.00, FormaPagamento::Dinheiro);
+        $baixa = app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 50.00, $this->formaPagamento($rede, TipoFormaPagamento::Dinheiro));
 
         $this->assertSame($caixaHoje->id, (int) $baixa->caixa_id, 'A baixa de hoje deveria cair no caixa de hoje, nao no de ontem.');
     }
@@ -127,7 +127,7 @@ class BaixaCaixaEscopoTest extends TestCase
 
         $this->expectException(NegocioException::class);
 
-        app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 50.00, FormaPagamento::Dinheiro);
+        app(CaixaService::class)->darBaixaParcelaPagamento($parcela, 50.00, $this->formaPagamento($rede, TipoFormaPagamento::Dinheiro));
     }
 
     public function test_estorno_reverte_no_caixa_de_origem_pelo_valor_liquido(): void
@@ -145,7 +145,7 @@ class BaixaCaixaEscopoTest extends TestCase
         $baixa = app(CaixaService::class)->darBaixaParcelaPagamento(
             $parcela,
             75.00,
-            FormaPagamento::Pix,
+            $this->formaPagamento($rede, TipoFormaPagamento::Pix),
             desconto: 10.00,
         );
 
