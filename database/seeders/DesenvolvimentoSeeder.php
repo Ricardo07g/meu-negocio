@@ -8,6 +8,8 @@ use App\Enums\{CondicaoPagamento, StatusAgendamento, StatusCaixa, StatusDespesa,
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Conta\Models\Conta;
+use App\Modules\Conta\Services\ContaService;
 use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa, ParcelaDespesa};
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\FormaPagamento\Models\FormaPagamento as FormaPagamentoModel;
@@ -155,6 +157,13 @@ class DesenvolvimentoSeeder extends Seeder
         // Formas de pagamento padrão da rede demo (idempotente)
         if (! FormaPagamentoModel::where('rede_id', $this->rede->id)->exists()) {
             app(FormaPagamentoService::class)->semearPadrao($this->rede->id);
+        }
+
+        // Contas financeiras padrão de cada empresa (Caixa + Banco; idempotente).
+        foreach (array_merge([$this->empresa], $this->empresasExtras) as $empresa) {
+            if (! Conta::where('empresa_id', $empresa->id)->exists()) {
+                app(ContaService::class)->semearPadrao($this->rede->id, $empresa->id);
+            }
         }
 
         $this->command->info("Rede #{$this->rede->id} criada com 3 empresas (Unidade Central + Filial Norte + Filial Sul).");

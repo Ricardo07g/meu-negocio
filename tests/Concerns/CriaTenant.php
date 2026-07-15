@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Concerns;
 
 use App\Enums\{StatusRede, TipoFormaPagamento};
+use App\Modules\Conta\Services\ContaService;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
@@ -84,6 +85,9 @@ trait CriaTenant
 
         // Formas de pagamento padrão da rede (Dinheiro/Pix caixa; Débito/Crédito recebível).
         app(FormaPagamentoService::class)->semearPadrao($rede->id);
+
+        // Contas financeiras padrão da empresa (Caixa + Banco).
+        app(ContaService::class)->semearPadrao($rede->id, $empresa->id);
 
         return compact('rede', 'empresa', 'usuario');
     }
