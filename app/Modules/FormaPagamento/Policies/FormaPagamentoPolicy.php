@@ -16,7 +16,7 @@ class FormaPagamentoPolicy
 
     public function view(Usuario $usuario, FormaPagamento $forma): bool
     {
-        return $usuario->rede_id === $forma->rede_id && $usuario->can('forma_pagamento.ver');
+        return $this->mesmaRedeEEmpresa($usuario, $forma) && $usuario->can('forma_pagamento.ver');
     }
 
     public function create(Usuario $usuario): bool
@@ -26,11 +26,17 @@ class FormaPagamentoPolicy
 
     public function update(Usuario $usuario, FormaPagamento $forma): bool
     {
-        return $usuario->rede_id === $forma->rede_id && $usuario->can('forma_pagamento.editar');
+        return $this->mesmaRedeEEmpresa($usuario, $forma) && $usuario->can('forma_pagamento.editar');
     }
 
     public function delete(Usuario $usuario, FormaPagamento $forma): bool
     {
-        return $usuario->rede_id === $forma->rede_id && $usuario->can('forma_pagamento.excluir');
+        return $this->mesmaRedeEEmpresa($usuario, $forma) && $usuario->can('forma_pagamento.excluir');
+    }
+
+    private function mesmaRedeEEmpresa(Usuario $usuario, FormaPagamento $forma): bool
+    {
+        return $usuario->rede_id === $forma->rede_id
+            && $usuario->podeAcessarEmpresa($forma->empresa_id);
     }
 }

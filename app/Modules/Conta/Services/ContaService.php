@@ -17,7 +17,7 @@ class ContaService
      */
     public function listar(array $filtros = []): Collection
     {
-        $query = Conta::orderByDesc('eh_caixa_padrao')->orderBy('nome');
+        $query = Conta::with('empresa:id,nome')->orderByDesc('eh_caixa_padrao')->orderBy('nome');
 
         if (! empty($filtros['q'])) {
             $query->where('nome', 'like', '%'.$filtros['q'].'%');

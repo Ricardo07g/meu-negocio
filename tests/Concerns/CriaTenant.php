@@ -83,8 +83,8 @@ trait CriaTenant
 
         $usuario->assignRole('Admin');
 
-        // Formas de pagamento padrão da rede (Dinheiro/Pix caixa; Débito/Crédito recebível).
-        app(FormaPagamentoService::class)->semearPadrao($rede->id);
+        // Formas de pagamento padrão da empresa (Dinheiro/Pix caixa; Débito/Crédito recebível).
+        app(FormaPagamentoService::class)->semearPadrao($rede->id, $empresa->id);
 
         // Contas financeiras padrão da empresa (Caixa + Banco).
         app(ContaService::class)->semearPadrao($rede->id, $empresa->id);
@@ -93,7 +93,9 @@ trait CriaTenant
     }
 
     /**
-     * Retorna uma forma de pagamento padrão da rede pelo tipo.
+     * Retorna uma forma de pagamento padrão da rede pelo tipo (a da 1ª empresa
+     * da rede, por padrão). As formas são empresa-level; ordenamos por
+     * empresa_id para ser determinístico em redes com múltiplas empresas.
      * (Sem global scope: útil mesmo antes/depois do actingAs.)
      */
     protected function formaPagamento(Rede $rede, TipoFormaPagamento $tipo = TipoFormaPagamento::Dinheiro): FormaPagamento
@@ -101,6 +103,8 @@ trait CriaTenant
         return FormaPagamento::withoutGlobalScopes()
             ->where('rede_id', $rede->id)
             ->where('tipo', $tipo->value)
+            ->orderBy('empresa_id')
+            ->orderBy('id')
             ->firstOrFail();
     }
 

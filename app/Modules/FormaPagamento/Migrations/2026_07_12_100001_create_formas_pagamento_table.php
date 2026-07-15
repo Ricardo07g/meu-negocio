@@ -13,6 +13,8 @@ return new class extends Migration
         Schema::create('formas_pagamento', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rede_id')->constrained('redes')->cascadeOnDelete();
+            // Formas sao por empresa: cada unidade pode ter maquinas/taxas diferentes.
+            $table->foreignId('empresa_id')->constrained('empresas')->cascadeOnDelete();
             $table->string('nome', 100);
             $table->string('tipo', 20);
             $table->boolean('ativo')->default(true);
@@ -28,7 +30,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['rede_id', 'ativo']);
+            $table->index(['rede_id', 'empresa_id']);
+            $table->index(['empresa_id', 'ativo']);
         });
     }
 

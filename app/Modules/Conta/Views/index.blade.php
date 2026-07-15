@@ -7,6 +7,8 @@
 @endsection
 
 @section('content')
+    @php $multiEmpresa = count((array) session('empresas_atuais', [])) > 1; @endphp
+
     @can('conta.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
@@ -21,11 +23,12 @@
         <div class="card-body">
             <form method="GET" action="{{ route('contas.index') }}">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label">Buscar</label>
                         <input type="text" name="q" class="form-control" placeholder="Nome da conta..." value="{{ request('q') }}">
                     </div>
-                    <div class="col-md-4">
+                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
+                    <div class="col-md-3">
                         <label class="form-label">Tipo</label>
                         <select name="tipo" class="form-select">
                             <option value="">Todos</option>
@@ -34,7 +37,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Status</label>
                         <select name="ativo" class="form-select">
                             <option value="">Todos</option>
@@ -58,6 +61,7 @@
                     <thead>
                         <tr>
                             <th>Nome</th>
+                            @if($multiEmpresa)<th>Empresa</th>@endif
                             <th>Tipo</th>
                             <th>Padrão</th>
                             <th class="text-end">Saldo atual</th>
@@ -69,6 +73,7 @@
                         @forelse($contas as $conta)
                         <tr>
                             <td><i class="{{ $conta->tipo->icone() }} me-2 text-muted"></i>{{ $conta->nome }}</td>
+                            @if($multiEmpresa)<td class="text-muted">{{ $conta->empresa?->nome ?? '—' }}</td>@endif
                             <td><span class="badge bg-soft-secondary text-secondary">{{ $conta->tipo->label() }}</span></td>
                             <td>
                                 @if($conta->eh_caixa_padrao)
@@ -117,7 +122,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma conta cadastrada.</td></tr>
+                        <tr><td colspan="{{ $multiEmpresa ? 7 : 6 }}" class="text-center text-muted py-4">Nenhuma conta cadastrada.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

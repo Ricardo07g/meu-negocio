@@ -17,7 +17,7 @@ class FormaPagamentoService
      */
     public function listar(array $filtros = []): Collection
     {
-        $query = FormaPagamento::withCount('taxas')->orderBy('nome');
+        $query = FormaPagamento::withCount('taxas')->with('empresa:id,nome')->orderBy('nome');
 
         if (! empty($filtros['q'])) {
             $query->where('nome', 'like', '%'.$filtros['q'].'%');
@@ -37,10 +37,13 @@ class FormaPagamentoService
     /**
      * @param  array<int, array{parcela_min: mixed, parcela_max: mixed, taxa_percentual: mixed}>  $taxas
      */
-    public function criar(FormaPagamentoData $dados, array $taxas = []): FormaPagamento
+    public function criar(FormaPagamentoData $dados, array $taxas, int $empresaId): FormaPagamento
     {
-        return DB::transaction(function () use ($dados, $taxas) {
-            $forma = FormaPagamento::create($this->normalizarPorTipo($dados));
+        return DB::transaction(function () use ($dados, $taxas, $empresaId) {
+            $attrs = $this->normalizarPorTipo($dados);
+            $attrs['empresa_id'] = $empresaId;
+
+            $forma = FormaPagamento::create($attrs);
             $this->sincronizarTaxas($forma, $dados->tipo->usaFaixas() ? $taxas : []);
 
             return $forma->fresh('taxas');
@@ -67,14 +70,16 @@ class FormaPagamentoService
     }
 
     /**
-     * Cria as formas de pagamento padrão de uma rede recém-criada.
+     * Cria as formas de pagamento padrão de uma empresa recém-criada.
      * Dinheiro/Pix entram no caixa; débito/crédito viram recebível (D+N, taxa).
-     * Chamado no registro (RedeService) e no seeder de desenvolvimento.
+     * Chamado no nascimento da empresa (CriarEmpresaAction) e no seeder de dev.
+     * rede_id/empresa_id explícitos — o EmpresaTrait respeita quando já setados.
      */
-    public function semearPadrao(int $redeId): void
+    public function semearPadrao(int $redeId, int $empresaId): void
     {
-        FormaPagamento::create([
-            'rede_id' => $redeId,
+        $base = ['rede_id' => $redeId, 'empresa_id' => $empresaId];
+
+        FormaPagamento::create($base + [
             'nome' => 'Dinheiro',
             'tipo' => TipoFormaPagamento::Dinheiro,
             'gera_recebivel' => false,
@@ -82,8 +87,7 @@ class FormaPagamentoService
             'taxa_percentual' => 0,
         ]);
 
-        FormaPagamento::create([
-            'rede_id' => $redeId,
+        FormaPagamento::create($base + [
             'nome' => 'Pix',
             'tipo' => TipoFormaPagamento::Pix,
             'gera_recebivel' => false,
@@ -91,8 +95,7 @@ class FormaPagamentoService
             'taxa_percentual' => 0,
         ]);
 
-        FormaPagamento::create([
-            'rede_id' => $redeId,
+        FormaPagamento::create($base + [
             'nome' => 'Cartão de Débito',
             'tipo' => TipoFormaPagamento::CartaoDebito,
             'gera_recebivel' => true,
@@ -100,8 +103,7 @@ class FormaPagamentoService
             'taxa_percentual' => 1.99,
         ]);
 
-        $credito = FormaPagamento::create([
-            'rede_id' => $redeId,
+        $credito = FormaPagamento::create($base + [
             'nome' => 'Cartão de Crédito',
             'tipo' => TipoFormaPagamento::CartaoCredito,
             'gera_recebivel' => true,
@@ -116,12 +118,11 @@ class FormaPagamentoService
             ['parcela_min' => 2, 'parcela_max' => 6, 'taxa_percentual' => 3.80],
             ['parcela_min' => 7, 'parcela_max' => 12, 'taxa_percentual' => 4.50],
         ] as $faixa) {
-            $credito->taxas()->create(['rede_id' => $redeId] + $faixa);
+            $credito->taxas()->create($base + $faixa);
         }
 
         // Crediário: a loja financia o cliente em até N parcelas (a receber do cliente).
-        FormaPagamento::create([
-            'rede_id' => $redeId,
+        FormaPagamento::create($base + [
             'nome' => 'Crediário',
             'tipo' => TipoFormaPagamento::Crediario,
             'gera_recebivel' => false,
@@ -181,6 +182,7 @@ class FormaPagamentoService
 
             $forma->taxas()->create([
                 'rede_id' => $forma->rede_id,
+                'empresa_id' => $forma->empresa_id,
                 'parcela_min' => (int) $t['parcela_min'],
                 'parcela_max' => (int) $t['parcela_max'],
                 'taxa_percentual' => (float) $t['taxa_percentual'],

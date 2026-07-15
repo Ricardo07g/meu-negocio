@@ -19,6 +19,7 @@ class FormaPagamentoTaxaFactory extends Factory
         return [
             'forma_pagamento_id' => FormaPagamentoFactory::new()->credito(),
             'rede_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->rede_id,
+            'empresa_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->empresa_id,
             'parcela_min' => 1,
             'parcela_max' => 1,
             'taxa_percentual' => 3.20,

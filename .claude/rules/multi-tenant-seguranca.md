@@ -23,7 +23,8 @@ Single DB + colunas de tenant, em dois niveis:
 - **Catalogo — rede-level, sem `empresa_id`** (compartilhado entre empresas da rede): Cliente,
   Servico, Produto, CategoriaProduto, CategoriaDespesa.
 - **Transacional — com `empresa_id`** (isolado por empresa): Agendamento, Venda, Pagamento, Despesa,
-  Caixa, Estoque.
+  Caixa, Estoque, **FormaPagamento** (+ FormaPagamentoTaxa) e **Conta** (+ Lancamento). Config
+  financeira e por empresa: cada unidade tem suas maquinas/taxas e suas contas.
 
 ## BaseModel
 `App\Models\BaseModel` (extends Model + `RedeTrait`). Todo model tenant-aware estende BaseModel.

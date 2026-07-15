@@ -47,6 +47,15 @@ class CriarVendaRequest extends FormRequest
             CondicaoPagamento::APrazo->value,
         ];
 
+        // Forma é empresa-level: aceita só formas de rede + empresa acessível.
+        // O gate preciso é o findOrFail escopado no controller.
+        $formaAcessivel = Rule::exists('formas_pagamento', 'id')
+            ->whereNull('deleted_at')
+            ->where('rede_id', $this->user()->rede_id);
+        if ($empresasAtuais !== []) {
+            $formaAcessivel->whereIn('empresa_id', $empresasAtuais);
+        }
+
         $pagamentoRules = [
             'condicao_pagamento' => ['required', Rule::in($condicoesHabilitadas)],
             'mes_referencia' => ['required', 'date'],
@@ -54,9 +63,7 @@ class CriarVendaRequest extends FormRequest
                 'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                 'nullable',
                 'integer',
-                Rule::exists('formas_pagamento', 'id')
-                    ->whereNull('deleted_at')
-                    ->where('rede_id', $this->user()->rede_id),
+                $formaAcessivel,
             ],
             // Nº de parcelas no cartão (agenda + faixa de taxa); não é parcela do cliente.
             'parcelas_cartao' => ['nullable', 'integer', 'min:1', 'max:'.CalculadoraParcelas::MAX_PARCELAS],

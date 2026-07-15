@@ -17,9 +17,15 @@ Além disso, cada lojista tem sua própria maquininha, com taxas e prazos própr
 
 ## Decisão
 
-**Catálogo de formas configurável por rede + recebíveis de cartão derivados por data.**
+**Formas de pagamento configuráveis por empresa + recebíveis de cartão derivados por data.**
 
-1. **`formas_pagamento`** (catálogo rede-level, soft delete): CRUD livre e nomeado ("Crédito Cielo"), cada forma com um `tipo` base (enum `TipoFormaPagamento`: dinheiro/pix/cartao_debito/cartao_credito/boleto), `gera_recebivel`, `dias_liquidacao` (D+N), `taxa_percentual` e faixas de taxa por nº de parcelas (`formas_pagamento_taxas`). O enum antigo `FormaPagamento` foi removido; parcelas/baixas passam a referenciar `forma_pagamento_id` (FK) + um snapshot `forma_pagamento_nome` (para renome/soft-delete não quebrar histórico). `movimentos_caixa` guarda só o snapshot (sem FK — cartão nunca gera movimento).
+> **Revisão (mesma branch, pré-merge):** as formas nasceram rede-level, mas foram promovidas a
+> **empresa-level** (`empresa_id`, `EmpresaTrait`) antes do merge — cada unidade tem suas máquinas,
+> taxas e prazos próprios, e a listagem/cadastro é isolada por empresa. Toda empresa nasce com o
+> conjunto padrão de formas (via `CriarEmpresaAction`, ao lado das contas). O texto abaixo reflete a
+> decisão final.
+
+1. **`formas_pagamento`** (empresa-level, soft delete): CRUD livre e nomeado ("Crédito Cielo"), cada forma com um `tipo` base (enum `TipoFormaPagamento`: dinheiro/pix/cartao_debito/cartao_credito/boleto/crediario), `gera_recebivel`, `dias_liquidacao` (D+N), `taxa_percentual` e faixas de taxa por nº de parcelas (`formas_pagamento_taxas`, também empresa-level). O enum antigo `FormaPagamento` foi removido; parcelas/baixas passam a referenciar `forma_pagamento_id` (FK) + um snapshot `forma_pagamento_nome` (para renome/soft-delete não quebrar histórico). `movimentos_caixa` guarda só o snapshot (sem FK — cartão nunca gera movimento).
 
 2. **Cartão quita o cliente na hora, mas não entra no caixa.** Numa baixa com forma `gera_recebivel = true`: a parcela é quitada e a `BaixaPagamento` é criada (dashboard soma baixas, então o faturamento não muda), mas **não** se exige caixa aberto e **não** se cria `MovimentoCaixa`. Em vez disso geram-se **N recebíveis** (um por parcela do cartão), com `valor_liquido = bruto × (1 − taxa/100)` e `data_prevista = data_venda + dias_liquidacao + 30×(i−1)`. Débito/crédito-à-vista → 1 recebível; crédito Nx → N recebíveis mensais.
 
@@ -39,14 +45,14 @@ Fora de escopo nesta fase: tela rica de recebíveis + antecipação (fase futura
 
 ### Positivas
 - **Conceito financeiro correto**: cartão parcelado some de Contas a Receber do cliente e o caixa (gaveta) só reflete dinheiro/pix — deixa de ser "inflado" por dinheiro que ainda não chegou.
-- **Configurável por lojista**: cada rede define suas formas, taxas e prazos.
+- **Configurável por lojista, por empresa**: cada unidade define suas formas, taxas e prazos (máquinas diferentes por filial são realistas).
 - **Zero infra nova para status**: recebido/previsto é calculado pela data; sem cron nem worker.
 - **Histórico robusto**: o snapshot `forma_pagamento_nome` preserva a exibição mesmo após renome/soft-delete da forma.
 - **Dashboard intacto**: como o cartão continua gerando `BaixaPagamento`, o faturamento não subconta.
 
 ### Negativas
 - **Raio de impacto grande**: remover o enum tocou ~18 arquivos (controllers/services/actions/DTOs/models/factories/tests) e 5 tabelas — mitigado por PHPStan + suíte.
-- **Buraco de tenancy no `exists`**: a validação de `forma_pagamento_id` precisa filtrar `rede_id` na mão (o `Rule::exists` cru ignora o global scope). Coberto por teste.
+- **Buraco de tenancy no `exists`**: a validação de `forma_pagamento_id` precisa filtrar `rede_id` + `empresa_id` (empresas acessíveis) na mão (o `Rule::exists` cru ignora os global scopes). O gate preciso é o `findOrFail` auto-escopado por empresa no controller. Coberto por teste.
 - **Faturamento ≠ caixa**: "vendi R$ 1.000" pode não bater com "R$ 1.000 na conta" (D+N e taxa). Aceitável e explícito, mas exige comunicação na UI de relatórios (fase futura).
 - **Agenda D+N-mensal é uma aproximação**: adquirentes reais variam; a conciliação exata fica para uma fase futura.
 

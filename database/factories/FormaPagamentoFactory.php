@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Enums\TipoFormaPagamento;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +19,8 @@ class FormaPagamentoFactory extends Factory
     public function definition(): array
     {
         return [
-            'rede_id' => RedeFactory::new(),
+            'empresa_id' => EmpresaFactory::new(),
+            'rede_id' => fn (array $attrs) => Empresa::find($attrs['empresa_id'])->rede_id,
             'nome' => 'Dinheiro',
             'tipo' => TipoFormaPagamento::Dinheiro,
             'ativo' => true,

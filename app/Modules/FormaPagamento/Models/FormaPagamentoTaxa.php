@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\FormaPagamento\Models;
 
 use App\Models\BaseModel;
+use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
@@ -13,6 +14,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $rede_id
+ * @property int $empresa_id
  * @property int $forma_pagamento_id
  * @property int $parcela_min
  * @property int $parcela_max
@@ -23,10 +25,13 @@ use Illuminate\Support\Carbon;
  */
 class FormaPagamentoTaxa extends BaseModel
 {
+    use EmpresaTrait;
+
     protected $table = 'formas_pagamento_taxas';
 
     protected $fillable = [
         'rede_id',
+        'empresa_id',
         'forma_pagamento_id',
         'parcela_min',
         'parcela_max',

@@ -13,6 +13,7 @@ return new class extends Migration
         Schema::create('formas_pagamento_taxas', function (Blueprint $table) {
             $table->id();
             $table->foreignId('rede_id')->constrained('redes')->cascadeOnDelete();
+            $table->foreignId('empresa_id')->constrained('empresas')->cascadeOnDelete();
             $table->foreignId('forma_pagamento_id')->constrained('formas_pagamento')->cascadeOnDelete();
             // Faixa de numero de parcelas do cartao (ex.: 1-1, 2-6, 7-12).
             $table->unsignedTinyInteger('parcela_min');

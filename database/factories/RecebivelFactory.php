@@ -23,7 +23,7 @@ class RecebivelFactory extends Factory
         return [
             'forma_pagamento_id' => FormaPagamentoFactory::new()->credito(),
             'rede_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->rede_id,
-            'empresa_id' => fn (array $attrs) => EmpresaFactory::new()->create(['rede_id' => $attrs['rede_id']])->id,
+            'empresa_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->empresa_id,
             'baixa_pagamento_id' => null,
             'descricao' => 'Recebível de cartão',
             'valor_bruto' => $bruto,

@@ -30,7 +30,8 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
   Requests, Policies, Models, Views, Migrations.
 - **Multi-tenant single-DB**: `rede_id` sempre (`RedeTrait` via `BaseModel`); `empresa_id` no
   transacional (`EmpresaTrait`, Admin ve tudo). Catalogo (Cliente/Servico/Produto/categorias) e
-  rede-level; transacional (Agendamento/Venda/Pagamento/Despesa/Caixa/Estoque) e por empresa.
+  rede-level; transacional (Agendamento/Venda/Pagamento/Despesa/Caixa/Estoque/FormaPagamento/Conta) e
+  por empresa (config financeira — formas e contas — e por empresa).
   -> isolamento, ME-010 e camadas de auth em `.claude/rules/multi-tenant-seguranca.md`.
 - **Modelo financeiro**: Titulo (`Pagamento`/`Despesa`) + Parcela + Baixa; `forma_pagamento` mora na
   parcela/baixa. -> `.claude/rules/modelo-financeiro.md`.
@@ -54,7 +55,7 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
-(catalogo de formas + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
+(formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (troca de plano pro-rata, sem gateway — ADR-0007), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).

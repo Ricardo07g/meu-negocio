@@ -7,6 +7,8 @@
 @endsection
 
 @section('content')
+    @php $multiEmpresa = count((array) session('empresas_atuais', [])) > 1; @endphp
+
     @can('forma_pagamento.criar')
     <div class="row mb-4">
         <div class="col-xxl-3 col-md-6">
@@ -22,11 +24,12 @@
         <div class="card-body">
             <form method="GET" action="{{ route('formas-pagamento.index') }}">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label">Buscar</label>
                         <input type="text" name="q" class="form-control" placeholder="Nome da forma..." value="{{ request('q') }}">
                     </div>
-                    <div class="col-md-4">
+                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
+                    <div class="col-md-3">
                         <label class="form-label">Tipo</label>
                         <select name="tipo" class="form-select">
                             <option value="">Todos</option>
@@ -35,7 +38,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Status</label>
                         <select name="ativo" class="form-select">
                             <option value="">Todos</option>
@@ -64,6 +67,7 @@
                     <thead>
                         <tr>
                             <th>Nome</th>
+                            @if($multiEmpresa)<th>Empresa</th>@endif
                             <th>Tipo</th>
                             <th>Destino</th>
                             <th class="text-center">Liquidação</th>
@@ -76,6 +80,7 @@
                         @forelse($formas as $forma)
                         <tr>
                             <td>{{ $forma->nome }}</td>
+                            @if($multiEmpresa)<td class="text-muted">{{ $forma->empresa?->nome ?? '—' }}</td>@endif
                             <td><span class="badge bg-soft-secondary text-secondary">{{ $forma->tipo->label() }}</span></td>
                             <td>
                                 @if($forma->gera_recebivel)
@@ -138,7 +143,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma forma de pagamento cadastrada.</td></tr>
+                        <tr><td colspan="{{ $multiEmpresa ? 8 : 7 }}" class="text-center text-muted py-4">Nenhuma forma de pagamento cadastrada.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

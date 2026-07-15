@@ -6,7 +6,6 @@ namespace App\Modules\Tenant\Services;
 
 use App\Enums\StatusRede;
 use App\Modules\Cliente\Models\Cliente;
-use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Tenant\Actions\CriarEmpresaAction;
@@ -21,7 +20,6 @@ class RedeService
     public function __construct(
         private CriarEmpresaAction $criarEmpresa,
         private CriarUsuarioAction $criarUsuario,
-        private FormaPagamentoService $formaPagamento,
     ) {}
 
     public function criar(CriarRedeData $data, UsuarioData $usuarioData): Rede
@@ -116,8 +114,7 @@ class RedeService
                 ]);
             }
 
-            // Formas de pagamento padrão (dinheiro/pix caem no caixa; cartão vira recebível)
-            $this->formaPagamento->semearPadrao($rede->id);
+            // Formas de pagamento e contas padrão nascem com a empresa (CriarEmpresaAction).
 
             $rede->setRelation('usuarioCriado', $usuario);
 

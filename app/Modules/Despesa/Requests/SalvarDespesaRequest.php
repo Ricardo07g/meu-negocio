@@ -31,6 +31,15 @@ class SalvarDespesaRequest extends FormRequest
         ];
         $condicoesComForma = $condicoesHabilitadas;
 
+        // Forma é empresa-level: aceita só formas de rede + empresa acessível.
+        // O gate preciso é o findOrFail escopado no controller.
+        $formaAcessivel = Rule::exists('formas_pagamento', 'id')
+            ->whereNull('deleted_at')
+            ->where('rede_id', $this->user()->rede_id);
+        if ($empresasAtuais !== []) {
+            $formaAcessivel->whereIn('empresa_id', $empresasAtuais);
+        }
+
         return [
             'nome' => ['required', 'string', 'max:200'],
             'categoria_despesa_id' => ['nullable', 'integer', 'exists:categorias_despesa,id'],
@@ -51,9 +60,7 @@ class SalvarDespesaRequest extends FormRequest
                 'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                 'nullable',
                 'integer',
-                Rule::exists('formas_pagamento', 'id')
-                    ->whereNull('deleted_at')
-                    ->where('rede_id', $this->user()->rede_id),
+                $formaAcessivel,
             ],
             'numero_parcelas' => [
                 'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),

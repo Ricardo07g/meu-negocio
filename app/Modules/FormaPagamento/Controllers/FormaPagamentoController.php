@@ -10,6 +10,7 @@ use App\Modules\FormaPagamento\DTOs\FormaPagamentoData;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\FormaPagamento\Requests\SalvarFormaPagamentoRequest;
 use App\Modules\FormaPagamento\Services\FormaPagamentoService;
+use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\View\View;
@@ -55,8 +56,15 @@ class FormaPagamentoController extends Controller
     {
         try {
             $this->authorize('create', FormaPagamento::class);
+
+            $empresaId = ContextoEmpresa::resolver() ?? $request->user()->empresa_id;
+            if (! $empresaId) {
+                return redirect()->back()->withInput()
+                    ->with('erro', 'Selecione uma empresa no topo para cadastrar a forma de pagamento.');
+            }
+
             $dados = FormaPagamentoData::from($request->validated());
-            $this->service->criar($dados, $request->input('taxas', []));
+            $this->service->criar($dados, $request->input('taxas', []), (int) $empresaId);
 
             return redirect()->route('formas-pagamento.index')->with('sucesso', 'Forma de pagamento criada com sucesso.');
         } catch (\Throwable $e) {

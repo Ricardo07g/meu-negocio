@@ -6,17 +6,51 @@ namespace Tests\Feature\FormaPagamento;
 
 use App\Enums\TipoFormaPagamento;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\FormaPagamento\Services\FormaPagamentoService;
+use App\Modules\Tenant\Models\Empresa;
 use Database\Factories\{PagamentoFactory, ParcelaPagamentoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Catálogo de formas de pagamento por rede: CRUD, validação das faixas de taxa
- * e isolamento multi-tenant (não se pode baixar com forma de outra rede).
+ * Formas de pagamento por empresa: CRUD, validação das faixas de taxa e
+ * isolamento multi-tenant (não se pode baixar com forma de outra rede nem
+ * acessar forma de outra empresa da mesma rede).
  */
 class FormaPagamentoTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_empresa_nasce_com_formas_padrao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $formas = FormaPagamento::where('empresa_id', $contexto['empresa']->id)->get();
+
+        // Dinheiro, Pix, Cartão de Débito, Cartão de Crédito, Crediário.
+        $this->assertCount(5, $formas, 'Empresa deveria nascer com 5 formas padrão.');
+        $this->assertNotNull(
+            $formas->firstWhere('tipo', TipoFormaPagamento::Crediario),
+            'Deveria existir a forma Crediário.'
+        );
+    }
+
+    public function test_nao_acessa_forma_de_outra_empresa_da_mesma_rede(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+
+        // Segunda empresa na MESMA rede, com suas próprias formas.
+        $empB = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial B']);
+        app(FormaPagamentoService::class)->semearPadrao($rede->id, $empB->id);
+
+        $formaB = FormaPagamento::withoutGlobalScopes()
+            ->where('empresa_id', $empB->id)
+            ->firstOrFail();
+
+        // O usuário opera na empresa A (contexto padrão); a forma da B some do escopo.
+        $this->get(route('formas-pagamento.edit', $formaB))->assertNotFound();
+    }
 
     public function test_telas_de_listagem_e_cadastro_renderizam(): void
     {

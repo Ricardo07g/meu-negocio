@@ -6,17 +6,20 @@ namespace App\Modules\FormaPagamento\Models;
 
 use App\Enums\TipoFormaPagamento;
 use App\Models\BaseModel;
+use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\{Builder, Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
- * Forma de pagamento configuravel por rede (catalogo rede-level).
- * O lojista cria formas nomeadas (ex.: "Credito Cielo") a partir de um
- * TipoFormaPagamento, com taxa e prazo de liquidacao proprios.
+ * Forma de pagamento configuravel por empresa (transacional, empresa-level).
+ * Cada unidade cria suas formas nomeadas (ex.: "Credito Cielo") a partir de um
+ * TipoFormaPagamento, com taxa e prazo de liquidacao proprios — maquinas e
+ * taxas variam por empresa.
  *
  * @property int $id
  * @property int $rede_id
+ * @property int $empresa_id
  * @property string $nome
  * @property TipoFormaPagamento $tipo
  * @property bool $ativo
@@ -34,12 +37,14 @@ use Illuminate\Support\Carbon;
  */
 class FormaPagamento extends BaseModel
 {
+    use EmpresaTrait;
     use SoftDeletes;
 
     protected $table = 'formas_pagamento';
 
     protected $fillable = [
         'rede_id',
+        'empresa_id',
         'nome',
         'tipo',
         'ativo',
