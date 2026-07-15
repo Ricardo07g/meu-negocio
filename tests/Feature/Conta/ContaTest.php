@@ -59,4 +59,106 @@ class ContaTest extends TestCase
         // 100 + 50 − 30 = 120
         $this->assertSame(120.00, $conta->fresh()->saldo());
     }
+
+    public function test_telas_de_listagem_e_cadastro_renderizam(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $this->get(route('contas.index'))
+            ->assertOk()
+            ->assertViewIs('conta::index')
+            ->assertSee('Caixa'); // conta padrão semeada
+
+        $this->get(route('contas.create'))
+            ->assertOk()
+            ->assertSee('id="conta-tipo"', false);
+    }
+
+    public function test_cria_conta_bancaria(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $resp = $this->post(route('contas.store'), [
+            'nome' => 'Itaú PJ',
+            'tipo' => TipoConta::Banco->value,
+            'ativo' => 1,
+            'saldo_inicial' => 500.00,
+            'eh_destino_recebivel_padrao' => 1,
+            'instituicao' => 'Itaú',
+            'agencia' => '1234',
+            'numero' => '56789-0',
+        ]);
+
+        $resp->assertRedirect(route('contas.index'));
+
+        $conta = Conta::where('nome', 'Itaú PJ')->firstOrFail();
+        $this->assertSame(TipoConta::Banco, $conta->tipo);
+        $this->assertSame(500.00, (float) $conta->saldo_inicial);
+        $this->assertTrue($conta->eh_destino_recebivel_padrao);
+        $this->assertSame('Itaú', $conta->instituicao);
+    }
+
+    public function test_conta_caixa_nao_guarda_dados_de_banco(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $this->post(route('contas.store'), [
+            'nome' => 'Cofre',
+            'tipo' => TipoConta::Caixa->value,
+            'ativo' => 1,
+            'eh_destino_recebivel_padrao' => 1, // não se aplica ao caixa
+            'instituicao' => 'Banco X',         // idem
+        ]);
+
+        $conta = Conta::where('nome', 'Cofre')->firstOrFail();
+        $this->assertFalse($conta->eh_destino_recebivel_padrao);
+        $this->assertNull($conta->instituicao);
+    }
+
+    public function test_apenas_uma_conta_caixa_padrao_por_empresa(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        // Já existe a conta "Caixa" padrão semeada. Marcar outra como padrão desmarca a anterior.
+        $this->post(route('contas.store'), [
+            'nome' => 'Caixa 2',
+            'tipo' => TipoConta::Caixa->value,
+            'ativo' => 1,
+            'eh_caixa_padrao' => 1,
+        ]);
+
+        $padroes = Conta::where('empresa_id', $contexto['empresa']->id)
+            ->where('eh_caixa_padrao', true)->get();
+
+        $this->assertCount(1, $padroes, 'Só pode haver uma conta-caixa padrão por empresa.');
+        $this->assertSame('Caixa 2', $padroes->first()->nome);
+    }
+
+    public function test_excluir_conta_faz_soft_delete(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $conta = ContaFactory::new()->banco()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+        ]);
+
+        $this->delete(route('contas.destroy', $conta))
+            ->assertRedirect(route('contas.index'));
+
+        $this->assertSoftDeleted('contas', ['id' => $conta->id]);
+    }
+
+    public function test_nao_acessa_conta_de_outra_rede(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $outra = $this->criarRede('outra');
+        $contaOutra = ContaFactory::new()->banco()->create([
+            'rede_id' => $outra['rede']->id,
+            'empresa_id' => $outra['empresa']->id,
+        ]);
+
+        // Global scope de rede filtra o binding — conta de outra rede não é encontrada.
+        $this->get(route('contas.edit', $contaOutra))->assertNotFound();
+    }
 }

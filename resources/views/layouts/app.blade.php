@@ -267,6 +267,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Contas --}}
+                    @can('conta.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('contas.index') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-briefcase"></i></span>
+                            <span class="nxl-mtext">Contas</span>
+                        </a>
+                    </li>
+                    @endcan
                     @endif
 
                     @if(auth()->user()->rede->plano->tem_estoque)

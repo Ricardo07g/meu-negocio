@@ -6,6 +6,7 @@ use App\Modules\Agenda\Controllers\AgendaController;
 use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController};
 use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\ClienteController;
+use App\Modules\Conta\Controllers\ContaController;
 use App\Modules\Dashboard\Controllers\DashboardController;
 use App\Modules\Despesa\Controllers\{CategoriaDespesaController, DespesaController};
 use App\Modules\Estoque\Controllers\MovimentoEstoqueController;
@@ -113,6 +114,9 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
             // Formas de Pagamento (configuração)
             Route::resource('formas-pagamento', FormaPagamentoController::class)->except(['show']);
+
+            // Contas financeiras (caixa, banco, carteira)
+            Route::resource('contas', ContaController::class)->except(['show']);
 
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');
