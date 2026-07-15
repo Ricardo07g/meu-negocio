@@ -29,6 +29,8 @@ class SalvarFormaPagamentoRequest extends FormRequest
             'taxa_percentual' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'permite_parcelas' => ['nullable', 'boolean'],
             'max_parcelas' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'antecipacao_automatica' => ['nullable', 'boolean'],
+            'taxa_antecipacao_mensal' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'taxas' => ['nullable', 'array'],
             'taxas.*.parcela_min' => ['required_with:taxas', 'integer', 'min:1', 'max:60'],
             'taxas.*.parcela_max' => ['required_with:taxas', 'integer', 'min:1', 'max:60'],

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Venda;
 
-use App\Enums\TipoFormaPagamento;
+use App\Enums\{StatusPagamento, TipoFormaPagamento};
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Caixa\Models\Recebivel;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Database\Factories\{AgendamentoFactory, CaixaFactory, ClienteFactory, ProdutoFactory, ServicoFactory};
@@ -424,5 +426,51 @@ class VendaStoreSmokeTest extends TestCase
 
         $resp->assertSessionHasErrors(['cliente_id', 'atendente_id', 'data', 'horario', 'forma_pagamento']);
         $this->assertSame(0, Agendamento::count());
+    }
+
+    /**
+     * Crediário é forma de 1ª classe: escolhê-la FORÇA "a prazo" (a loja financia
+     * o cliente em N parcelas), mesmo que o form envie "à vista". Gera título
+     * Pendente com N parcelas do cliente e NÃO cria recebível de banco.
+     */
+    public function test_crediario_forca_a_prazo_e_gera_parcelas_do_cliente(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+
+        $cliente = ClienteFactory::new()->create(['rede_id' => $rede->id]);
+        $produto = ProdutoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'quantidade' => 10,
+            'valor_venda' => 300.00,
+        ]);
+
+        // Envia "à vista" de propósito: a forma Crediário deve sobrepor para "a prazo".
+        $resp = $this->post(route('vendas.store'), [
+            'tipo_venda' => 'produto',
+            'cliente_id' => $cliente->id,
+            'itens' => [[
+                'produto_id' => $produto->id,
+                'quantidade' => 1,
+                'valor_unitario' => 300.00,
+                'desconto' => 0,
+                'acrescimo' => 0,
+            ]],
+            'condicao_pagamento' => 'a_vista',
+            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Crediario),
+            'forma_recebimento_prazo' => 'carne',
+            'numero_parcelas' => 3,
+            'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
+            'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
+        ]);
+
+        $resp->assertRedirect(route('vendas.index'));
+        $resp->assertSessionHas('sucesso');
+        $resp->assertSessionMissing('erro');
+
+        $pagamento = Pagamento::with('parcelas')->latest('id')->firstOrFail();
+        $this->assertSame(StatusPagamento::Pendente, $pagamento->status, 'Crediário vira título Pendente (a receber do cliente).');
+        $this->assertCount(3, $pagamento->parcelas, 'Deveria gerar 3 parcelas do cliente.');
+        $this->assertSame(0, Recebivel::count(), 'Crediário NÃO gera recebível de banco.');
     }
 }

@@ -63,6 +63,60 @@ class FormaPagamentoTest extends TestCase
         $this->assertSame(4.50, $forma->taxaParaParcelas(10), 'Faixa 7-12 → 4,50%.');
     }
 
+    public function test_normaliza_campos_por_tipo_ao_salvar(): void
+    {
+        $this->criarRedeAutenticada();
+
+        // "Dinheiro" com um monte de atributos que NÃO lhe pertencem: o servidor
+        // deve zerá-los, mesmo que a UI (ou um POST forjado) os envie.
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Dinheiro Poluído',
+            'tipo' => TipoFormaPagamento::Dinheiro->value,
+            'ativo' => 1,
+            'gera_recebivel' => 1,
+            'dias_liquidacao' => 30,
+            'taxa_percentual' => 5.5,
+            'permite_parcelas' => 1,
+            'max_parcelas' => 10,
+            'antecipacao_automatica' => 1,
+            'taxa_antecipacao_mensal' => 2.5,
+            'taxas' => [
+                ['parcela_min' => 1, 'parcela_max' => 6, 'taxa_percentual' => 3.0],
+            ],
+        ]);
+
+        $resp->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Dinheiro Poluído')->firstOrFail();
+        $this->assertFalse($forma->gera_recebivel, 'Dinheiro não gera recebível.');
+        $this->assertSame(0, $forma->dias_liquidacao);
+        $this->assertSame(0.0, (float) $forma->taxa_percentual);
+        $this->assertFalse($forma->permite_parcelas);
+        $this->assertNull($forma->max_parcelas);
+        $this->assertFalse($forma->antecipacao_automatica);
+        $this->assertSame(0.0, (float) $forma->taxa_antecipacao_mensal);
+        $this->assertCount(0, $forma->taxas, 'Dinheiro não tem faixas de taxa.');
+    }
+
+    public function test_cria_crediario_com_teto_de_parcelas(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Crediário da Loja',
+            'tipo' => TipoFormaPagamento::Crediario->value,
+            'ativo' => 1,
+            'max_parcelas' => 6,
+        ]);
+
+        $resp->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Crediário da Loja')->firstOrFail();
+        $this->assertSame(TipoFormaPagamento::Crediario, $forma->tipo);
+        $this->assertFalse($forma->gera_recebivel, 'Crediário é a receber do cliente, não do banco.');
+        $this->assertSame(6, $forma->max_parcelas, 'Máx. de parcelas do cliente é preservado no crediário.');
+    }
+
     public function test_faixas_sobrepostas_sao_rejeitadas(): void
     {
         $this->criarRedeAutenticada();

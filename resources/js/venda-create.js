@@ -608,6 +608,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // A forma pode DITAR a condição do cliente:
+    //  - Crediário (forca_a_prazo): a loja financia → sempre "a prazo" (a receber do cliente).
+    //  - Cartão (gera_recebivel): o cliente é quitado na hora → sempre "à vista".
+    // Nesses casos a condição é definida pela forma; o resto respeita a escolha do usuário.
+    function sincronizarCondicaoComForma() {
+        const forma = formaSelecionada();
+        let novaCondicao = null;
+        if (forma && forma.forca_a_prazo) novaCondicao = 'a_prazo';
+        else if (forma && forma.gera_recebivel) novaCondicao = 'a_vista';
+
+        if (novaCondicao && condicaoSelect.value !== novaCondicao) {
+            condicaoSelect.value = novaCondicao;
+            aplicarCondicaoPagamento();
+        }
+
+        // Crediário respeita o teto de parcelas do cliente configurado na forma.
+        numeroParcelasInput.max = (forma && forma.forca_a_prazo && forma.max_parcelas) ? forma.max_parcelas : 24;
+    }
+
     function popularFormasPagamento() {
         const valorAtual = formaPagamentoSelect.value || formaPagamentoSelect.dataset.old || '';
         // DOM seguro (o nome da forma é dado do usuário — evita XSS via innerHTML).
@@ -631,7 +650,11 @@ document.addEventListener('DOMContentLoaded', function() {
         atualizarParcelasCartao();
     }
 
-    formaPagamentoSelect.addEventListener('change', atualizarParcelasCartao);
+    formaPagamentoSelect.addEventListener('change', function () {
+        sincronizarCondicaoComForma();
+        atualizarParcelasCartao();
+        atualizarPreviewCarne();
+    });
 
     function aplicarCondicaoPagamento() {
         const c = condicaoSelecionada();
@@ -807,7 +830,13 @@ document.addEventListener('DOMContentLoaded', function() {
         recalcularSomaCarne();
     }
 
-    if (condicaoSelect) condicaoSelect.addEventListener('change', function() { atualizarHabilitacaoPagamento(); });
+    if (condicaoSelect) condicaoSelect.addEventListener('change', function() {
+        // Se a forma escolhida exige uma condição (crediário=a prazo, cartão=à vista), snap back.
+        const forma = formaSelecionada();
+        if (forma && forma.forca_a_prazo && condicaoSelect.value !== 'a_prazo') condicaoSelect.value = 'a_prazo';
+        else if (forma && forma.gera_recebivel && condicaoSelect.value !== 'a_vista') condicaoSelect.value = 'a_vista';
+        atualizarHabilitacaoPagamento();
+    });
     numeroParcelasInput.addEventListener('input', atualizarPreviewCarne);
     primeiroVencimento.addEventListener('change', atualizarPreviewCarne);
     mesReferencia.addEventListener('change', atualizarPreviewCarne);

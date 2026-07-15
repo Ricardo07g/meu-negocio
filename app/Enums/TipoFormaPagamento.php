@@ -16,6 +16,8 @@ namespace App\Enums;
  * - CartaoDebito    : recebível do adquirente (≈ D+1), com taxa (MDR).
  * - CartaoCredito   : recebível do adquirente (≈ D+30), com taxa por faixa de parcelas.
  * - Boleto          : liquidação imediata no caixa quando o cliente paga o boleto.
+ * - Crediario       : a loja financia o cliente (a receber do cliente, N parcelas). Força a-prazo;
+ *                     NÃO gera recebível de banco.
  */
 enum TipoFormaPagamento: string
 {
@@ -24,6 +26,7 @@ enum TipoFormaPagamento: string
     case CartaoDebito = 'cartao_debito';
     case CartaoCredito = 'cartao_credito';
     case Boleto = 'boleto';
+    case Crediario = 'crediario';
 
     public function label(): string
     {
@@ -33,18 +36,19 @@ enum TipoFormaPagamento: string
             self::CartaoDebito => 'Cartão de Débito',
             self::CartaoCredito => 'Cartão de Crédito',
             self::Boleto => 'Boleto',
+            self::Crediario => 'Crediário',
         };
     }
 
     /**
      * Se o dinheiro NÃO entra na gaveta do caixa na hora — vira um recebível do
-     * banco/adquirente (D+N, líquido de taxa). Padrão do tipo; editável por forma.
+     * banco/adquirente (D+N, líquido de taxa). DERIVADO do tipo (não editável).
      */
     public function geraRecebivelPadrao(): bool
     {
         return match ($this) {
             self::CartaoDebito, self::CartaoCredito => true,
-            self::Dinheiro, self::Pix, self::Boleto => false,
+            self::Dinheiro, self::Pix, self::Boleto, self::Crediario => false,
         };
     }
 
@@ -56,12 +60,13 @@ enum TipoFormaPagamento: string
         return match ($this) {
             self::CartaoDebito => 1,
             self::CartaoCredito => 30,
-            self::Dinheiro, self::Pix, self::Boleto => 0,
+            self::Dinheiro, self::Pix, self::Boleto, self::Crediario => 0,
         };
     }
 
     /**
-     * Se aceita parcelamento no cartão (nº de parcelas do adquirente).
+     * Se aceita parcelamento no cartão (nº de parcelas do adquirente + faixas de taxa).
+     * DERIVADO do tipo: só o crédito. (Crediário parcela o CLIENTE, não o cartão — ver forcaAPrazo.)
      */
     public function permiteParcelasPadrao(): bool
     {
@@ -71,5 +76,43 @@ enum TipoFormaPagamento: string
     public function ehCartao(): bool
     {
         return $this === self::CartaoDebito || $this === self::CartaoCredito;
+    }
+
+    public function ehCrediario(): bool
+    {
+        return $this === self::Crediario;
+    }
+
+    /**
+     * Se, ao ser escolhida na venda, a forma FORÇA condição "a prazo" (a loja financia o
+     * cliente em N parcelas). Espelho invertido do cartão, que força "à vista".
+     */
+    public function forcaAPrazo(): bool
+    {
+        return $this === self::Crediario;
+    }
+
+    /** Usa taxa plana (MDR único): só o débito. O crédito usa faixas por parcela. */
+    public function usaTaxaPlana(): bool
+    {
+        return $this === self::CartaoDebito;
+    }
+
+    /** Usa faixas de taxa por nº de parcelas do cartão: só o crédito. */
+    public function usaFaixas(): bool
+    {
+        return $this === self::CartaoCredito;
+    }
+
+    /** Aceita configuração de antecipação (adiantamento do adquirente): cartões. */
+    public function usaAntecipacao(): bool
+    {
+        return $this->ehCartao();
+    }
+
+    /** Tem prazo de liquidação (D+N) configurável: cartões. */
+    public function usaLiquidacao(): bool
+    {
+        return $this->ehCartao();
     }
 }

@@ -63,4 +63,17 @@ class FormaPagamentoFactory extends Factory
             'max_parcelas' => 12,
         ]);
     }
+
+    public function crediario(): static
+    {
+        return $this->state(fn () => [
+            'nome' => 'Crediário',
+            'tipo' => TipoFormaPagamento::Crediario,
+            'gera_recebivel' => false,
+            'dias_liquidacao' => 0,
+            'taxa_percentual' => 0,
+            'permite_parcelas' => false,
+            'max_parcelas' => 12,
+        ]);
+    }
 }

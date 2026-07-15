@@ -143,6 +143,12 @@ class VendaController extends Controller
                 : 1;
         }
 
+        // Crediário: a loja financia o cliente → força "a prazo" (a receber do cliente),
+        // espelho invertido do cartão. Não gera recebível de banco.
+        if ($forma && $forma->tipo->forcaAPrazo()) {
+            $condicao = CondicaoPagamento::APrazo;
+        }
+
         $aVista = $condicao === CondicaoPagamento::AVista;
 
         $formaRecebimentoPrazo = $request->forma_recebimento_prazo
@@ -150,6 +156,10 @@ class VendaController extends Controller
             : null;
 
         $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
+        // Crediário respeita o teto de parcelas do cliente configurado na forma.
+        if ($numeroParcelas !== null && $forma && $forma->tipo->ehCrediario() && $forma->max_parcelas) {
+            $numeroParcelas = min($numeroParcelas, $forma->max_parcelas);
+        }
         $primeiroVencimento = $condicao->geraParcelas()
             ? Carbon::parse($request->primeiro_vencimento)
             : now();

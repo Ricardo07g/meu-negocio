@@ -22,6 +22,9 @@ return new class extends Migration
             $table->decimal('taxa_percentual', 5, 2)->default(0);
             $table->boolean('permite_parcelas')->default(false);
             $table->unsignedTinyInteger('max_parcelas')->nullable();
+            // Antecipacao (cartao): adianta os recebiveis do adquirente com um custo mensal.
+            $table->boolean('antecipacao_automatica')->default(false);
+            $table->decimal('taxa_antecipacao_mensal', 5, 2)->default(0);
             $table->timestamps();
             $table->softDeletes();
 

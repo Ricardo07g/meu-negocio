@@ -54,6 +54,7 @@ class FormaPagamentoController extends Controller
     public function store(SalvarFormaPagamentoRequest $request): RedirectResponse
     {
         try {
+            $this->authorize('create', FormaPagamento::class);
             $dados = FormaPagamentoData::from($request->validated());
             $this->service->criar($dados, $request->input('taxas', []));
 

@@ -25,6 +25,8 @@ use Illuminate\Support\Carbon;
  * @property string $taxa_percentual
  * @property bool $permite_parcelas
  * @property int|null $max_parcelas
+ * @property bool $antecipacao_automatica
+ * @property string $taxa_antecipacao_mensal
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -46,6 +48,8 @@ class FormaPagamento extends BaseModel
         'taxa_percentual',
         'permite_parcelas',
         'max_parcelas',
+        'antecipacao_automatica',
+        'taxa_antecipacao_mensal',
     ];
 
     protected function casts(): array
@@ -58,6 +62,8 @@ class FormaPagamento extends BaseModel
             'taxa_percentual' => 'decimal:2',
             'permite_parcelas' => 'boolean',
             'max_parcelas' => 'integer',
+            'antecipacao_automatica' => 'boolean',
+            'taxa_antecipacao_mensal' => 'decimal:2',
         ];
     }
 

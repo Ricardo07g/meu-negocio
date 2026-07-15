@@ -432,6 +432,7 @@
         'gera_recebivel' => (bool) $f->gera_recebivel,
         'permite_parcelas' => (bool) $f->permite_parcelas,
         'max_parcelas' => $f->max_parcelas,
+        'forca_a_prazo' => $f->tipo->forcaAPrazo(),
     ])->values();
 @endphp
 

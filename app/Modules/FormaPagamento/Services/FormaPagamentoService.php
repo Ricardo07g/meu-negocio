@@ -40,8 +40,8 @@ class FormaPagamentoService
     public function criar(FormaPagamentoData $dados, array $taxas = []): FormaPagamento
     {
         return DB::transaction(function () use ($dados, $taxas) {
-            $forma = FormaPagamento::create($dados->toArray());
-            $this->sincronizarTaxas($forma, $dados->permite_parcelas ? $taxas : []);
+            $forma = FormaPagamento::create($this->normalizarPorTipo($dados));
+            $this->sincronizarTaxas($forma, $dados->tipo->usaFaixas() ? $taxas : []);
 
             return $forma->fresh('taxas');
         });
@@ -53,8 +53,8 @@ class FormaPagamentoService
     public function atualizar(FormaPagamento $forma, FormaPagamentoData $dados, array $taxas = []): FormaPagamento
     {
         return DB::transaction(function () use ($forma, $dados, $taxas) {
-            $forma->update($dados->toArray());
-            $this->sincronizarTaxas($forma, $dados->permite_parcelas ? $taxas : []);
+            $forma->update($this->normalizarPorTipo($dados));
+            $this->sincronizarTaxas($forma, $dados->tipo->usaFaixas() ? $taxas : []);
 
             return $forma->fresh('taxas');
         });
@@ -118,6 +118,53 @@ class FormaPagamentoService
         ] as $faixa) {
             $credito->taxas()->create(['rede_id' => $redeId] + $faixa);
         }
+
+        // Crediário: a loja financia o cliente em até N parcelas (a receber do cliente).
+        FormaPagamento::create([
+            'rede_id' => $redeId,
+            'nome' => 'Crediário',
+            'tipo' => TipoFormaPagamento::Crediario,
+            'gera_recebivel' => false,
+            'dias_liquidacao' => 0,
+            'taxa_percentual' => 0,
+            'max_parcelas' => 12,
+        ]);
+    }
+
+    /**
+     * Força os campos por tipo: um "Dinheiro" nunca guarda taxa/recebível/parcelas, mesmo que a UI
+     * (ou um POST forjado) tente. `gera_recebivel` e `permite_parcelas` são DERIVADOS do tipo.
+     *
+     * @return array<string, mixed>
+     */
+    private function normalizarPorTipo(FormaPagamentoData $dados): array
+    {
+        $tipo = $dados->tipo;
+        $attrs = $dados->toArray();
+
+        // Comportamento intrínseco ao tipo — não é escolha do lojista.
+        $attrs['gera_recebivel'] = $tipo->geraRecebivelPadrao();
+        $attrs['permite_parcelas'] = $tipo->permiteParcelasPadrao();
+
+        if (! $tipo->usaLiquidacao()) {
+            $attrs['dias_liquidacao'] = 0;
+        }
+
+        if (! $tipo->usaTaxaPlana()) {
+            $attrs['taxa_percentual'] = 0;
+        }
+
+        if (! $tipo->usaAntecipacao()) {
+            $attrs['antecipacao_automatica'] = false;
+            $attrs['taxa_antecipacao_mensal'] = 0;
+        }
+
+        // max_parcelas só faz sentido no crédito (parcelas do cartão) e no crediário (parcelas do cliente).
+        if (! $tipo->usaFaixas() && ! $tipo->ehCrediario()) {
+            $attrs['max_parcelas'] = null;
+        }
+
+        return $attrs;
     }
 
     /**
