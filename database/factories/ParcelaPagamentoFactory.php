@@ -27,7 +27,8 @@ class ParcelaPagamentoFactory extends Factory
             'valor_pago' => 0,
             'data_vencimento' => now()->addMonth()->format('Y-m-d'),
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
-            'forma_pagamento' => null,
+            'forma_pagamento_id' => null,
+            'forma_pagamento_nome' => null,
             'status' => StatusParcela::Pendente,
             'observacao' => null,
         ];

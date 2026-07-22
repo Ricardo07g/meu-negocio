@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Pagamento\Controllers;
 
-use App\Enums\FormaPagamento;
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\DTOs\RenegociarParcelaData;
 use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use App\Modules\Pagamento\Requests\{CancelarParcelaRequest, RenegociarParcelaRequest, SalvarBaixaParcelaRequest};
@@ -48,7 +48,9 @@ class PagamentoController extends Controller
                 return redirect()->route('pagamentos.index')->with('erro', 'Esta parcela já está quitada.');
             }
 
-            return view('pagamento::baixa', compact('parcela'));
+            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
+
+            return view('pagamento::baixa', compact('parcela', 'formas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de baixa');
         }
@@ -61,7 +63,7 @@ class PagamentoController extends Controller
                 $this->caixaService->darBaixaParcelaPagamento(
                     $parcela,
                     (float) $request->valor,
-                    FormaPagamento::from($request->forma_pagamento),
+                    FormaPagamento::findOrFail((int) $request->forma_pagamento),
                     $request->observacao,
                     (float) ($request->multa ?? 0),
                     (float) ($request->juros ?? 0),

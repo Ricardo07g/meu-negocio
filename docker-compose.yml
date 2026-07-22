@@ -17,6 +17,49 @@ services:
       redis:
         condition: service_started
 
+  queue:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: meu-negocio-queue
+    restart: unless-stopped
+    # Worker da fila (driver database): processa jobs como a exportacao de extrato (ADR-0012).
+    command: php artisan queue:work database --tries=3 --sleep=3 --max-time=3600
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    networks:
+      - meu-negocio
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  scheduler:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: meu-negocio-scheduler
+    restart: unless-stopped
+    # Roda o scheduler do Laravel (dispara os Schedule::command de routes/console.php,
+    # ex.: exportacoes:limpar de hora em hora e arquivos:limpar-rascunhos diario).
+    command: php artisan schedule:work
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    networks:
+      - meu-negocio
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   nginx:
     image: nginx:alpine
     container_name: meu-negocio-nginx

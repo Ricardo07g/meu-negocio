@@ -42,9 +42,10 @@ Padrao real = `foreignId(...)->constrained('tabela')->{comportamento}`:
 
 ## softDeletes
 - **COM** `$table->softDeletes()`: entidades principais — redes, empresas, usuarios, clientes,
-  servicos, agendamentos, vendas_etapas, vendas_produto, pagamentos, despesas, produtos, faturas.
-- **SEM**: registros append-only/permanentes — movimentos_estoque, movimentos_caixa,
-  baixas_pagamento, baixas_despesa, parcelas (e tabelas pivot/infra).
+  servicos, agendamentos, vendas_etapas, vendas_produto, pagamentos, despesas, produtos, faturas,
+  formas_pagamento, contas, recebiveis.
+- **SEM**: registros append-only/permanentes — movimentos_estoque, lancamentos (razao unificado —
+  ADR-0010), baixas_pagamento, baixas_despesa, parcelas (e tabelas pivot/infra).
 
 ## Tipos de coluna usados
 | Tipo | Uso |

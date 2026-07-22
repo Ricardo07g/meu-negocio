@@ -110,7 +110,7 @@
                 <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                 <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
                 <td>{{ $parcela->statusEfetivo()->label() }}</td>
-                <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                <td>{{ $parcela->forma_pagamento_nome ?? '—' }}</td>
                 <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                 <td class="text-end">R$ {{ number_format($parcela->valor_pago, 2, ',', '.') }}</td>
             </tr>
@@ -129,7 +129,7 @@
             @foreach($baixasRec as $baixa)
                 <tr>
                     <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
-                    <td>{{ ucfirst($baixa->forma_pagamento?->value ?? '—') }}</td>
+                    <td>{{ $baixa->forma_pagamento_nome ?? '—' }}</td>
                     <td>{{ $baixa->observacao ?? '—' }}</td>
                     <td class="text-end">R$ {{ number_format((float) $baixa->valor, 2, ',', '.') }}</td>
                 </tr>

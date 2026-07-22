@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Pagamento\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 
 /**
  * Request compartilhado entre baixa de parcela de Pagamento (contas a
@@ -41,8 +43,29 @@ class SalvarBaixaParcelaRequest extends FormRequest
             'multa' => ['nullable', 'numeric', 'min:0'],
             'juros' => ['nullable', 'numeric', 'min:0'],
             'desconto' => ['nullable', 'numeric', 'min:0'],
-            'forma_pagamento' => ['required', 'string'],
+            // O `exists` cru ignora os global scopes — filtramos rede/empresa na mão
+            // (defesa de tenancy: forma de outra rede/empresa é rejeitada). O gate
+            // preciso é o findOrFail escopado no controller.
+            'forma_pagamento' => [
+                'required',
+                'integer',
+                $this->regraFormaAcessivel(),
+            ],
             'observacao' => ['nullable', 'string'],
         ];
+    }
+
+    private function regraFormaAcessivel(): Exists
+    {
+        $regra = Rule::exists('formas_pagamento', 'id')
+            ->whereNull('deleted_at')
+            ->where('rede_id', $this->user()?->rede_id);
+
+        $empresas = array_values(array_map('intval', (array) session('empresas_atuais', [])));
+        if ($empresas !== []) {
+            $regra->whereIn('empresa_id', $empresas);
+        }
+
+        return $regra;
     }
 }

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Venda\Actions;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusVendaProduto};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusVendaProduto};
 use App\Modules\Estoque\Models\MovimentoEstoque;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Actions\CriarPagamentoComParcelasAction;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;

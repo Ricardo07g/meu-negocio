@@ -217,6 +217,50 @@
         </div>
     </div>
 
+    {{-- Contas: so a gaveta (Caixa) tem saldo controlado; banco/carteira sao rotulos de origem (ADR-0011). --}}
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card stretch stretch-full">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Contas</h5>
+                    <a href="{{ route('contas.index') }}" class="btn btn-sm btn-light">Ver contas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Conta</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Saldo</th>
+                                    <th class="text-end"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($saldoPorConta as $conta)
+                                <tr>
+                                    <td><i class="{{ $conta->tipo->icone() }} me-2 text-muted"></i>{{ $conta->nome }}</td>
+                                    <td><span class="badge bg-soft-secondary text-secondary">{{ $conta->tipo->label() }}</span></td>
+                                    <td class="text-end fw-semibold">
+                                        @if($conta->ehProtegida())
+                                            R$ {{ number_format($conta->saldo(), 2, ',', '.') }}
+                                        @else
+                                            <span class="text-muted" title="Rótulo de recebimento — veja o caixa do dia por forma">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end"><a href="{{ route('contas.extrato', $conta) }}" class="btn btn-sm btn-light">Extrato</a></td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="text-center text-muted py-4">Nenhuma conta cadastrada.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Graficos --}}
     <div class="row g-3 mt-1">
         <div class="col-lg-8">

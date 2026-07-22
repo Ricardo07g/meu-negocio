@@ -9,8 +9,11 @@ Projeto de portfolio, preparado para open source.
 
 ## Stack
 - PHP ^8.3, Laravel ^13.0 · MySQL 8.0 · Redis
-- Docker Compose (app, nginx:8080, mysql:3306, redis:6379) — **nao ha PHP no host**; rode tudo via
-  `docker exec meu-negocio-app <cmd>`.
+- Docker Compose (app, nginx:8080, mysql:3306, redis:6379, **queue** = worker `queue:work`,
+  **scheduler** = `schedule:work`) — **nao ha PHP no host**; rode tudo via `docker exec meu-negocio-app
+  <cmd>`. Fila em driver `database`: jobs assincronos (ex.: exportacao de extrato — ADR-0012) precisam do
+  `queue` no ar; tarefas agendadas (`routes/console.php`, ex.: `exportacoes:limpar` horario) precisam do
+  `scheduler`.
 - Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3 (Node so no host).
 - Template UI: Duralux Admin 1.0.0 (template comercial; mantenha uma copia local para referencia
   visual — ver `NOTICE.md`).
@@ -30,12 +33,13 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
   Requests, Policies, Models, Views, Migrations.
 - **Multi-tenant single-DB**: `rede_id` sempre (`RedeTrait` via `BaseModel`); `empresa_id` no
   transacional (`EmpresaTrait`, Admin ve tudo). Catalogo (Cliente/Servico/Produto/categorias) e
-  rede-level; transacional (Agendamento/Venda/Pagamento/Despesa/Caixa/Estoque) e por empresa.
+  rede-level; transacional (Agendamento/Venda/Pagamento/Despesa/Caixa/Estoque/FormaPagamento/Conta) e
+  por empresa (config financeira — formas e contas — e por empresa).
   -> isolamento, ME-010 e camadas de auth em `.claude/rules/multi-tenant-seguranca.md`.
 - **Modelo financeiro**: Titulo (`Pagamento`/`Despesa`) + Parcela + Baixa; `forma_pagamento` mora na
   parcela/baixa. -> `.claude/rules/modelo-financeiro.md`.
-- **BaseModel**: `App\Models\BaseModel` (Model + `RedeTrait`). Excecoes (Model direto): Plano, Rede,
-  MovimentoCaixa. `Usuario` = Authenticatable rede-level. Caixa = BaseModel + EmpresaTrait.
+- **BaseModel**: `App\Models\BaseModel` (Model + `RedeTrait`). Excecoes (Model direto): Plano, Rede.
+  `Usuario` = Authenticatable rede-level. Caixa/Conta/Lancamento = BaseModel + EmpresaTrait.
 
 ### Padroes de codigo (resumo — detalhe na skill `padroes-projeto`)
 - **Controller fino**: request/response + `$this->authorize(...)`, delega a Service/Action;
@@ -53,7 +57,8 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
-Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), Caixa, Dashboard,
+Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
+(formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (troca de plano pro-rata, sem gateway — ADR-0007), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
@@ -62,7 +67,8 @@ imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto,
 venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas,
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
-movimentos_estoque, caixas, movimentos_caixa, **faturas**, **arquivos** (polimorfica).
+movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **recebiveis**,
+**contas**, **lancamentos**, **exportacoes**, **faturas**, **arquivos** (polimorfica).
 -> convencoes de migration em `.claude/rules/banco-de-dados.md` e skill `criar-migration`.
 
 ## Traits

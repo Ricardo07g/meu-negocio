@@ -114,6 +114,8 @@ class RedeService
                 ]);
             }
 
+            // Formas de pagamento e contas padrão nascem com a empresa (CriarEmpresaAction).
+
             $rede->setRelation('usuarioCriado', $usuario);
 
             return $rede;

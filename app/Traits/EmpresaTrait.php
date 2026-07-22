@@ -102,7 +102,7 @@ trait EmpresaTrait
             // setam session('empresa_criacao_atual') com a empresa escolhida
             // no sub-seletor — o trait usa esse valor como contexto de
             // criacao para que entidades em cascata (Venda + Pagamento +
-            // Parcela + Baixa + MovimentoCaixa) compartilhem a mesma empresa
+            // Parcela + Baixa + Lancamento) compartilhem a mesma empresa
             // sem precisar propagar empresa_id em cada Action.
             $override = session('empresa_criacao_atual');
             if (is_int($override) && in_array($override, $empresasIds, true)) {

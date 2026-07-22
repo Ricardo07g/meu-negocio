@@ -2,48 +2,48 @@
 
 declare(strict_types=1);
 
-namespace App\Modules\Caixa\Models;
+namespace App\Modules\FormaPagamento\Models;
 
-use App\Enums\{FormaPagamento, TipoMovimentoCaixa};
-use Illuminate\Database\Eloquent\Model;
+use App\Models\BaseModel;
+use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * Faixa de taxa por numero de parcelas de uma FormaPagamento (cartao de credito).
+ *
  * @property int $id
- * @property int $caixa_id
- * @property TipoMovimentoCaixa $tipo
- * @property float $valor
- * @property string $descricao
- * @property FormaPagamento|null $forma_pagamento
- * @property int|null $baixa_pagamento_id
- * @property int|null $baixa_despesa_id
+ * @property int $rede_id
+ * @property int $empresa_id
+ * @property int $forma_pagamento_id
+ * @property int $parcela_min
+ * @property int $parcela_max
+ * @property string $taxa_percentual
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Caixa $caixa
- * @property-read BaixaPagamento|null $baixaPagamento
- * @property-read BaixaDespesa|null $baixaDespesa
+ * @property-read FormaPagamento $forma
  */
-class MovimentoCaixa extends Model
+class FormaPagamentoTaxa extends BaseModel
 {
-    protected $table = 'movimentos_caixa';
+    use EmpresaTrait;
+
+    protected $table = 'formas_pagamento_taxas';
 
     protected $fillable = [
-        'caixa_id',
-        'tipo',
-        'valor',
-        'descricao',
-        'forma_pagamento',
-        'baixa_pagamento_id',
-        'baixa_despesa_id',
+        'rede_id',
+        'empresa_id',
+        'forma_pagamento_id',
+        'parcela_min',
+        'parcela_max',
+        'taxa_percentual',
     ];
 
     protected function casts(): array
     {
         return [
-            'tipo' => TipoMovimentoCaixa::class,
-            'valor' => 'decimal:2',
-            'forma_pagamento' => FormaPagamento::class,
+            'parcela_min' => 'integer',
+            'parcela_max' => 'integer',
+            'taxa_percentual' => 'decimal:2',
         ];
     }
 
@@ -54,18 +54,8 @@ class MovimentoCaixa extends Model
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-    public function caixa(): BelongsTo
+    public function forma(): BelongsTo
     {
-        return $this->belongsTo(Caixa::class, 'caixa_id');
-    }
-
-    public function baixaPagamento(): BelongsTo
-    {
-        return $this->belongsTo(BaixaPagamento::class, 'baixa_pagamento_id');
-    }
-
-    public function baixaDespesa(): BelongsTo
-    {
-        return $this->belongsTo(BaixaDespesa::class, 'baixa_despesa_id');
+        return $this->belongsTo(FormaPagamento::class, 'forma_pagamento_id');
     }
 }

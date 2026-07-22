@@ -164,6 +164,62 @@
         </div>
     </div>
 
+    {{-- Panorama do dia por forma de pagamento: pauta-se em QUANDO O CLIENTE PAGOU
+         (a baixa), nao na liquidacao. Independe de haver caixa aberto e e um eixo
+         disjunto do saldo da gaveta (a tabela "Movimentos" abaixo). --}}
+    <div class="card stretch stretch-full mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recebimentos do dia por forma</h5>
+            <span class="badge bg-soft-primary text-primary">Líquido: R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</span>
+        </div>
+        <div class="card-body">
+            <p class="text-muted fs-12 mb-3">
+                <i class="feather-info me-1"></i>Tudo que o cliente pagou neste dia, por forma (pela data do pagamento — não pela liquidação do banco). A tabela "Movimentos" abaixo é só a gaveta de dinheiro.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Forma</th>
+                            <th class="text-center">Qtd</th>
+                            <th class="text-end">Recebido</th>
+                            <th class="text-end">Estornado</th>
+                            <th class="text-end">Líquido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($resumo['linhas'] as $linha)
+                        <tr>
+                            <td>{{ $linha['forma'] }}</td>
+                            <td class="text-center text-muted">{{ $linha['qtd'] }}</td>
+                            <td class="text-end text-success">R$ {{ number_format($linha['recebido'], 2, ',', '.') }}</td>
+                            <td class="text-end {{ $linha['estornado'] > 0 ? 'text-danger' : 'text-muted' }}">
+                                @if($linha['estornado'] > 0)− R$ {{ number_format($linha['estornado'], 2, ',', '.') }}@else—@endif
+                            </td>
+                            <td class="text-end fw-semibold">R$ {{ number_format($linha['liquido'], 2, ',', '.') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum recebimento registrado neste dia.</td></tr>
+                        @endforelse
+                    </tbody>
+                    @if(count($resumo['linhas']) > 0)
+                    <tfoot>
+                        <tr class="fw-bold border-top">
+                            <td>Total</td>
+                            <td></td>
+                            <td class="text-end text-success">R$ {{ number_format($resumo['totalRecebido'], 2, ',', '.') }}</td>
+                            <td class="text-end {{ $resumo['totalEstornado'] > 0 ? 'text-danger' : 'text-muted' }}">
+                                @if($resumo['totalEstornado'] > 0)− R$ {{ number_format($resumo['totalEstornado'], 2, ',', '.') }}@else—@endif
+                            </td>
+                            <td class="text-end">R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</td>
+                        </tr>
+                    </tfoot>
+                    @endif
+                </table>
+            </div>
+        </div>
+    </div>
+
     @if($caixa)
         {{-- Summary cards --}}
         <div class="row mb-4">
@@ -314,16 +370,17 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($caixa->movimentos->sortByDesc('created_at') as $movimento)
+                            @forelse($caixa->lancamentos->sortByDesc('created_at') as $lancamento)
                             <tr>
-                                <td>{{ \Carbon\Carbon::parse($movimento->created_at)->format('H:i') }}</td>
+                                <td>{{ \Carbon\Carbon::parse($lancamento->created_at)->format('H:i') }}</td>
                                 <td>
-                                    @switch($movimento->tipo->value)
-                                        @case('entrada')
-                                            <span class="badge bg-success">Entrada</span>
-                                            @break
-                                        @case('saida')
-                                            <span class="badge bg-danger">Saída</span>
+                                    @switch($lancamento->categoria)
+                                        @case('movimento')
+                                            @if($lancamento->tipo === \App\Enums\TipoLancamento::Credito)
+                                                <span class="badge bg-success">Entrada</span>
+                                            @else
+                                                <span class="badge bg-danger">Saída</span>
+                                            @endif
                                             @break
                                         @case('sangria')
                                             <span class="badge bg-warning">Sangria</span>
@@ -331,13 +388,16 @@
                                         @case('reforco')
                                             <span class="badge bg-info">Reforço</span>
                                             @break
+                                        @case('estorno')
+                                            <span class="badge bg-secondary">Estorno</span>
+                                            @break
                                         @default
-                                            <span class="badge bg-secondary">{{ ucfirst($movimento->tipo->value) }}</span>
+                                            <span class="badge bg-secondary">{{ ucfirst($lancamento->categoria) }}</span>
                                     @endswitch
                                 </td>
-                                <td>{{ $movimento->descricao }}</td>
-                                <td>{{ $movimento->forma_pagamento ? ucfirst($movimento->forma_pagamento->value) : '-' }}</td>
-                                <td class="text-end">R$ {{ number_format($movimento->valor, 2, ',', '.') }}</td>
+                                <td>{{ $lancamento->descricao }}</td>
+                                <td>{{ $lancamento->forma_pagamento_nome ?? '-' }}</td>
+                                <td class="text-end">R$ {{ number_format($lancamento->valor, 2, ',', '.') }}</td>
                             </tr>
                             @empty
                             <tr><td colspan="5" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>

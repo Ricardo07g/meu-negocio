@@ -43,8 +43,9 @@ Pagamento, a Despesa TEM criacao manual (`create`/`store`) — nao nasce de vend
   `parcelas-despesa/{parcela}/...` (baixa-form GET, baixa POST, cancelar PATCH), `despesas/{}/cancelar`
   PATCH, `contas-a-pagar`. Tudo sob `verificar.plano:financeiro`. NAO ha rota de editar/atualizar
   despesa.
-- A baixa de parcela gera `MovimentoCaixa` de **Saida** (vs Entrada no Pagamento) e exige caixa
-  aberto — esta no `CaixaService`, nao aqui.
+- A baixa de parcela gera um `Lancamento` de **debito** na conta destino (vs credito no Pagamento) e
+  exige caixa aberto so quando a conta destino e do tipo caixa — esta no `CaixaService`, nao aqui.
+  Despesa NUNCA gera recebivel.
 - `valorPago()` = soma `valor_pago` das parcelas. `totalPagoLiquido()` soma `valorTotal()` das baixas.
 - `cancelarDespesa` rejeita despesa ja Paga ou ja Cancelada (`NegocioException`).
 - `ParcelaDespesa::statusEfetivo()` deriva `Vencido` em leitura, igual ao Pagamento.

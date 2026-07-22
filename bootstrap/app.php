@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
 use App\Http\Middleware\{AplicarContextoEmpresa, VerificarEmpresa, VerificarPlano, VerificarRede};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
+use App\Modules\Conta\Console\LimparExportacoes;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
 use Spatie\Permission\Middleware\{PermissionMiddleware, RoleMiddleware};
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         LimparRascunhosArquivo::class,
+        LimparExportacoes::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

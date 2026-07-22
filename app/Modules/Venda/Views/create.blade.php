@@ -324,6 +324,17 @@
                         @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
+                    <div class="col-12 col-sm-6 col-md-4" id="parcelasCartaoWrapper" style="display:none;">
+                        <label class="form-label" for="parcelasCartao">
+                            Parcelas no cartão
+                            <x-label-info content="Em quantas vezes o cliente parcelou no cartão. Define a taxa e a agenda dos recebíveis (D+30, D+60...). O cliente já está quitado — quem recebe parcelado é a loja, do adquirente." />
+                        </label>
+                        <input type="number" min="1" step="1" name="parcelas_cartao" id="parcelasCartao"
+                               class="form-control @error('parcelas_cartao') is-invalid @enderror"
+                               value="{{ old('parcelas_cartao', 1) }}">
+                        @error('parcelas_cartao') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
                     <div class="col-12 col-sm-6 col-md-4" id="formaRecebimentoPrazoWrapper" style="display:none;">
                         <label class="form-label" for="formaRecebimentoPrazoSelect">
                             Forma de Recebimento <span class="text-danger">*</span>
@@ -414,6 +425,17 @@
     </form>
 @endsection
 
+@php
+    $formasJs = $formas->map(fn ($f) => [
+        'id' => $f->id,
+        'nome' => $f->nome,
+        'gera_recebivel' => (bool) $f->gera_recebivel,
+        'permite_parcelas' => (bool) $f->permite_parcelas,
+        'max_parcelas' => $f->max_parcelas,
+        'forca_a_prazo' => $f->tipo->forcaAPrazo(),
+    ])->values();
+@endphp
+
 @push('js')
 <script>
 window.vendaCreateConfig = {
@@ -429,6 +451,7 @@ window.vendaCreateConfig = {
     } @else null @endif,
     oldDatas: @json(old('datas', [])),
     oldHorarios: @json(old('horarios', [])),
+    formas: @json($formasJs),
     pagamentoDefaults: {
         primeiroVencimento: @json(now()->addDays(30)->format('Y-m-d')),
         mesReferencia: @json(now()->format('Y-m')),

@@ -16,6 +16,10 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0006](0006-foreign-keys-cascade.md) | Comportamento de foreign keys (cascade / null / restrict) | Aceito |
 | [0007](0007-assinatura-faturamento.md) | Assinatura, faturamento mensal e troca de plano pro-rata | Aceito |
 | [0008](0008-armazenamento-de-arquivos-r2.md) | Armazenamento de arquivos (imagens/anexos) no Cloudflare R2 | Aceito |
+| [0009](0009-formas-pagamento-configuraveis-e-recebiveis.md) | Formas de pagamento configuráveis e recebíveis de cartão | Aceito |
+| [0010](0010-razao-unificado-contas-lancamentos.md) | Razão unificado: contas financeiras e lançamentos | Aceito |
+| [0011](0011-fluxo-nao-saldo-recebimentos-por-forma.md) | Fluxo, não saldo: recebimentos por forma no caixa do dia | Aceito |
+| [0012](0012-exportacoes-assincronas-fila-download-autenticado.md) | Exportações assíncronas via fila + download autenticado | Aceito |
 
 ## Como ler
 

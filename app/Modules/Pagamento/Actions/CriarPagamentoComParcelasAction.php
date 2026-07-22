@@ -55,7 +55,8 @@ class CriarPagamentoComParcelasAction
                     'valor_pago' => 0,
                     'data_vencimento' => $p['data_vencimento'],
                     'mes_referencia' => $p['mes_referencia'],
-                    'forma_pagamento' => $data->forma_pagamento_avista,
+                    'forma_pagamento_id' => $data->forma_pagamento_avista?->id,
+                    'forma_pagamento_nome' => $data->forma_pagamento_avista?->nome,
                     'status' => StatusParcela::Pendente,
                 ]);
             }

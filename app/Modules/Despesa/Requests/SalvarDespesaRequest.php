@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Despesa\Requests;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo};
 use App\Support\Parcelamento\CalculadoraParcelas;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -31,6 +31,15 @@ class SalvarDespesaRequest extends FormRequest
         ];
         $condicoesComForma = $condicoesHabilitadas;
 
+        // Forma é empresa-level: aceita só formas de rede + empresa acessível.
+        // O gate preciso é o findOrFail escopado no controller.
+        $formaAcessivel = Rule::exists('formas_pagamento', 'id')
+            ->whereNull('deleted_at')
+            ->where('rede_id', $this->user()->rede_id);
+        if ($empresasAtuais !== []) {
+            $formaAcessivel->whereIn('empresa_id', $empresasAtuais);
+        }
+
         return [
             'nome' => ['required', 'string', 'max:200'],
             'categoria_despesa_id' => ['nullable', 'integer', 'exists:categorias_despesa,id'],
@@ -50,7 +59,8 @@ class SalvarDespesaRequest extends FormRequest
             'forma_pagamento' => [
                 'required_if:condicao_pagamento,'.implode(',', $condicoesComForma),
                 'nullable',
-                Rule::enum(FormaPagamento::class),
+                'integer',
+                $formaAcessivel,
             ],
             'numero_parcelas' => [
                 'required_if:condicao_pagamento,'.implode(',', $condicoesParceladas),

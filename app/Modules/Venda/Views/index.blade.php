@@ -89,9 +89,9 @@
             <label class="form-label">Forma de pagamento</label>
             <select name="forma_pagamento" class="form-select">
                 <option value="">Todas</option>
-                <option value="pix" @selected(request('forma_pagamento') === 'pix')>Pix</option>
-                <option value="dinheiro" @selected(request('forma_pagamento') === 'dinheiro')>Dinheiro</option>
-                <option value="cartao" @selected(request('forma_pagamento') === 'cartao')>Cartão</option>
+                @foreach(($formas ?? []) as $forma)
+                    <option value="{{ $forma->id }}" @selected(request('forma_pagamento') === (string) $forma->id)>{{ $forma->nome }}</option>
+                @endforeach
                 <option value="a_vista" @selected(request('forma_pagamento') === 'a_vista')>À Vista</option>
                 <option value="a_prazo" @selected(request('forma_pagamento') === 'a_prazo')>A Prazo</option>
             </select>

@@ -27,10 +27,11 @@ ve tudo via Role.)
 
 ## Venda (entrada unica: `POST vendas`)
 `VendaController::store` envolve tudo em `comEmpresaDeCriacao($empresaId, ...)`; `processarVenda`
-resolve `CondicaoPagamento`/`FormaPagamento`/parcelas e **pre-valida caixa aberto SE a vista**
-(`condicao = a_vista` e caixa fechado -> erro, sem persistir). Cada tipo cria o titulo `Pagamento`
-via `CriarPagamentoComParcelasAction` e, se a vista, baixa a parcela unica em seguida
-(`VendaService::baixarAVistaSeAplicavel` -> `CaixaService::darBaixaParcelaPagamento`).
+resolve `CondicaoPagamento`/`FormaPagamento`/parcelas e **pre-valida caixa aberto SE a vista E a forma
+exige caixa** (`CaixaService::exigeCaixaAberto` = forma imediata cuja conta destino e do tipo caixa —
+i.e. dinheiro; pix-direto e cartao NAO exigem caixa; caixa fechado -> erro, sem persistir). Cada tipo
+cria o titulo `Pagamento` via `CriarPagamentoComParcelasAction` e, se a vista, baixa a parcela unica em
+seguida (`VendaService::baixarAVistaSeAplicavel` -> `CaixaService::darBaixaParcelaPagamento`).
 
 - **Servico unico** (servico NAO `isEtapas()`): `criarUnico` -> `CriarAgendamentoAction` (calcula
   `fim` por `servico.duracao`, detecta conflito, cria `Agendado`) + `Pagamento` (FK `agendamento_id`,
@@ -47,9 +48,11 @@ via `CriarPagamentoComParcelasAction` e, se a vista, baixa a parcela unica em se
 ## Cancelamento de venda (estorno)
 `VendaService::cancelar{Unico|Etapas|VendaProduto}` em transacao chama
 `CaixaService::estornarPagamento(Pagamento)`:
-- parcelas `Pendente` -> `Cancelado`; se ja houve recebimento (`valorPago()>0`) cria
-  `MovimentoCaixa` tipo `saida` no caixa aberto (EXIGE caixa aberto, senao `NegocioException`);
-  titulo -> `StatusPagamento::Estornado`.
+- parcelas `Pendente` -> `Cancelado`; titulo -> `StatusPagamento::Estornado`. Contra-lancamento
+  **por-baixa, discriminado pela existencia de `Recebivel`** (nao mais por `caixa_id`): baixa COM
+  recebivel cancela seus `Recebivel` (`cancelado_em`), sem lancamento; baixa SEM recebivel gera um
+  `Lancamento` de debito (`categoria = estorno`) na conta de ORIGEM (bloqueia se essa conta for
+  caixa e o caixa da data estiver fechado -> `NegocioException`, reabra antes).
 - Etapas: agendamentos `agendado|confirmado` -> `cancelado`; venda -> `Cancelado`.
 - Produto: devolve estoque (`increment` + `MovimentoEstoque` tipo `entrada`) -> venda `Cancelada`.
 - Edicao de venda so e permitida enquanto `podeEditar()` (nenhuma parcela paga: `valorPago()<=0`).
@@ -64,19 +67,22 @@ mexe no caixa). `reagendar` (PATCH AJAX) move `inicio`/`fim` sem revalidar confl
 ## Ciclo do pagamento a prazo (contas a receber)
 A prazo: titulo nasce `Pendente` com N parcelas `Pendente` (sem baixa). Aparecem em Contas a Receber
 (`PagamentoController::contasAReceber`). Baixa por parcela em `parcelas-pagamento/{parcela}/baixa`
--> `CaixaService::darBaixaParcelaPagamento` (EXIGE caixa aberto): cria `BaixaPagamento` +
-`MovimentoCaixa` tipo `entrada`, soma `valor_pago`, marca parcela `Pago` se quitada, e
-`Pagamento::recalcularStatus()`. Defesa em profundidade: controller seta
+-> `CaixaService::darBaixaParcelaPagamento`: cria `BaixaPagamento` e, conforme a forma, um
+`Lancamento` de credito na conta destino (forma imediata; EXIGE caixa aberto so se a conta for caixa)
+OU N `Recebivel` (forma diferida — cartao/pix-maquineta). Soma `valor_pago`, marca parcela `Pago` se
+quitada, e `Pagamento::recalcularStatus()`. Defesa em profundidade: controller seta
 `session('empresa_criacao_atual', $parcela->empresa_id)` no try e `forget()` no finally.
 
 ## Ciclo do caixa (diario: abrir -> movimentar -> fechar)
 `CaixaController::index?data=YYYY-MM-DD` navega por dia; **1 caixa por empresa/dia**, permite
-retroativo. Abertura `CaixaService::abrir` recusa se ja existe caixa na data. Movimentos via
-`MovimentoCaixa`: `entrada`/`saida` (automaticos por baixa de Pagamento/Despesa e estorno),
-`sangria`/`reforco` (manuais). Saldo do dia (calculado no controller) =
-`saldo_abertura + entradas + reforcos - saidas - sangrias`. `fechar` grava saldo/fechado_em/
-fechado_por -> `Fechado`. `reabrir` (so de Fechado) limpa fechamento, volta a `Aberto` e loga
-atividade. Caixa Diario opera 1 empresa: sem contexto e com varias acessiveis, escolhe a primeira.
+retroativo. O caixa e a **sessao da conta-caixa** (`caixas.conta_id` -> conta `eh_caixa_padrao`).
+Abertura `CaixaService::abrir` recusa se ja existe caixa na data. Os movimentos sao `Lancamento`
+(ligados por `caixa_id`): credito/debito automaticos por baixa de Pagamento/Despesa e estorno,
+`sangria`/`reforco` (`categoria`) manuais. Saldo do dia = `saldo_abertura + Σ lancamentos da sessao`
+(`Caixa::saldoCalculado()`; reforco = credito, sangria = debito); `saldo_abertura`/`saldo_fechamento`
+sao contagem fisica (nao viram lancamento). `fechar` grava saldo/fechado_em/fechado_por -> `Fechado`.
+`reabrir` (so de Fechado) limpa fechamento, volta a `Aberto` e loga atividade. Caixa Diario opera 1
+empresa: sem contexto e com varias acessiveis, escolhe a primeira.
 
 ## Movimentacao de estoque
 Manual: `EstoqueService::registrarMovimento` (em transacao) cria `MovimentoEstoque` e aplica:
@@ -86,5 +92,7 @@ Sem SoftDeletes (append-only). Sem trava de quantidade negativa. Rotas exigem
 `verificar.plano:estoque`.
 
 ## Despesa (contas a pagar) — espelho do Pagamento
-Mesmo Titulo+Parcela+Baixa, lado pagar. Baixa via `CaixaService::darBaixaParcelaDespesa` (EXIGE
-caixa aberto) -> `BaixaDespesa` + `MovimentoCaixa` tipo `saida`. Ver `.claude/rules/modulos/despesa.md`.
+Mesmo Titulo+Parcela+Baixa, lado pagar. Baixa via `CaixaService::darBaixaParcelaDespesa` -> `BaixaDespesa`
++ `Lancamento` de debito na conta destino (EXIGE caixa aberto so quando a conta destino e do tipo
+caixa). Despesa NUNCA gera recebivel (`gera_recebivel` forcado a `false`). Ver
+`.claude/rules/modulos/despesa.md`.

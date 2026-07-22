@@ -10,10 +10,14 @@ use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Policies\CaixaPolicy;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Policies\ClientePolicy;
+use App\Modules\Conta\Models\Conta;
+use App\Modules\Conta\Policies\ContaPolicy;
 use App\Modules\Despesa\Models\{CategoriaDespesa, Despesa};
 use App\Modules\Despesa\Policies\{CategoriaDespesaPolicy, DespesaPolicy};
 use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Policies\MovimentoEstoquePolicy;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\FormaPagamento\Policies\FormaPagamentoPolicy;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Policies\PagamentoPolicy;
 use App\Modules\PerfilAcesso\Policies\PerfilAcessoPolicy;
@@ -44,9 +48,11 @@ class AppServiceProvider extends ServiceProvider
         CategoriaDespesa::class => CategoriaDespesaPolicy::class,
         CategoriaProduto::class => CategoriaProdutoPolicy::class,
         Cliente::class => ClientePolicy::class,
+        Conta::class => ContaPolicy::class,
         Despesa::class => DespesaPolicy::class,
         Empresa::class => EmpresaPolicy::class,
         Fatura::class => FaturaPolicy::class,
+        FormaPagamento::class => FormaPagamentoPolicy::class,
         MovimentoEstoque::class => MovimentoEstoquePolicy::class,
         Pagamento::class => PagamentoPolicy::class,
         Produto::class => ProdutoPolicy::class,

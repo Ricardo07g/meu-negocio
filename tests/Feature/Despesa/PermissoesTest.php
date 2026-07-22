@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Despesa;
 
-use App\Enums\FormaPagamento;
+use App\Enums\TipoFormaPagamento;
 use App\Modules\Despesa\Models\Despesa;
 use Database\Factories\{CaixaFactory, DespesaFactory, ParcelaDespesaFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,7 +61,7 @@ class PermissoesTest extends TestCase
 
         $response = $this->post(route('parcelas-despesa.baixa', $parcela), [
             'valor' => 100.00,
-            'forma_pagamento' => FormaPagamento::Dinheiro->value,
+            'forma_pagamento' => $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro)->id,
         ]);
 
         $response->assertForbidden();

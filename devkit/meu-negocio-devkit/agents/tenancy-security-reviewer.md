@@ -13,9 +13,9 @@ reporta. Sua prioridade absoluta: nenhuma rede/empresa pode enxergar ou alterar 
 
 - **Rede** (`rede_id`) e o tenant raiz. `App\Models\BaseModel` aplica `RedeTrait` (global scope por
   `rede_id`). Todo model tenant-aware deve estender `BaseModel`.
-  Excecoes legitimas: `Plano`, `Rede`, `MovimentoCaixa` (Model direto); `Usuario` (Authenticatable + traits).
+  Excecoes legitimas: `Plano`, `Rede` (Model direto); `Usuario` (Authenticatable + traits).
 - **Empresa** (`empresa_id`): `EmpresaTrait` isola dados **transacionais** (Agendamento, Venda,
-  Pagamento, Despesa, Caixa, Estoque). Admin enxerga todas as empresas da rede.
+  Pagamento, Despesa, Caixa, Estoque, FormaPagamento, Conta/Lancamento). Admin enxerga todas as empresas da rede.
 - **Catalogo** (Cliente, Servico, Produto, categorias) e rede-level, SEM `empresa_id` (compartilhado).
 - Contexto vigente: `session('empresa_contexto_atual')` (single) e `session('empresas_atuais')`
   (universo). Helper `App\Support\ContextoEmpresa::resolver()`. Defesa em profundidade em baixas:

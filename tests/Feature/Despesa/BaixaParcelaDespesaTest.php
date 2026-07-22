@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Despesa;
 
-use App\Enums\{FormaPagamento, StatusCaixa, StatusDespesa, StatusParcela, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, StatusDespesa, StatusParcela, TipoFormaPagamento, TipoLancamento};
 use App\Exceptions\NegocioException;
-use App\Modules\Caixa\Models\{BaixaDespesa, MovimentoCaixa};
+use App\Modules\Caixa\Models\BaixaDespesa;
 use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Despesa\Models\Despesa;
 use Carbon\Carbon;
 use Database\Factories\{CaixaFactory, DespesaFactory, ParcelaDespesaFactory};
@@ -20,7 +21,7 @@ use Tests\TestCase;
  *  - Baixa parcial: parcela continua Pendente com valor_pago acumulado, e
  *    o titulo agregado vira Parcial.
  *  - Baixa total: parcela vira Paga e o titulo Pago.
- *  - Toda baixa gera BaixaDespesa + MovimentoCaixa de SAIDA no caixa aberto.
+ *  - Toda baixa em dinheiro gera BaixaDespesa + Lancamento de DEBITO na conta caixa.
  *  - Sem caixa aberto a operacao e bloqueada com NegocioException.
  */
 class BaixaParcelaDespesaTest extends TestCase
@@ -74,7 +75,7 @@ class BaixaParcelaDespesaTest extends TestCase
         $baixa = app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $primeira,
             valor: 40.00,
-            formaPagamento: FormaPagamento::Dinheiro,
+            forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro),
         );
 
         $primeira->refresh();
@@ -87,10 +88,10 @@ class BaixaParcelaDespesaTest extends TestCase
         $despesa = $cenario['despesa']->fresh();
         $this->assertSame(StatusDespesa::Pendente, $despesa->status, 'Sem nenhuma parcela quitada, o titulo segue Pendente.');
 
-        // Movimento de SAIDA no caixa, vinculado a baixa.
-        $movimento = MovimentoCaixa::where('baixa_despesa_id', $baixa->id)->firstOrFail();
-        $this->assertSame(TipoMovimentoCaixa::Saida, $movimento->tipo, 'Despesa gera saida no caixa.');
-        $this->assertSame(40.00, (float) $movimento->valor);
+        // Lançamento de DÉBITO na conta caixa, vinculado a baixa.
+        $lancamento = Lancamento::where('baixa_despesa_id', $baixa->id)->firstOrFail();
+        $this->assertSame(TipoLancamento::Debito, $lancamento->tipo, 'Despesa gera débito na conta.');
+        $this->assertSame(40.00, (float) $lancamento->valor);
     }
 
     public function test_baixa_total_quita_parcela_e_titulo(): void
@@ -100,19 +101,19 @@ class BaixaParcelaDespesaTest extends TestCase
 
         $service = app(CaixaService::class);
 
-        $service->darBaixaParcelaDespesa($primeira, 100.00, FormaPagamento::Pix);
+        $service->darBaixaParcelaDespesa($primeira, 100.00, $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro));
         $primeira->refresh();
         $this->assertSame(StatusParcela::Pago, $primeira->status, 'Parcela quitada deveria ficar Paga.');
         $this->assertSame(StatusDespesa::Parcial, $cenario['despesa']->fresh()->status, 'Com 1 de 2 paga, o titulo deveria ficar Parcial.');
 
-        $service->darBaixaParcelaDespesa($segunda, 100.00, FormaPagamento::Pix);
+        $service->darBaixaParcelaDespesa($segunda, 100.00, $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro));
         $segunda->refresh();
         $this->assertSame(StatusParcela::Pago, $segunda->status);
         $this->assertSame(StatusDespesa::Paga, $cenario['despesa']->fresh()->status, 'Com todas pagas, o titulo deveria ficar Pago.');
 
-        // Duas saidas no caixa, somando o valor total.
-        $saidas = MovimentoCaixa::where('tipo', TipoMovimentoCaixa::Saida)->sum('valor');
-        $this->assertSame(200.00, (float) $saidas, 'O caixa deveria registrar saida igual ao valor pago.');
+        // Dois débitos na conta, somando o valor total.
+        $debitos = Lancamento::where('tipo', TipoLancamento::Debito)->sum('valor');
+        $this->assertSame(200.00, (float) $debitos, 'A conta deveria registrar débito igual ao valor pago.');
     }
 
     public function test_baixa_com_multa_e_juros_aumenta_saida_no_caixa(): void
@@ -123,7 +124,7 @@ class BaixaParcelaDespesaTest extends TestCase
         $baixa = app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $primeira,
             valor: 100.00,
-            formaPagamento: FormaPagamento::Boleto,
+            forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro),
             observacao: null,
             multa: 5.00,
             juros: 3.00,
@@ -133,9 +134,9 @@ class BaixaParcelaDespesaTest extends TestCase
         $primeira->refresh();
         $this->assertSame(StatusParcela::Pago, $primeira->status, 'Principal cobre o valor da parcela: fica Paga.');
 
-        // O movimento de caixa reflete o liquido (principal + multa + juros).
-        $movimento = MovimentoCaixa::where('baixa_despesa_id', $baixa->id)->firstOrFail();
-        $this->assertSame(108.00, (float) $movimento->valor, 'A saida liquida deve incluir multa e juros.');
+        // O débito na conta reflete o liquido (principal + multa + juros).
+        $lancamento = Lancamento::where('baixa_despesa_id', $baixa->id)->firstOrFail();
+        $this->assertSame(108.00, (float) $lancamento->valor, 'O débito liquido deve incluir multa e juros.');
         $this->assertSame(108.00, $primeira->valorPagoLiquido(), 'valorPagoLiquido soma principal + multa + juros - desconto.');
     }
 
@@ -151,7 +152,7 @@ class BaixaParcelaDespesaTest extends TestCase
             app(CaixaService::class)->darBaixaParcelaDespesa(
                 parcela: $primeira,
                 valor: 100.00,
-                formaPagamento: FormaPagamento::Dinheiro,
+                forma: $this->formaPagamento($cenario['contexto']['rede'], TipoFormaPagamento::Dinheiro),
             );
         } finally {
             // Nada deveria ter sido persistido (transacao revertida).
@@ -193,7 +194,7 @@ class BaixaParcelaDespesaTest extends TestCase
         app(CaixaService::class)->darBaixaParcelaDespesa(
             parcela: $parcela,
             valor: 100.00,
-            formaPagamento: FormaPagamento::Dinheiro,
+            forma: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
         );
     }
 }

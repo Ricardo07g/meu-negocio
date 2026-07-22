@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Caixa\Controllers;
 
+use App\Enums\TipoLancamento;
 use App\Http\Controllers\Controller;
 use App\Modules\Caixa\DTOs\{AbrirCaixaData, FecharCaixaData, MovimentoCaixaData, ReabrirCaixaData};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Requests\{AbrirCaixaRequest, FecharCaixaRequest, MovimentoCaixaRequest, ReabrirCaixaRequest};
-use App\Modules\Caixa\Services\CaixaService;
+use App\Modules\Caixa\Services\{CaixaService, ResumoDiaService};
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request};
@@ -20,6 +21,7 @@ class CaixaController extends Controller
 
     public function __construct(
         private CaixaService $service,
+        private ResumoDiaService $resumoDia,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -44,15 +46,23 @@ class CaixaController extends Controller
             $caixa = $this->service->caixaDoDia($data);
 
             if ($caixa) {
-                $caixa->load('movimentos', 'usuario', 'fechadoPor');
-                $totalEntradas = $caixa->movimentos->where('tipo', 'entrada')->sum('valor');
-                $totalSaidas = $caixa->movimentos->whereIn('tipo', ['saida', 'sangria'])->sum('valor');
-                $totalReforcos = $caixa->movimentos->where('tipo', 'reforco')->sum('valor');
+                $caixa->load('lancamentos', 'usuario', 'fechadoPor');
+                $creditos = $caixa->lancamentos->where('tipo', TipoLancamento::Credito);
+                $debitos = $caixa->lancamentos->where('tipo', TipoLancamento::Debito);
+                $totalReforcos = $creditos->where('categoria', 'reforco')->sum('valor');
+                $totalEntradas = $creditos->where('categoria', '!=', 'reforco')->sum('valor');
+                // Saídas = despesas + sangrias + estornos (todo débito reduz a gaveta).
+                $totalSaidas = $debitos->sum('valor');
                 $saldoAtual = $caixa->saldo_abertura + $totalEntradas + $totalReforcos - $totalSaidas;
             }
 
+            // Panorama do dia por forma (recebido/estornado/liquido). Independe de
+            // haver caixa aberto — cartao/pix nao passam pela gaveta. Eixo disjunto
+            // do saldo acima (que vem so dos lancamentos da gaveta).
+            $resumo = $this->resumoDia->porForma($data);
+
             return view('caixa::index', compact(
-                'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual'
+                'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual', 'resumo'
             ));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar caixa');

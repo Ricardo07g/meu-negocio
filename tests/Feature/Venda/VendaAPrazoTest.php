@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Venda;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusPagamento, StatusParcela};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusPagamento, StatusParcela, TipoFormaPagamento};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Services\VendaService;
@@ -45,7 +45,7 @@ class VendaAPrazoTest extends TestCase
             ]],
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Pix,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
             numeroParcelas: 3,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,

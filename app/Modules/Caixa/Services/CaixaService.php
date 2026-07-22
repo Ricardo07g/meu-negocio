@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Caixa\Services;
 
-use App\Enums\{FormaPagamento, StatusCaixa, StatusPagamento, StatusParcela, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, StatusPagamento, StatusParcela, TipoConta, TipoLancamento};
 use App\Exceptions\NegocioException;
-use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa, MovimentoCaixa};
+use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa};
+use App\Modules\Conta\Models\{Conta, Lancamento};
 use App\Modules\Despesa\Models\ParcelaDespesa;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Models\{Pagamento, ParcelaPagamento};
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +17,9 @@ class CaixaService
 {
     public function caixaDoDia(string $data): ?Caixa
     {
-        return Caixa::where('data', $data)->first();
+        // whereDate (nao where('data', ...)) para casar independentemente de o driver
+        // guardar a coluna date com ou sem hora — mesma estrategia de caixaAbertoDaEmpresa.
+        return Caixa::whereDate('data', $data)->first();
     }
 
     /**
@@ -40,19 +44,89 @@ class CaixaService
         return $query->first();
     }
 
+    /**
+     * Conta caixa padrao (a gaveta fisica) de uma empresa. Empresa-explicito
+     * (mesma estrategia de caixaAbertoDaEmpresa: sem depender do contexto,
+     * scope de rede preservado).
+     */
+    public function resolverContaCaixa(int $empresaId): Conta
+    {
+        $conta = $this->contaPorFlag($empresaId, 'eh_caixa_padrao');
+
+        if (! $conta) {
+            throw new NegocioException('Nenhuma conta caixa padrão configurada para esta empresa.');
+        }
+
+        return $conta;
+    }
+
+    /**
+     * Resolve para onde o dinheiro de uma baixa vai, na empresa da transacao:
+     *  1. a conta destino explicita da forma (se pertencer a essa empresa);
+     *  2. senao, pela natureza — dinheiro/boleto/crediario caem na gaveta (conta
+     *     caixa); recebivel (cartao/pix-maquineta) e pix-direto caem na conta
+     *     banco/carteira (destino de recebivel), com fallback para a conta caixa.
+     */
+    public function resolverContaDestino(FormaPagamento $forma, int $empresaId): Conta
+    {
+        if ($forma->conta_destino_id) {
+            $conta = Conta::withoutGlobalScope('empresa')
+                ->where('empresa_id', $empresaId)
+                ->find($forma->conta_destino_id);
+
+            if ($conta) {
+                return $conta;
+            }
+        }
+
+        if (! $forma->gera_recebivel && $forma->tipo->destinoNaturalCaixa()) {
+            return $this->resolverContaCaixa($empresaId);
+        }
+
+        return $this->contaPorFlag($empresaId, 'eh_destino_recebivel_padrao')
+            ?? $this->resolverContaCaixa($empresaId);
+    }
+
+    /**
+     * Se a baixa desta forma exige um caixa aberto: so quando o dinheiro entra
+     * na gaveta na hora — imediato (nao gera recebivel) E conta destino do tipo
+     * caixa. Usado na pre-validacao da venda a vista e no motor de baixa.
+     */
+    public function exigeCaixaAberto(FormaPagamento $forma, int $empresaId): bool
+    {
+        if ($forma->gera_recebivel) {
+            return false;
+        }
+
+        return $this->resolverContaDestino($forma, $empresaId)->tipo === TipoConta::Caixa;
+    }
+
+    private function contaPorFlag(int $empresaId, string $flag): ?Conta
+    {
+        return Conta::withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresaId)
+            ->where($flag, true)
+            ->first();
+    }
+
     public function abrir(float $saldoAbertura, string $data, ?string $observacao = null): Caixa
     {
         if ($this->caixaDoDia($data)) {
             throw new NegocioException('Já existe um caixa para esta data.');
         }
 
-        return Caixa::create([
+        $caixa = Caixa::create([
             'usuario_id' => auth()->id(),
             'data' => $data,
             'saldo_abertura' => $saldoAbertura,
             'status' => StatusCaixa::Aberto,
             'observacao' => $observacao,
         ]);
+
+        // Liga a sessao diaria a conta-caixa padrao da empresa (o razao da gaveta).
+        $caixa->update(['conta_id' => $this->resolverContaCaixa((int) $caixa->empresa_id)->id]);
+
+        return $caixa;
     }
 
     public function fechar(Caixa $caixa, float $saldoFechamento, ?string $observacao = null): Caixa
@@ -102,51 +176,67 @@ class CaixaService
         return $caixa->fresh();
     }
 
-    public function registrarSangria(Caixa $caixa, float $valor, string $descricao): MovimentoCaixa
+    public function registrarSangria(Caixa $caixa, float $valor, string $descricao): Lancamento
     {
-        return MovimentoCaixa::create([
+        return Lancamento::create([
+            'rede_id' => (int) $caixa->rede_id,
+            'empresa_id' => (int) $caixa->empresa_id,
+            'conta_id' => $caixa->conta_id ?? $this->resolverContaCaixa((int) $caixa->empresa_id)->id,
             'caixa_id' => $caixa->id,
-            'tipo' => TipoMovimentoCaixa::Sangria,
+            'tipo' => TipoLancamento::Debito,
+            'categoria' => 'sangria',
             'valor' => $valor,
+            'data' => now()->toDateString(),
             'descricao' => $descricao,
         ]);
     }
 
-    public function registrarReforco(Caixa $caixa, float $valor, string $descricao): MovimentoCaixa
+    public function registrarReforco(Caixa $caixa, float $valor, string $descricao): Lancamento
     {
-        return MovimentoCaixa::create([
+        return Lancamento::create([
+            'rede_id' => (int) $caixa->rede_id,
+            'empresa_id' => (int) $caixa->empresa_id,
+            'conta_id' => $caixa->conta_id ?? $this->resolverContaCaixa((int) $caixa->empresa_id)->id,
             'caixa_id' => $caixa->id,
-            'tipo' => TipoMovimentoCaixa::Reforco,
+            'tipo' => TipoLancamento::Credito,
+            'categoria' => 'reforco',
             'valor' => $valor,
+            'data' => now()->toDateString(),
             'descricao' => $descricao,
         ]);
     }
 
     /**
      * Baixa uma parcela de Pagamento (contas a receber).
-     * Atualiza a parcela, cria BaixaPagamento + MovimentoCaixa de entrada,
-     * e recalcula o status do título pai.
+     * Atualiza a parcela, cria a BaixaPagamento (o registro do recebimento por
+     * forma) e, so quando a forma cai na gaveta (dinheiro), o Lancamento de
+     * credito; por fim recalcula o status do titulo pai.
+     *
+     * $parcelasCartao (nº de parcelas no cartão do adquirente) e aceito por
+     * compatibilidade, mas ignorado no regime "fluxo, nao saldo" (ADR-0011) —
+     * nao ha mais recebivel/agenda do adquirente. Removido de vez na Fatia 2.
      */
     public function darBaixaParcelaPagamento(
         ParcelaPagamento $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
         ?string $observacao = null,
         float $multa = 0,
         float $juros = 0,
         float $desconto = 0,
+        ?int $parcelasCartao = null,
     ): BaixaPagamento {
         return $this->aplicarBaixaParcela(
             parcela: $parcela,
             valor: $valor,
-            formaPagamento: $formaPagamento,
+            forma: $forma,
             observacao: $observacao,
             multa: $multa,
             juros: $juros,
             desconto: $desconto,
             baixaClass: BaixaPagamento::class,
             parcelaFk: 'parcela_pagamento_id',
-            tipoMovimento: TipoMovimentoCaixa::Entrada,
+            tipoLancamento: TipoLancamento::Credito,
             movimentoFk: 'baixa_pagamento_id',
             tituloLabel: 'do pagamento',
             tituloId: $parcela->pagamento_id,
@@ -158,12 +248,12 @@ class CaixaService
 
     /**
      * Baixa uma parcela de Despesa (contas a pagar).
-     * Saída do caixa + atualiza status da parcela e do título.
+     * Lancamento de debito na conta destino + atualiza status da parcela e do titulo.
      */
     public function darBaixaParcelaDespesa(
         ParcelaDespesa $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
         ?string $observacao = null,
         float $multa = 0,
         float $juros = 0,
@@ -172,14 +262,14 @@ class CaixaService
         return $this->aplicarBaixaParcela(
             parcela: $parcela,
             valor: $valor,
-            formaPagamento: $formaPagamento,
+            forma: $forma,
             observacao: $observacao,
             multa: $multa,
             juros: $juros,
             desconto: $desconto,
             baixaClass: BaixaDespesa::class,
             parcelaFk: 'parcela_despesa_id',
-            tipoMovimento: TipoMovimentoCaixa::Saida,
+            tipoLancamento: TipoLancamento::Debito,
             movimentoFk: 'baixa_despesa_id',
             tituloLabel: 'da despesa',
             tituloId: $parcela->despesa_id,
@@ -191,8 +281,18 @@ class CaixaService
 
     /**
      * Template de baixa por parcela (recebimento ou pagamento).
-     * Valida, exige caixa aberto, cria Baixa + MovimentoCaixa, atualiza parcela
-     * e recalcula status do titulo.
+     *
+     * Regime "fluxo, nao saldo" (ADR-0011): a Baixa E o registro do recebimento/
+     * pagamento por forma (o painel do dia le por ela). O eixo de decisao e a
+     * conta destino da forma:
+     *  - conta CAIXA (dinheiro fisico na gaveta): exige caixa aberto e grava UM
+     *    Lancamento (credito no recebimento / debito na despesa) com o caixa_id
+     *    da sessao — mantem o saldo reconciliavel da gaveta.
+     *  - qualquer outra conta (cartao/pix/boleto/crediario/banco): so a Baixa
+     *    registra o fluxo; nao mantemos saldo de banco (que desatualiza fora do
+     *    sistema). Nada de Lancamento nem recebivel.
+     *
+     * Em ambos os casos a Baixa e criada, a parcela quitada e o titulo recalculado.
      *
      * @param  ParcelaPagamento|ParcelaDespesa  $parcela
      * @param  class-string<BaixaPagamento|BaixaDespesa>  $baixaClass
@@ -202,14 +302,14 @@ class CaixaService
     private function aplicarBaixaParcela(
         $parcela,
         float $valor,
-        FormaPagamento $formaPagamento,
+        FormaPagamento $forma,
         ?string $observacao,
         float $multa,
         float $juros,
         float $desconto,
         string $baixaClass,
         string $parcelaFk,
-        TipoMovimentoCaixa $tipoMovimento,
+        TipoLancamento $tipoLancamento,
         string $movimentoFk,
         string $tituloLabel,
         int $tituloId,
@@ -218,8 +318,8 @@ class CaixaService
         \Closure $recalcularTitulo,
     ) {
         return DB::transaction(function () use (
-            $parcela, $valor, $formaPagamento, $observacao, $multa, $juros, $desconto,
-            $baixaClass, $parcelaFk, $tipoMovimento, $movimentoFk,
+            $parcela, $valor, $forma, $observacao, $multa, $juros, $desconto,
+            $baixaClass, $parcelaFk, $tipoLancamento, $movimentoFk,
             $tituloLabel, $tituloId, $mensagemSemCaixa, $mensagemLiquidoInvalido, $recalcularTitulo,
         ) {
             if ($multa < 0 || $juros < 0 || $desconto < 0) {
@@ -237,26 +337,36 @@ class CaixaService
                 throw new NegocioException($mensagemLiquidoInvalido);
             }
 
-            $caixa = $this->caixaAbertoDaEmpresa($parcela->empresa_id, now()->toDateString());
-            if (! $caixa) {
-                throw new NegocioException($mensagemSemCaixa);
+            $empresaId = (int) $parcela->empresa_id;
+            $conta = $this->resolverContaDestino($forma, $empresaId);
+            $vaiPraGaveta = $conta->tipo === TipoConta::Caixa;
+
+            // Exige caixa aberto so quando o dinheiro entra na gaveta na hora.
+            $caixa = null;
+            if ($vaiPraGaveta) {
+                $caixa = $this->caixaAbertoDaEmpresa($empresaId, now()->toDateString());
+                if (! $caixa) {
+                    throw new NegocioException($mensagemSemCaixa);
+                }
             }
 
             $baixa = $baixaClass::create([
                 $parcelaFk => $parcela->id,
-                'caixa_id' => $caixa->id,
+                'caixa_id' => $caixa?->id,
                 'valor' => $valor,
                 'multa' => $multa,
                 'juros' => $juros,
                 'desconto' => $desconto,
-                'forma_pagamento' => $formaPagamento,
+                'forma_pagamento_id' => $forma->id,
+                'forma_pagamento_nome' => $forma->nome,
                 'data' => now(),
                 'observacao' => $observacao,
             ]);
 
             $parcela->update([
                 'valor_pago' => (float) $parcela->valor_pago + $valor,
-                'forma_pagamento' => $formaPagamento,
+                'forma_pagamento_id' => $forma->id,
+                'forma_pagamento_nome' => $forma->nome,
             ]);
 
             $parcela->refresh();
@@ -265,30 +375,42 @@ class CaixaService
                 $parcela->update(['status' => StatusParcela::Pago]);
             }
 
-            $totalLiquido = $valor + $multa + $juros - $desconto;
-            $descricao = "Parcela {$parcela->numero}/{$parcela->total} {$tituloLabel} #{$tituloId}";
-            if ($multa > 0 || $juros > 0 || $desconto > 0) {
-                $partes = ['principal R$ '.number_format($valor, 2, ',', '.')];
-                if ($multa > 0) {
-                    $partes[] = 'multa R$ '.number_format($multa, 2, ',', '.');
-                }
-                if ($juros > 0) {
-                    $partes[] = 'juros R$ '.number_format($juros, 2, ',', '.');
-                }
-                if ($desconto > 0) {
-                    $partes[] = 'desconto R$ '.number_format($desconto, 2, ',', '.');
-                }
-                $descricao .= ' ('.implode(' + ', $partes).')';
-            }
+            // So a gaveta (dinheiro fisico) gera Lancamento — mantem o saldo
+            // reconciliavel da sessao. Cartao/pix/boleto/crediario/banco: a Baixa
+            // ja registrou o fluxo (recebido/pago por forma no dia); nao mantemos
+            // saldo de banco (ADR-0011).
+            if ($vaiPraGaveta) {
+                $totalLiquido = $valor + $multa + $juros - $desconto;
 
-            MovimentoCaixa::create([
-                'caixa_id' => $caixa->id,
-                'tipo' => $tipoMovimento,
-                'valor' => $totalLiquido,
-                'descricao' => $descricao,
-                'forma_pagamento' => $formaPagamento,
-                $movimentoFk => $baixa->id,
-            ]);
+                $descricao = "Parcela {$parcela->numero}/{$parcela->total} {$tituloLabel} #{$tituloId}";
+                if ($multa > 0 || $juros > 0 || $desconto > 0) {
+                    $partes = ['principal R$ '.number_format($valor, 2, ',', '.')];
+                    if ($multa > 0) {
+                        $partes[] = 'multa R$ '.number_format($multa, 2, ',', '.');
+                    }
+                    if ($juros > 0) {
+                        $partes[] = 'juros R$ '.number_format($juros, 2, ',', '.');
+                    }
+                    if ($desconto > 0) {
+                        $partes[] = 'desconto R$ '.number_format($desconto, 2, ',', '.');
+                    }
+                    $descricao .= ' ('.implode(' + ', $partes).')';
+                }
+
+                Lancamento::create([
+                    'rede_id' => (int) $parcela->rede_id,
+                    'empresa_id' => $empresaId,
+                    'conta_id' => (int) $conta->id,
+                    'caixa_id' => $caixa->id,
+                    'tipo' => $tipoLancamento,
+                    'categoria' => 'movimento',
+                    'valor' => $totalLiquido,
+                    'data' => now()->toDateString(),
+                    'descricao' => $descricao,
+                    'forma_pagamento_nome' => $forma->nome,
+                    $movimentoFk => $baixa->id,
+                ]);
+            }
 
             $recalcularTitulo();
 
@@ -298,45 +420,62 @@ class CaixaService
 
     /**
      * Estorna um título de Pagamento (na prática: cancelamento da venda).
-     * - Cada baixa recebida gera uma saída NO MESMO caixa em que entrou, pelo
-     *   valor líquido real (principal + multa + juros − desconto), vinculada à
-     *   baixa (rastro completo) — entrada e saída se anulam no caixa de origem.
-     * - Parcelas pendentes: marcadas como canceladas.
-     * - Título: status = estornado.
+     * Regime "fluxo, nao saldo" (ADR-0011):
+     * - Marca cada baixa como estornada (`estornado_em`) — marcador unico; o painel
+     *   do dia por forma neta o recebido pela data do estorno.
+     * - So a baixa da gaveta (dinheiro) tem Lancamento a reverter: gera um
+     *   contra-lançamento (débito) na MESMA conta/caixa em que entrou, anulando o
+     *   crédito. Cartao/pix/boleto/banco nao tem lançamento — nada a reverter.
+     * - Parcelas pendentes: marcadas como canceladas. Título: status = estornado.
      *
-     * Se o caixa de origem de alguma baixa estiver fechado, exige reabri-lo
-     * antes (NegocioException). Sem isso o estorno alteraria o saldo de um dia
-     * já fechado — inconsistente com o histórico contábil.
+     * Se o lançamento de origem entrou num caixa que agora está fechado, exige
+     * reabri-lo antes (NegocioException) — não altera o saldo de um dia fechado.
      */
     public function estornarPagamento(Pagamento $pagamento): void
     {
         DB::transaction(function () use ($pagamento) {
             $pagamento->load('parcelas.baixas');
 
-            // Estorna cada baixa NO MESMO caixa em que ela entrou, pelo valor
-            // liquido real recebido — assim entrada e saida se anulam no caixa
-            // certo (empresa/dia de origem) e o rastro fica ligado a baixa.
             foreach ($pagamento->parcelas as $parcela) {
                 foreach ($parcela->baixas as $baixa) {
-                    // Busca o caixa de origem sem depender do contexto de empresa
-                    // ambiente (mesma estrategia de caixaAbertoDaEmpresa): assim o
-                    // guard de caixa fechado nunca e silenciosamente pulado.
-                    $caixaOrigem = Caixa::withoutGlobalScope('empresa')->find($baixa->caixa_id);
-                    if ($caixaOrigem && $caixaOrigem->status === StatusCaixa::Fechado) {
-                        throw new NegocioException(
-                            'Não é possível estornar: o caixa em que o recebimento entrou está fechado. '
-                            .'Reabra o caixa da respectiva data antes de cancelar a venda.'
-                        );
+                    // So a gaveta tem lançamento de origem (dinheiro). Localiza para
+                    // reusar conta/caixa e barrar estorno em caixa fechado.
+                    $origem = Lancamento::withoutGlobalScope('empresa')
+                        ->where('baixa_pagamento_id', $baixa->id)
+                        ->where('categoria', 'movimento')
+                        ->first();
+
+                    if ($origem !== null && $origem->caixa_id !== null) {
+                        $caixaOrigem = Caixa::withoutGlobalScope('empresa')->find($origem->caixa_id);
+                        if ($caixaOrigem && $caixaOrigem->status === StatusCaixa::Fechado) {
+                            throw new NegocioException(
+                                'Não é possível estornar: o caixa em que o recebimento entrou está fechado. '
+                                .'Reabra o caixa da respectiva data antes de cancelar a venda.'
+                            );
+                        }
                     }
 
-                    MovimentoCaixa::create([
-                        'caixa_id' => $baixa->caixa_id,
-                        'tipo' => TipoMovimentoCaixa::Saida,
-                        'valor' => $baixa->valorTotal(),
-                        'descricao' => "Estorno da parcela {$parcela->numero}/{$parcela->total} do pagamento #{$pagamento->id}",
-                        'forma_pagamento' => $baixa->forma_pagamento,
-                        'baixa_pagamento_id' => $baixa->id,
-                    ]);
+                    // Marcador do fluxo: a baixa foi estornada (o painel do dia neta por aqui).
+                    if ($baixa->estornado_em === null) {
+                        $baixa->update(['estornado_em' => now()]);
+                    }
+
+                    // Contra-lançamento so quando houve entrada na gaveta.
+                    if ($origem !== null) {
+                        Lancamento::create([
+                            'rede_id' => (int) $baixa->rede_id,
+                            'empresa_id' => (int) $baixa->empresa_id,
+                            'conta_id' => (int) $origem->conta_id,
+                            'caixa_id' => $origem->caixa_id,
+                            'tipo' => TipoLancamento::Debito,
+                            'categoria' => 'estorno',
+                            'valor' => $baixa->valorTotal(),
+                            'data' => now()->toDateString(),
+                            'descricao' => "Estorno da parcela {$parcela->numero}/{$parcela->total} do pagamento #{$pagamento->id}",
+                            'forma_pagamento_nome' => $baixa->forma_pagamento_nome,
+                            'baixa_pagamento_id' => $baixa->id,
+                        ]);
+                    }
                 }
 
                 if ($parcela->status === StatusParcela::Pendente) {

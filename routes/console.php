@@ -11,3 +11,6 @@ Artisan::command('inspire', function () {
 
 // Limpa rascunhos de upload (tmp) abandonados no bucket.
 Schedule::command('arquivos:limpar-rascunhos')->daily();
+
+// Remove exportacoes de extrato expiradas (arquivo + registro), de hora em hora.
+Schedule::command('exportacoes:limpar')->hourly();

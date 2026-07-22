@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Concerns;
 
-use App\Enums\StatusRede;
+use App\Enums\{StatusRede, TipoFormaPagamento};
+use App\Modules\Conta\Services\ContaService;
+use App\Modules\FormaPagamento\Models\FormaPagamento;
+use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
 use App\Modules\Usuario\Models\Usuario;
 use Database\Seeders\{PermissaoSeeder, PlanoSeeder};
@@ -80,7 +83,30 @@ trait CriaTenant
 
         $usuario->assignRole('Admin');
 
+        // Contas financeiras padrão da empresa (Caixa + Banco) — antes das formas,
+        // que ligam cartão/pix à conta bancária (espelha CriarEmpresaAction).
+        app(ContaService::class)->semearPadrao($rede->id, $empresa->id);
+
+        // Formas de pagamento padrão da empresa (Dinheiro/Pix; Débito/Crédito recebível).
+        app(FormaPagamentoService::class)->semearPadrao($rede->id, $empresa->id);
+
         return compact('rede', 'empresa', 'usuario');
+    }
+
+    /**
+     * Retorna uma forma de pagamento padrão da rede pelo tipo (a da 1ª empresa
+     * da rede, por padrão). As formas são empresa-level; ordenamos por
+     * empresa_id para ser determinístico em redes com múltiplas empresas.
+     * (Sem global scope: útil mesmo antes/depois do actingAs.)
+     */
+    protected function formaPagamento(Rede $rede, TipoFormaPagamento $tipo = TipoFormaPagamento::Dinheiro): FormaPagamento
+    {
+        return FormaPagamento::withoutGlobalScopes()
+            ->where('rede_id', $rede->id)
+            ->where('tipo', $tipo->value)
+            ->orderBy('empresa_id')
+            ->orderBy('id')
+            ->firstOrFail();
     }
 
     /**

@@ -197,7 +197,7 @@
                             <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                             <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
                             <td>{{ $parcela->statusEfetivo()->label() }}</td>
-                            <td>{{ $parcela->forma_pagamento?->label() ?? '—' }}</td>
+                            <td>{{ $parcela->forma_pagamento_nome ?? '—' }}</td>
                             <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                             <td class="text-end">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
                         </tr>

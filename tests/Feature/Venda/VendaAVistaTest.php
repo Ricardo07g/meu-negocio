@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Venda;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, StatusCaixa, StatusParcela, TipoMovimentoCaixa};
-use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
+use App\Enums\{CondicaoPagamento, StatusCaixa, StatusParcela, TipoFormaPagamento, TipoLancamento};
+use App\Modules\Caixa\Models\Caixa;
+use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Services\VendaService;
@@ -15,14 +16,14 @@ use Tests\TestCase;
 
 /**
  * Cobre o fluxo de venda a vista de produto: criar venda -> criar
- * Pagamento + 1 parcela ja paga -> registrar MovimentoCaixa de entrada
- * no caixa aberto.
+ * Pagamento + 1 parcela ja paga -> registrar um Lancamento de credito
+ * na conta caixa (com o caixa aberto do dia).
  *
  * Atalho consciente: chama VendaService diretamente em vez de POST
  * /vendas. O endpoint HTTP cobre validacoes de Request e ja e
  * exercitado em outros testes (LoginTest, RegistroTest); aqui o foco
  * e na cascata de regra de negocio — Venda -> Pagamento -> Parcela ->
- * Baixa -> MovimentoCaixa.
+ * Baixa -> Lancamento.
  */
 class VendaAVistaTest extends TestCase
 {
@@ -61,7 +62,7 @@ class VendaAVistaTest extends TestCase
             ]],
             condicao: CondicaoPagamento::AVista,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: FormaPagamento::Dinheiro,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
             numeroParcelas: null,
             primeiroVencimento: now(),
         );
@@ -75,13 +76,14 @@ class VendaAVistaTest extends TestCase
         $this->assertSame(StatusParcela::Pago, $parcela->status, 'Parcela unica de venda a vista deveria ficar paga.');
         $this->assertSame(100.00, (float) $parcela->valor_pago);
 
-        $this->assertDatabaseHas('movimentos_caixa', [
-            'tipo' => TipoMovimentoCaixa::Entrada->value,
+        $this->assertDatabaseHas('lancamentos', [
+            'tipo' => TipoLancamento::Credito->value,
+            'categoria' => 'movimento',
             'valor' => 100.00,
         ]);
 
-        $entradas = MovimentoCaixa::where('tipo', TipoMovimentoCaixa::Entrada)->sum('valor');
-        $this->assertSame(100.00, (float) $entradas, 'Entrada de caixa deveria igualar o valor da parcela.');
+        $creditos = Lancamento::where('tipo', TipoLancamento::Credito)->sum('valor');
+        $this->assertSame(100.00, (float) $creditos, 'O crédito na conta caixa deveria igualar o valor da parcela.');
 
         // Estoque foi baixado
         $this->assertSame(8, $produto->fresh()->quantidade, 'Estoque deveria ter sido decrementado em 2 unidades.');

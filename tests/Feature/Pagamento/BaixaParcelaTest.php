@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Pagamento;
 
-use App\Enums\{CondicaoPagamento, FormaPagamento, FormaRecebimentoPrazo, StatusCaixa, StatusPagamento, StatusParcela};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusCaixa, StatusPagamento, StatusParcela, TipoFormaPagamento};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Pagamento\Models\Pagamento;
@@ -57,7 +57,7 @@ class BaixaParcelaTest extends TestCase
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
             // Forma "padrao" (preenche a parcela). A forma real fica na baixa.
-            formaAvista: FormaPagamento::Pix,
+            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
             numeroParcelas: 2,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,
@@ -69,7 +69,7 @@ class BaixaParcelaTest extends TestCase
         app(CaixaService::class)->darBaixaParcelaPagamento(
             parcela: $primeira,
             valor: (float) $primeira->valor,
-            formaPagamento: FormaPagamento::Pix,
+            forma: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
         );
 
         $primeira->refresh();

@@ -108,7 +108,10 @@
         </div>
     @endif
 
-    <div class="d-flex justify-content-center mt-2">
-        <a href="{{ route('perfis-acesso.index') }}" class="btn btn-light px-5 py-2" style="min-width: 300px;">Voltar</a>
+    <div class="d-flex pt-4">
+        <a href="{{ route('perfis-acesso.index') }}" class="btn btn-light">
+            <i class="feather-arrow-left me-2"></i>
+            <span>Voltar</span>
+        </a>
     </div>
 @endsection
