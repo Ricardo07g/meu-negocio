@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\FormaPagamento;
 
 use App\Enums\TipoFormaPagamento;
+use App\Modules\Conta\Models\Conta;
+use App\Modules\Conta\Services\ContaService;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Tenant\Models\Empresa;
@@ -79,6 +81,7 @@ class FormaPagamentoTest extends TestCase
             'taxa_percentual' => 3.20,
             'permite_parcelas' => 1,
             'max_parcelas' => 12,
+            'conta_destino_id' => $this->contaBancoId(),
             'taxas' => [
                 ['parcela_min' => 1, 'parcela_max' => 1, 'taxa_percentual' => 3.20],
                 ['parcela_min' => 2, 'parcela_max' => 6, 'taxa_percentual' => 3.80],
@@ -130,6 +133,161 @@ class FormaPagamentoTest extends TestCase
         $this->assertFalse($forma->antecipacao_automatica);
         $this->assertSame(0.0, (float) $forma->taxa_antecipacao_mensal);
         $this->assertCount(0, $forma->taxas, 'Dinheiro não tem faixas de taxa.');
+    }
+
+    public function test_pix_via_maquineta_configura_recebivel_liquidacao_e_taxa(): void
+    {
+        $this->criarRedeAutenticada();
+
+        // PIX na maquineta: o lojista liga "gera recebível" e informa D+N e taxa.
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Pix Maquineta',
+            'tipo' => TipoFormaPagamento::Pix->value,
+            'ativo' => 1,
+            'gera_recebivel' => 1,
+            'dias_liquidacao' => 1,
+            'taxa_percentual' => 0.99,
+            'conta_destino_id' => $this->contaBancoId(),
+        ]);
+
+        $resp->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Pix Maquineta')->firstOrFail();
+        $this->assertTrue($forma->gera_recebivel, 'PIX maquineta gera recebível do adquirente.');
+        $this->assertSame(1, $forma->dias_liquidacao);
+        $this->assertSame(0.99, (float) $forma->taxa_percentual);
+    }
+
+    public function test_pix_direto_zera_liquidacao_e_taxa(): void
+    {
+        $this->criarRedeAutenticada();
+
+        // PIX direto ao banco: mesmo enviando D+N e taxa, o servidor zera (cai na hora, sem taxa).
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Pix Direto',
+            'tipo' => TipoFormaPagamento::Pix->value,
+            'ativo' => 1,
+            'gera_recebivel' => 0,
+            'dias_liquidacao' => 5,
+            'taxa_percentual' => 2.0,
+            'conta_destino_id' => $this->contaBancoId(),
+        ]);
+
+        $resp->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Pix Direto')->firstOrFail();
+        $this->assertFalse($forma->gera_recebivel, 'PIX direto não gera recebível.');
+        $this->assertSame(0, $forma->dias_liquidacao, 'PIX direto é imediato (D+0).');
+        $this->assertSame(0.0, (float) $forma->taxa_percentual, 'PIX direto não tem taxa.');
+    }
+
+    public function test_forma_aceita_conta_destino_da_propria_empresa(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $contaBanco = Conta::where('empresa_id', $contexto['empresa']->id)
+            ->where('eh_destino_recebivel_padrao', true)
+            ->firstOrFail();
+
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Pix Nubank',
+            'tipo' => TipoFormaPagamento::Pix->value,
+            'ativo' => 1,
+            'conta_destino_id' => $contaBanco->id,
+        ]);
+
+        $resp->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Pix Nubank')->firstOrFail();
+        $this->assertSame($contaBanco->id, $forma->conta_destino_id);
+    }
+
+    public function test_conta_destino_de_outra_empresa_e_rejeitada(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        // Segunda empresa na MESMA rede, com suas próprias contas.
+        $empB = Empresa::create(['rede_id' => $contexto['rede']->id, 'nome' => 'Filial B']);
+        app(ContaService::class)->semearPadrao($contexto['rede']->id, $empB->id);
+
+        $contaB = Conta::withoutGlobalScopes()->where('empresa_id', $empB->id)->firstOrFail();
+
+        // O usuário opera na empresa A: apontar para a conta da B viola o tenancy.
+        $resp = $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Pix Vazado',
+            'tipo' => TipoFormaPagamento::Pix->value,
+            'ativo' => 1,
+            'conta_destino_id' => $contaB->id,
+        ]);
+
+        $resp->assertSessionHasErrors('conta_destino_id');
+        $this->assertDatabaseMissing('formas_pagamento', ['nome' => 'Pix Vazado']);
+    }
+
+    public function test_cartao_e_pix_exigem_conta_destino(): void
+    {
+        $this->criarRedeAutenticada();
+
+        foreach ([TipoFormaPagamento::CartaoCredito, TipoFormaPagamento::CartaoDebito, TipoFormaPagamento::Pix] as $tipo) {
+            $this->post(route('formas-pagamento.store'), [
+                'nome' => 'Sem Conta '.$tipo->value,
+                'tipo' => $tipo->value,
+                'ativo' => 1,
+            ])->assertSessionHasErrors('conta_destino_id');
+        }
+
+        $this->assertDatabaseMissing('formas_pagamento', ['nome' => 'Sem Conta pix']);
+    }
+
+    public function test_dinheiro_nao_exige_conta_destino(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Dinheiro Balcão',
+            'tipo' => TipoFormaPagamento::Dinheiro->value,
+            'ativo' => 1,
+        ])->assertRedirect(route('formas-pagamento.index'));
+
+        $forma = FormaPagamento::where('nome', 'Dinheiro Balcão')->firstOrFail();
+        $this->assertNull($forma->conta_destino_id, 'Dinheiro cai no caixa por natureza (conta opcional).');
+    }
+
+    public function test_cartao_nao_aceita_conta_caixa(): void
+    {
+        $this->criarRedeAutenticada();
+
+        $this->post(route('formas-pagamento.store'), [
+            'nome' => 'Débito na Gaveta',
+            'tipo' => TipoFormaPagamento::CartaoDebito->value,
+            'ativo' => 1,
+            'gera_recebivel' => 1,
+            'conta_destino_id' => $this->contaCaixaId(), // cartao nunca cai na gaveta
+        ])->assertSessionHasErrors('conta_destino_id');
+
+        $this->assertDatabaseMissing('formas_pagamento', ['nome' => 'Débito na Gaveta']);
+    }
+
+    public function test_formas_semeadas_de_cartao_e_pix_ligam_a_conta_bancaria(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $bancoId = $this->contaBancoId();
+
+        $comConta = FormaPagamento::where('empresa_id', $contexto['empresa']->id)
+            ->whereIn('tipo', [
+                TipoFormaPagamento::CartaoCredito,
+                TipoFormaPagamento::CartaoDebito,
+                TipoFormaPagamento::Pix,
+            ])->get();
+
+        foreach ($comConta as $forma) {
+            $this->assertSame($bancoId, $forma->conta_destino_id, "{$forma->nome} deveria cair na conta bancária.");
+        }
+
+        // Dinheiro/Crediário continuam sem conta (caem no caixa por natureza).
+        $dinheiro = FormaPagamento::where('empresa_id', $contexto['empresa']->id)
+            ->where('tipo', TipoFormaPagamento::Dinheiro)->firstOrFail();
+        $this->assertNull($dinheiro->conta_destino_id);
     }
 
     public function test_cria_crediario_com_teto_de_parcelas(): void
@@ -210,5 +368,17 @@ class FormaPagamentoTest extends TestCase
 
         $resp->assertSessionHasErrors('forma_pagamento');
         $this->assertDatabaseCount('baixas_pagamento', 0);
+    }
+
+    /** Conta bancária padrão (destino de recebível) da empresa em contexto. */
+    private function contaBancoId(): int
+    {
+        return (int) Conta::where('eh_destino_recebivel_padrao', true)->value('id');
+    }
+
+    /** Conta Caixa (gaveta) da empresa em contexto. */
+    private function contaCaixaId(): int
+    {
+        return (int) Conta::where('eh_caixa_padrao', true)->value('id');
     }
 }

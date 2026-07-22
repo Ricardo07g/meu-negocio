@@ -8,8 +8,8 @@ use App\Models\BaseModel;
 use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Traits\EmpresaTrait;
-use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
-use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -32,7 +32,6 @@ use Illuminate\Support\Carbon;
  * @property-read ParcelaDespesa $parcela
  * @property-read FormaPagamento|null $formaPagamento
  * @property-read Caixa|null $caixa
- * @property-read Collection<int, MovimentoCaixa> $movimentos
  */
 class BaixaDespesa extends BaseModel
 {
@@ -92,11 +91,5 @@ class BaixaDespesa extends BaseModel
     public function caixa(): BelongsTo
     {
         return $this->belongsTo(Caixa::class, 'caixa_id');
-    }
-
-    /** Movimentos de caixa ligados a esta baixa de despesa. */
-    public function movimentos(): HasMany
-    {
-        return $this->hasMany(MovimentoCaixa::class, 'baixa_despesa_id');
     }
 }

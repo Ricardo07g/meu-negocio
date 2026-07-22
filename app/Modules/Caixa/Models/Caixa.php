@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Caixa\Models;
 
-use App\Enums\{StatusCaixa, TipoMovimentoCaixa};
+use App\Enums\{StatusCaixa, TipoLancamento};
 use App\Models\BaseModel;
+use App\Modules\Conta\Models\{Conta, Lancamento};
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\{EmpresaTrait, RegistraAtividade};
 use Illuminate\Database\Eloquent\Collection;
@@ -16,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $rede_id
  * @property int $empresa_id
+ * @property int|null $conta_id
  * @property int $usuario_id
  * @property Carbon $data
  * @property float $saldo_abertura
@@ -28,7 +30,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Usuario $usuario
  * @property-read Usuario|null $fechadoPor
- * @property-read Collection<int, MovimentoCaixa> $movimentos
+ * @property-read Conta|null $conta
+ * @property-read Collection<int, Lancamento> $lancamentos
  */
 class Caixa extends BaseModel
 {
@@ -40,6 +43,7 @@ class Caixa extends BaseModel
     protected $fillable = [
         'rede_id',
         'empresa_id',
+        'conta_id',
         'usuario_id',
         'data',
         'saldo_abertura',
@@ -78,9 +82,15 @@ class Caixa extends BaseModel
         return $this->belongsTo(Usuario::class, 'fechado_por');
     }
 
-    public function movimentos(): HasMany
+    public function conta(): BelongsTo
     {
-        return $this->hasMany(MovimentoCaixa::class, 'caixa_id');
+        return $this->belongsTo(Conta::class, 'conta_id');
+    }
+
+    /** Lancamentos do razao registrados nesta sessao de caixa (a gaveta). */
+    public function lancamentos(): HasMany
+    {
+        return $this->hasMany(Lancamento::class, 'caixa_id');
     }
 
     // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
@@ -90,16 +100,15 @@ class Caixa extends BaseModel
     // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
     // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
 
+    /**
+     * Saldo da sessao = saldo_abertura + creditos − debitos dos lancamentos
+     * desta gaveta (recebimentos/reforcos entram; despesas/sangrias/estornos saem).
+     */
     public function saldoCalculado(): float
     {
-        $entradas = $this->movimentos()
-            ->whereIn('tipo', [TipoMovimentoCaixa::Entrada, TipoMovimentoCaixa::Reforco])
-            ->sum('valor');
+        $creditos = $this->lancamentos()->where('tipo', TipoLancamento::Credito->value)->sum('valor');
+        $debitos = $this->lancamentos()->where('tipo', TipoLancamento::Debito->value)->sum('valor');
 
-        $saidas = $this->movimentos()
-            ->whereIn('tipo', [TipoMovimentoCaixa::Saida, TipoMovimentoCaixa::Sangria])
-            ->sum('valor');
-
-        return (float) ($this->saldo_abertura + $entradas - $saidas);
+        return (float) ($this->saldo_abertura + $creditos - $debitos);
     }
 }

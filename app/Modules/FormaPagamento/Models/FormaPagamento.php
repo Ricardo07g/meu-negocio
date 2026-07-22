@@ -6,9 +6,10 @@ namespace App\Modules\FormaPagamento\Models;
 
 use App\Enums\TipoFormaPagamento;
 use App\Models\BaseModel;
+use App\Modules\Conta\Models\Conta;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\{Builder, Collection, SoftDeletes};
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Support\Carbon;
 
 /**
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $rede_id
  * @property int $empresa_id
+ * @property int|null $conta_destino_id
  * @property string $nome
  * @property TipoFormaPagamento $tipo
  * @property bool $ativo
@@ -45,6 +47,7 @@ class FormaPagamento extends BaseModel
     protected $fillable = [
         'rede_id',
         'empresa_id',
+        'conta_destino_id',
         'nome',
         'tipo',
         'ativo',
@@ -61,6 +64,7 @@ class FormaPagamento extends BaseModel
     {
         return [
             'tipo' => TipoFormaPagamento::class,
+            'conta_destino_id' => 'integer',
             'ativo' => 'boolean',
             'gera_recebivel' => 'boolean',
             'dias_liquidacao' => 'integer',
@@ -82,6 +86,12 @@ class FormaPagamento extends BaseModel
     public function taxas(): HasMany
     {
         return $this->hasMany(FormaPagamentoTaxa::class, 'forma_pagamento_id');
+    }
+
+    /** Conta destino explicita (banco/carteira/caixa); quando null, o motor resolve pela natureza. */
+    public function conta(): BelongsTo
+    {
+        return $this->belongsTo(Conta::class, 'conta_destino_id');
     }
 
     // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗

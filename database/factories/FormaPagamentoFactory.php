@@ -42,6 +42,18 @@ class FormaPagamentoFactory extends Factory
         return $this->state(fn () => ['nome' => 'Pix', 'tipo' => TipoFormaPagamento::Pix]);
     }
 
+    /** PIX via maquineta/adquirente: gera recebível (D+N, com taxa), não cai na gaveta. */
+    public function pixMaquineta(): static
+    {
+        return $this->state(fn () => [
+            'nome' => 'Pix Maquineta',
+            'tipo' => TipoFormaPagamento::Pix,
+            'gera_recebivel' => true,
+            'dias_liquidacao' => 1,
+            'taxa_percentual' => 0.99,
+        ]);
+    }
+
     public function debito(): static
     {
         return $this->state(fn () => [

@@ -6,6 +6,7 @@ namespace App\Modules\FormaPagamento\Controllers;
 
 use App\Enums\TipoFormaPagamento;
 use App\Http\Controllers\Controller;
+use App\Modules\Conta\Services\ContaService;
 use App\Modules\FormaPagamento\DTOs\FormaPagamentoData;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\FormaPagamento\Requests\SalvarFormaPagamentoRequest;
@@ -19,7 +20,10 @@ class FormaPagamentoController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private FormaPagamentoService $service) {}
+    public function __construct(
+        private FormaPagamentoService $service,
+        private ContaService $contaService,
+    ) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -46,6 +50,7 @@ class FormaPagamentoController extends Controller
 
             return view('formapagamento::create', [
                 'tipos' => TipoFormaPagamento::cases(),
+                'contas' => $this->contaService->listar(['ativo' => '1']),
             ]);
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de forma de pagamento');
@@ -81,6 +86,7 @@ class FormaPagamentoController extends Controller
             return view('formapagamento::edit', [
                 'forma' => $formas_pagamento,
                 'tipos' => TipoFormaPagamento::cases(),
+                'contas' => $this->contaService->listar(['ativo' => '1']),
             ]);
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar edição de forma de pagamento');

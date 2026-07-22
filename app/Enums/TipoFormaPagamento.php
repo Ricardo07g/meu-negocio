@@ -12,7 +12,9 @@ namespace App\Enums;
  * Difere de CondicaoPagamento (eixo do cliente: à-vista x fiado) e de
  * FormaRecebimentoPrazo (canal previsto de um título a prazo).
  *
- * - Dinheiro / Pix : liquidação imediata na gaveta do caixa, sem taxa.
+ * - Dinheiro        : liquidação imediata na gaveta do caixa, sem taxa.
+ * - Pix             : cai numa conta (banco/carteira), nunca na gaveta. Recebível CONFIGURÁVEL —
+ *                     direto ao banco (D+0, sem taxa) ou via maquineta/adquirente (D+N, com taxa).
  * - CartaoDebito    : recebível do adquirente (≈ D+1), com taxa (MDR).
  * - CartaoCredito   : recebível do adquirente (≈ D+30), com taxa por faixa de parcelas.
  * - Boleto          : liquidação imediata no caixa quando o cliente paga o boleto.
@@ -42,13 +44,38 @@ enum TipoFormaPagamento: string
 
     /**
      * Se o dinheiro NÃO entra na gaveta do caixa na hora — vira um recebível do
-     * banco/adquirente (D+N, líquido de taxa). DERIVADO do tipo (não editável).
+     * banco/adquirente (D+N, líquido de taxa). Para o PIX é apenas o PADRÃO
+     * (recebível configurável, ver recebivelConfiguravel); para os demais é
+     * derivado do tipo (não editável).
      */
     public function geraRecebivelPadrao(): bool
     {
         return match ($this) {
             self::CartaoDebito, self::CartaoCredito => true,
             self::Dinheiro, self::Pix, self::Boleto, self::Crediario => false,
+        };
+    }
+
+    /**
+     * Se o lojista pode escolher se a forma gera recebível (diferido, D+N) ou cai
+     * imediato na conta. Só o PIX: pode ser direto ao banco (imediato) ou via
+     * maquineta/adquirente (recebível). Nos demais tipos o comportamento é fixo.
+     */
+    public function recebivelConfiguravel(): bool
+    {
+        return $this === self::Pix;
+    }
+
+    /**
+     * Se a natureza da forma é cair na conta CAIXA (gaveta física) quando não gera
+     * recebível: dinheiro, boleto e crediário. O PIX cai em banco/carteira. Usado
+     * como fallback ao resolver a conta destino quando a forma não a define.
+     */
+    public function destinoNaturalCaixa(): bool
+    {
+        return match ($this) {
+            self::Dinheiro, self::Boleto, self::Crediario => true,
+            self::Pix, self::CartaoDebito, self::CartaoCredito => false,
         };
     }
 
@@ -92,10 +119,10 @@ enum TipoFormaPagamento: string
         return $this === self::Crediario;
     }
 
-    /** Usa taxa plana (MDR único): só o débito. O crédito usa faixas por parcela. */
+    /** Usa taxa plana (MDR único): débito e PIX-maquineta. O crédito usa faixas por parcela. */
     public function usaTaxaPlana(): bool
     {
-        return $this === self::CartaoDebito;
+        return $this === self::CartaoDebito || $this === self::Pix;
     }
 
     /** Usa faixas de taxa por nº de parcelas do cartão: só o crédito. */
@@ -110,9 +137,23 @@ enum TipoFormaPagamento: string
         return $this->ehCartao();
     }
 
-    /** Tem prazo de liquidação (D+N) configurável: cartões. */
+    /** Tem prazo de liquidação (D+N) configurável: cartões e PIX (quando via maquineta). */
     public function usaLiquidacao(): bool
     {
-        return $this->ehCartao();
+        return $this->ehCartao() || $this === self::Pix;
+    }
+
+    /**
+     * Se a forma EXIGE uma conta destino explícita. Cartão (débito/crédito) e PIX
+     * nunca caem na gaveta: cada maquineta/canal liquida numa conta própria
+     * (banco/carteira), então o lojista deve escolher qual. Dinheiro/Boleto/Crediário
+     * caem no Caixa por natureza — conta destino opcional.
+     */
+    public function exigeContaDestino(): bool
+    {
+        return match ($this) {
+            self::CartaoDebito, self::CartaoCredito, self::Pix => true,
+            self::Dinheiro, self::Boleto, self::Crediario => false,
+        };
     }
 }

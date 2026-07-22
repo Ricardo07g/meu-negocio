@@ -167,9 +167,9 @@ class VendaController extends Controller
 
         $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
 
-        // Só a venda à-vista que entra na gaveta (dinheiro/pix) exige caixa aberto.
-        // Cartão vira recebível e não depende de caixa.
-        $exigeCaixa = $aVista && $forma && ! $forma->gera_recebivel;
+        // Só a venda à-vista cujo dinheiro cai na gaveta (conta caixa) exige caixa aberto.
+        // Cartão e PIX que caem em banco/carteira não dependem de caixa.
+        $exigeCaixa = $aVista && $forma && $this->caixaService->exigeCaixaAberto($forma, $empresaId);
         if ($exigeCaixa && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
             return redirect()->back()->withInput()
                 ->with('erro', 'É necessário abrir o caixa de hoje desta empresa para registrar vendas à vista.');

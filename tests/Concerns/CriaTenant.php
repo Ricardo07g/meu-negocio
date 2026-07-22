@@ -83,11 +83,12 @@ trait CriaTenant
 
         $usuario->assignRole('Admin');
 
-        // Formas de pagamento padrão da empresa (Dinheiro/Pix caixa; Débito/Crédito recebível).
-        app(FormaPagamentoService::class)->semearPadrao($rede->id, $empresa->id);
-
-        // Contas financeiras padrão da empresa (Caixa + Banco).
+        // Contas financeiras padrão da empresa (Caixa + Banco) — antes das formas,
+        // que ligam cartão/pix à conta bancária (espelha CriarEmpresaAction).
         app(ContaService::class)->semearPadrao($rede->id, $empresa->id);
+
+        // Formas de pagamento padrão da empresa (Dinheiro/Pix; Débito/Crédito recebível).
+        app(FormaPagamentoService::class)->semearPadrao($rede->id, $empresa->id);
 
         return compact('rede', 'empresa', 'usuario');
     }

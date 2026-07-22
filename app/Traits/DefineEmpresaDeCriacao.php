@@ -11,7 +11,7 @@ use Closure;
  *
  * Centraliza o contrato da chave de sessao `empresa_criacao_atual`, usada pelo
  * `EmpresaTrait::creating` para garantir que toda a cascata de um registro
- * transacional (ex.: Venda -> Pagamento -> Parcela -> Baixa -> MovimentoCaixa)
+ * transacional (ex.: Venda -> Pagamento -> Parcela -> Baixa -> Lancamento)
  * herde a mesma empresa, mesmo quando ha varias selecionadas no header ou o
  * usuario chegou via link direto sem passar pela listagem.
  *

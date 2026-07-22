@@ -11,7 +11,8 @@ Painel inicial pos-login. Apenas leitura: agrega indicadores de varios modulos
 ## Entidades & status
 Nao tem model proprio. Le de: `Agendamento` (status `App\Enums\StatusAgendamento`),
 `Cliente`, `Servico` (catalogo de rede), `ParcelaPagamento` (`StatusParcela`),
-`BaixaPagamento`/`BaixaDespesa`/`Caixa` (`StatusCaixa`).
+`BaixaPagamento`/`BaixaDespesa`/`Caixa` (`StatusCaixa`), `Conta` (saldo por conta) e
+`Recebivel` (previstos a cair).
 
 ## Camadas-chave
 - `DashboardController::index(): View|RedirectResponse` — metodo unico; passa `DashboardService::indicadores()` para `dashboard::dashboard`. Sem Policy/permissao (qualquer autenticado com rede+empresa via middleware). Rota: `GET dashboard` (`name('dashboard')`), dentro de `verificar.empresa` + `aplicar.contexto.empresa`.
@@ -19,6 +20,7 @@ Nao tem model proprio. Le de: `Agendamento` (status `App\Enums\StatusAgendamento
   - `agendamentosHoje()`, `proximosAgendamentos($limite=5)` (status Agendado/Confirmado, hoje a partir de agora), `agendamentosPorStatusMes()` (donut, todos os `StatusAgendamento::cases()` com label/cor).
   - `receitaMes()`/`receitaMesAnterior()` (soma `BaixaPagamento.valor` por mes), `despesaMes()`/`despesaMesAnterior()` (`BaixaDespesa.valor`), `fluxoUltimos6Meses()` (receita x despesa por mes, label `MMM/YY` pt_BR).
   - `contasReceberQuantidade()`/`contasReceberTotal()` (parcelas `Pendente`; total = `SUM(valor - valor_pago)`), `caixaAberto(): ?Caixa`.
+  - `saldoPorConta(): Collection<Conta>` (contas ativas com saldo atual, caixa-padrao primeiro — card "Saldo por conta") e `recebiveisACair(): float` (`Recebivel::previstos()->sum('valor_liquido')` — card "Recebiveis a cair", dinheiro a caminho fora do saldo realizado).
   - `totalClientes()`, `servicosAtivos()`.
 
 ## Regras de negocio / gotchas
@@ -33,4 +35,4 @@ Nao tem model proprio. Le de: `Agendamento` (status `App\Enums\StatusAgendamento
 
 ## Veja tambem
 - `.claude/rules/multi-tenant-seguranca.md` — por que nao filtrar tenant na mao (global scopes), catalogo (rede) x transacional (empresa).
-- `.claude/rules/modulos/caixa.md`, `pagamento.md`, `agenda.md` — fonte dos dados agregados.
+- `.claude/rules/modulos/caixa.md`, `conta.md`, `pagamento.md`, `agenda.md` — fonte dos dados agregados.

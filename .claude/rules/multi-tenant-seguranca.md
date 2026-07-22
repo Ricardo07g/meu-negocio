@@ -28,10 +28,11 @@ Single DB + colunas de tenant, em dois niveis:
 
 ## BaseModel
 `App\Models\BaseModel` (extends Model + `RedeTrait`). Todo model tenant-aware estende BaseModel.
-- Excecoes (Model direto): Plano, Rede, MovimentoCaixa.
+- Excecoes (Model direto): Plano, Rede.
 - `Usuario` e Authenticatable + traits direto, **rede-level apenas** (NAO usa EmpresaTrait — aplicar
   quebraria `auth()->user()` quando o contexto vigente difere do `usuario.empresa_id` default).
-- Caixa = BaseModel + EmpresaTrait.
+- Caixa, Conta e Lancamento = BaseModel + EmpresaTrait (`Lancamento` substituiu o antigo
+  `MovimentoCaixa` — razao unificado, ADR-0010).
 
 ## Acesso do usuario as empresas
 - `usuarios.empresa_id` = empresa default ao logar (preferencia). **NAO e barreira de tenancy.**

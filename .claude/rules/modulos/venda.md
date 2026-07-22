@@ -45,14 +45,16 @@ Frente de venda transacional (com `empresa_id`). **Tres tipos**: servico unico, 
   `venda.*`. Metodos `viewAny/view/create/cancel`.
 
 ## Regras de negocio / gotchas
-- A vista exige caixa aberto: `processarVenda` checa `caixaService->caixaAberto()` ANTES da
-  transacao; a baixa automatica e `VendaService::baixarAVistaSeAplicavel` ->
+- A vista pode exigir caixa aberto: `processarVenda` checa `caixaService->exigeCaixaAberto($forma)`
+  ANTES da transacao (so quando a forma e imediata e a conta destino e do tipo caixa — dinheiro sim;
+  pix-direto/cartao nao). A baixa automatica e `VendaService::baixarAVistaSeAplicavel` ->
   `CaixaService::darBaixaParcelaPagamento` (so quando `AVista` E forma informada).
 - **Estorno ao cancelar** (etapas/produto): `estornarPagamentoSeExistir` ->
-  `CaixaService::estornarPagamento` (parcelas Pendente->Cancelado, MovimentoCaixa saida,
-  Pagamento->Estornado). Etapas: cancela tambem agendamentos `agendado|confirmado`. Produto: devolve
-  estoque (`increment` + MovimentoEstoque entrada). `cancelarUnico` cancela o Agendamento (Action) +
-  estorna. (Contraste: cancelar pela tela de Agenda NAO estorna no caixa.)
+  `CaixaService::estornarPagamento` (parcelas Pendente->Cancelado, Pagamento->Estornado;
+  contra-lancamento por-baixa: cancela `Recebivel` se houver, senao `Lancamento` de debito
+  `categoria=estorno` na conta de origem). Etapas: cancela tambem agendamentos `agendado|confirmado`.
+  Produto: devolve estoque (`increment` + MovimentoEstoque entrada). `cancelarUnico` cancela o
+  Agendamento (Action) + estorna. (Contraste: cancelar pela tela de Agenda NAO estorna no caixa.)
 - Edicao bloqueada se `podeEditar` falso (parcela ja paga) ou status fora de Ativo/agendado etc.
 - `qtd_etapas` da venda = `count($data->datas)` (nao vem do servico).
 

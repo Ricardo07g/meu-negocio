@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Conta\Services;
 
 use App\Enums\TipoConta;
+use App\Exceptions\NegocioException;
 use App\Modules\Conta\DTOs\ContaData;
 use App\Modules\Conta\Models\Conta;
 use Illuminate\Database\Eloquent\Collection;
@@ -36,31 +37,97 @@ class ContaService
 
     public function criar(ContaData $dados, int $empresaId): Conta
     {
-        return DB::transaction(function () use ($dados, $empresaId) {
-            $attrs = $this->normalizarPorTipo($dados);
-            $attrs['empresa_id'] = $empresaId;
+        // A gaveta (Caixa) e do sistema (semearPadrao); o lojista so cria banco/carteira.
+        if ($dados->tipo === TipoConta::Caixa) {
+            throw new NegocioException('A conta Caixa é do sistema e já existe na empresa.');
+        }
 
-            $conta = Conta::create($attrs);
-            $this->garantirPadraoUnico($conta);
+        return DB::transaction(fn () => Conta::create([
+            'empresa_id' => $empresaId,
+            'nome' => $dados->nome,
+            'tipo' => $dados->tipo,
+            'saldo_inicial' => $dados->saldo_inicial,
+            'ativo' => $dados->ativo,
+            'eh_caixa_padrao' => false,
+            'eh_destino_recebivel_padrao' => false,
+            'instituicao' => $dados->instituicao,
+            'agencia' => $dados->agencia,
+            'numero' => $dados->numero,
+        ]));
+    }
 
-            return $conta;
-        });
+    /** Renomeia uma conta — unico campo editavel da conta Caixa do sistema. */
+    public function renomear(Conta $conta, string $nome): Conta
+    {
+        $conta->update(['nome' => $nome]);
+
+        return $conta->fresh();
     }
 
     public function atualizar(Conta $conta, ContaData $dados): Conta
     {
+        // Caixa do sistema: so o nome muda (defesa — o controller ja roteia para renomear).
+        if ($conta->ehProtegida()) {
+            return $this->renomear($conta, $dados->nome);
+        }
+
+        if ($dados->tipo === TipoConta::Caixa) {
+            throw new NegocioException('Uma conta comum não pode virar Caixa.');
+        }
+
         return DB::transaction(function () use ($conta, $dados) {
-            $conta->update($this->normalizarPorTipo($dados));
-            $this->garantirPadraoUnico($conta);
+            // Flags (caixa/destino-recebivel padrao) sao internas: geridas pelo seed, nunca pelo form.
+            $conta->update([
+                'nome' => $dados->nome,
+                'tipo' => $dados->tipo,
+                'saldo_inicial' => $dados->saldo_inicial,
+                'ativo' => $dados->ativo,
+                'instituicao' => $dados->instituicao,
+                'agencia' => $dados->agencia,
+                'numero' => $dados->numero,
+            ]);
 
             return $conta->fresh();
         });
     }
 
+    /**
+     * Exclui (soft) apenas a conta que nao e do sistema, sem movimentacoes e sem vinculo —
+     * caso contrario o lojista deve inativar (mesma trilha de PerfilAcessoService::excluir).
+     */
     public function excluir(Conta $conta): void
     {
-        // Soft delete: lancamentos historicos apontam para o id; nunca force delete.
+        if ($conta->ehProtegida()) {
+            throw new NegocioException('A conta Caixa é do sistema e não pode ser excluída.');
+        }
+
+        if ($conta->temMovimentacoes()) {
+            throw new NegocioException('Esta conta possui movimentações e não pode ser excluída. Inative-a em vez de excluir.');
+        }
+
+        if ($conta->estaEmUso()) {
+            throw new NegocioException('Esta conta está vinculada a formas de pagamento ou caixas. Remova o vínculo antes de excluir.');
+        }
+
         $conta->delete();
+    }
+
+    public function inativar(Conta $conta): void
+    {
+        if ($conta->ehProtegida()) {
+            throw new NegocioException('A conta Caixa é do sistema e não pode ser inativada.');
+        }
+
+        if ($conta->temFormaAtivaVinculada()) {
+            throw new NegocioException('Uma forma de pagamento ativa ainda usa esta conta; troque o destino da forma antes de inativar.');
+        }
+
+        $conta->update(['ativo' => false]);
+    }
+
+    public function reativar(Conta $conta): void
+    {
+        $conta->update(['ativo' => true]);
     }
 
     /**
@@ -90,50 +157,5 @@ class ContaService
             'ativo' => true,
             'eh_destino_recebivel_padrao' => true,
         ]);
-    }
-
-    /**
-     * Coerencia por tipo: a gaveta (caixa) nao guarda dados de banco nem e destino
-     * de recebivel; banco/carteira nao e a conta-caixa da gaveta.
-     *
-     * @return array<string, mixed>
-     */
-    private function normalizarPorTipo(ContaData $dados): array
-    {
-        $attrs = $dados->toArray();
-
-        if ($dados->tipo === TipoConta::Caixa) {
-            $attrs['eh_destino_recebivel_padrao'] = false;
-            $attrs['instituicao'] = null;
-            $attrs['agencia'] = null;
-            $attrs['numero'] = null;
-        } else {
-            $attrs['eh_caixa_padrao'] = false;
-        }
-
-        return $attrs;
-    }
-
-    /**
-     * Garante no maximo uma conta-caixa padrao e um destino-de-recebivel padrao
-     * por empresa (desmarca as demais). rede scope permanece via BaseModel.
-     */
-    private function garantirPadraoUnico(Conta $conta): void
-    {
-        if ($conta->eh_caixa_padrao) {
-            Conta::withoutGlobalScope('empresa')
-                ->where('empresa_id', $conta->empresa_id)
-                ->where('id', '!=', $conta->id)
-                ->where('eh_caixa_padrao', true)
-                ->update(['eh_caixa_padrao' => false]);
-        }
-
-        if ($conta->eh_destino_recebivel_padrao) {
-            Conta::withoutGlobalScope('empresa')
-                ->where('empresa_id', $conta->empresa_id)
-                ->where('id', '!=', $conta->id)
-                ->where('eh_destino_recebivel_padrao', true)
-                ->update(['eh_destino_recebivel_padrao' => false]);
-        }
     }
 }

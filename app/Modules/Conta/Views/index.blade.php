@@ -98,14 +98,42 @@
                                             <i class="feather-more-horizontal"></i>
                                         </a>
                                         <ul class="dropdown-menu dropdown-menu-end">
-                                            @can('conta.editar')
                                             <li>
-                                                <a class="dropdown-item" href="{{ route('contas.edit', $conta) }}">
-                                                    <i class="feather-edit-3 me-3"></i><span>Editar</span>
+                                                <a class="dropdown-item" href="{{ route('contas.extrato', $conta) }}">
+                                                    <i class="feather-list me-3"></i><span>Extrato</span>
                                                 </a>
                                             </li>
+                                            @can('conta.editar')
+                                            <li class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="{{ route('contas.edit', $conta) }}">
+                                                    <i class="feather-edit-3 me-3"></i><span>{{ $conta->ehProtegida() ? 'Renomear' : 'Editar' }}</span>
+                                                </a>
+                                            </li>
+                                            @unless($conta->ehProtegida())
+                                                @if($conta->ativo)
+                                                <li>
+                                                    <form action="{{ route('contas.inativar', $conta) }}" method="POST" data-confirm="Inativar esta conta?">
+                                                        @csrf @method('PATCH')
+                                                        <button type="submit" class="dropdown-item text-warning">
+                                                            <i class="feather-slash me-3"></i><span>Inativar</span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                @else
+                                                <li>
+                                                    <form action="{{ route('contas.reativar', $conta) }}" method="POST">
+                                                        @csrf @method('PATCH')
+                                                        <button type="submit" class="dropdown-item text-success">
+                                                            <i class="feather-check-circle me-3"></i><span>Reativar</span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                                @endif
+                                            @endunless
                                             @endcan
                                             @can('conta.excluir')
+                                            @if($conta->podeExcluir())
                                             <li class="dropdown-divider"></li>
                                             <li>
                                                 <form action="{{ route('contas.destroy', $conta) }}" method="POST" data-confirm="Excluir esta conta?">
@@ -115,6 +143,7 @@
                                                     </button>
                                                 </form>
                                             </li>
+                                            @endif
                                             @endcan
                                         </ul>
                                     </div>

@@ -6,6 +6,8 @@ namespace App\Modules\Conta\Models;
 
 use App\Enums\{TipoConta, TipoLancamento};
 use App\Models\BaseModel;
+use App\Modules\Caixa\Models\{Caixa, Recebivel};
+use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\{Builder, Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  * @property-read Collection<int, Lancamento> $lancamentos
+ * @property-read Collection<int, Recebivel> $recebiveis
  */
 class Conta extends BaseModel
 {
@@ -77,6 +80,12 @@ class Conta extends BaseModel
         return $this->hasMany(Lancamento::class, 'conta_id');
     }
 
+    /** Recebiveis (cartao/pix-maquineta) que caem nesta conta; entram no saldo pela data prevista. */
+    public function recebiveis(): HasMany
+    {
+        return $this->hasMany(Recebivel::class, 'conta_id');
+    }
+
     // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
     // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
     // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
@@ -97,8 +106,11 @@ class Conta extends BaseModel
     // ╚═╝  ╚═══╝╚══════╝ ╚═════╝  ╚═════╝  ╚═════╝╚═╝ ╚═════╝
 
     /**
-     * Saldo realizado da conta = saldo_inicial + creditos − debitos.
-     * (Os recebiveis de cartao "a caminho" entram por data na fase B.2.)
+     * Saldo da conta = saldo_inicial + creditos − debitos (regime "fluxo, nao
+     * saldo", ADR-0011). So a conta Caixa (gaveta) acumula lançamentos — e o unico
+     * saldo "de verdade", reconciliado na contagem fisica. Contas banco/carteira
+     * viram rotulos de origem (cartao/pix caem so como Baixa, sem lançamento):
+     * o saldo delas fica no saldo_inicial, sem controle vivo.
      */
     public function saldo(): float
     {
@@ -106,5 +118,54 @@ class Conta extends BaseModel
         $debitos = (float) $this->lancamentos()->where('tipo', TipoLancamento::Debito->value)->sum('valor');
 
         return round((float) $this->saldo_inicial + $creditos - $debitos, 2);
+    }
+
+    // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
+
+    /** Conta Caixa do sistema: 1 por empresa; nao muda de tipo, nao inativa nem exclui (so renomeia). */
+    public function ehProtegida(): bool
+    {
+        return $this->tipo === TipoConta::Caixa;
+    }
+
+    /** Ja teve dinheiro passando (lancamentos ou recebiveis) — impede exclusao (resta inativar). */
+    public function temMovimentacoes(): bool
+    {
+        return $this->lancamentos()->withoutGlobalScope('empresa')->exists()
+            || $this->recebiveis()->withoutGlobalScope('empresa')->exists();
+    }
+
+    /** Referenciada como destino de alguma forma OU conta de algum caixa (empresa-explicito). */
+    public function estaEmUso(): bool
+    {
+        return FormaPagamento::withoutGlobalScope('empresa')
+            ->where('empresa_id', $this->empresa_id)
+            ->where('conta_destino_id', $this->id)
+            ->exists()
+            || Caixa::withoutGlobalScope('empresa')
+                ->where('empresa_id', $this->empresa_id)
+                ->where('conta_id', $this->id)
+                ->exists();
+    }
+
+    /** Alguma forma ATIVA ainda aponta para esta conta (impede inativar sem trocar o destino). */
+    public function temFormaAtivaVinculada(): bool
+    {
+        return FormaPagamento::withoutGlobalScope('empresa')
+            ->where('empresa_id', $this->empresa_id)
+            ->where('conta_destino_id', $this->id)
+            ->where('ativo', true)
+            ->exists();
+    }
+
+    /** So se pode excluir a conta que nao e do sistema, sem movimentacoes e sem vinculo. */
+    public function podeExcluir(): bool
+    {
+        return ! $this->ehProtegida() && ! $this->temMovimentacoes() && ! $this->estaEmUso();
     }
 }

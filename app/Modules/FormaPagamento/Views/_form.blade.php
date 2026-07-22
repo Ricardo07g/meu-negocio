@@ -30,6 +30,9 @@
                             data-usa-faixas="{{ $tipo->usaFaixas() ? 1 : 0 }}"
                             data-usa-antecipacao="{{ $tipo->usaAntecipacao() ? 1 : 0 }}"
                             data-eh-crediario="{{ $tipo->ehCrediario() ? 1 : 0 }}"
+                            data-recebivel-configuravel="{{ $tipo->recebivelConfiguravel() ? 1 : 0 }}"
+                            data-gera-recebivel-padrao="{{ $tipo->geraRecebivelPadrao() ? 1 : 0 }}"
+                            data-exige-conta="{{ $tipo->exigeContaDestino() ? 1 : 0 }}"
                             @selected(old('tipo', $entidade?->tipo?->value) === $tipo->value)>{{ $tipo->label() }}</option>
                     @endforeach
                 </select>
@@ -40,6 +43,33 @@
                     <input type="hidden" name="ativo" value="0">
                     <input type="checkbox" name="ativo" value="1" class="form-check-input" id="ativo" {{ old('ativo', $entidade?->ativo ?? true) ? 'checked' : '' }}>
                     <label class="form-check-label" for="ativo">Ativa</label>
+                </div>
+            </div>
+        </div>
+
+        {{-- Conta destino e (só no PIX) escolha entre cair direto no banco ou via maquineta. --}}
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">
+                    Conta destino <span class="text-danger" id="fp-conta-obrigatoria" style="display:none">*</span>
+                    <x-label-info content="Onde o dinheiro desta forma cai. Cartão e Pix exigem uma conta bancária/carteira (cada maquineta na sua). Dinheiro/boleto/crediário caem no caixa; em branco, usam a conta padrão da empresa." />
+                </label>
+                <select name="conta_destino_id" id="fp-conta-destino" class="form-select @error('conta_destino_id') is-invalid @enderror">
+                    <option value="" id="fp-conta-vazia">Padrão da empresa</option>
+                    @foreach($contas as $conta)
+                        <option value="{{ $conta->id }}" data-eh-caixa="{{ $conta->tipo->ehCaixa() ? 1 : 0 }}" @selected((int) old('conta_destino_id', $entidade?->conta_destino_id) === $conta->id)>{{ $conta->nome }} — {{ $conta->tipo->label() }}</option>
+                    @endforeach
+                </select>
+                @error('conta_destino_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="col-md-6 d-flex align-items-center pt-4" id="fp-gera-recebivel-wrap">
+                <div class="form-check">
+                    <input type="hidden" name="gera_recebivel" value="0">
+                    <input type="checkbox" name="gera_recebivel" value="1" class="form-check-input" id="fp-gera-recebivel" {{ old('gera_recebivel', $entidade?->gera_recebivel ?? false) ? 'checked' : '' }}>
+                    <label class="form-check-label" for="fp-gera-recebivel">
+                        Recebo via maquineta (adquirente)
+                        <x-label-info content="PIX na maquineta: o dinheiro vira recebível do adquirente (D+N, com taxa) e cai na conta carteira/banco. Desmarcado, é PIX direto — cai na hora, sem taxa." />
+                    </label>
                 </div>
             </div>
         </div>
@@ -143,6 +173,11 @@
     const antecipacaoAuto = document.getElementById('fp-antecipacao-auto');
     const antecipacaoTaxaWrap = document.getElementById('fp-antecipacao-taxa-wrap');
     const crediarioHint = document.getElementById('fp-crediario-hint');
+    const geraRecebivelWrap = document.getElementById('fp-gera-recebivel-wrap');
+    const geraRecebivel = document.getElementById('fp-gera-recebivel');
+    const contaDestino = document.getElementById('fp-conta-destino');
+    const contaVazia = document.getElementById('fp-conta-vazia');
+    const contaObrigatoria = document.getElementById('fp-conta-obrigatoria');
     const faixasCard = document.getElementById('fp-faixas-card');
     const diasInput = document.querySelector('input[name="dias_liquidacao"]');
     const faixas = document.getElementById('fp-faixas');
@@ -158,18 +193,33 @@
         const usaFaixas = d.usaFaixas === '1';
         const usaAntecipacao = d.usaAntecipacao === '1';
         const ehCrediario = d.ehCrediario === '1';
+        const recebivelConfiguravel = d.recebivelConfiguravel === '1';
         const usaMaxParcelas = usaFaixas || ehCrediario;
 
-        show(liquidacaoWrap, usaLiquidacao);
-        show(taxaPlanaWrap, usaTaxaPlana);
+        // gera_recebivel: no PIX segue o checkbox (maquineta x direto); nos demais é fixo pelo tipo.
+        const gera = recebivelConfiguravel ? geraRecebivel.checked : (d.geraRecebivelPadrao === '1');
+        const exigeConta = d.exigeConta === '1';
+
+        // Cartao/pix exigem conta e nunca caem na gaveta: esconde "Padrao da empresa" e as contas Caixa.
+        contaDestino.required = exigeConta;
+        show(contaObrigatoria, exigeConta);
+        if (contaVazia) { contaVazia.hidden = exigeConta; contaVazia.disabled = exigeConta; }
+        contaDestino.querySelectorAll('option[data-eh-caixa="1"]').forEach(function (o) {
+            o.hidden = exigeConta; o.disabled = exigeConta;
+        });
+        if (contaDestino.selectedOptions[0] && contaDestino.selectedOptions[0].disabled) contaDestino.value = '';
+
+        show(geraRecebivelWrap, recebivelConfiguravel);
+        show(liquidacaoWrap, usaLiquidacao && gera);
+        show(taxaPlanaWrap, usaTaxaPlana && gera);
         show(maxParcelasWrap, usaMaxParcelas);
         show(faixasCard, usaFaixas);
         show(antecipacaoWrap, usaAntecipacao);
         show(antecipacaoTaxaWrap, usaAntecipacao && antecipacaoAuto.checked);
         show(crediarioHint, ehCrediario);
 
-        // Extra-config some inteiro para tipos sem campos (dinheiro/pix/boleto).
-        show(extraConfig, usaLiquidacao || usaTaxaPlana || usaMaxParcelas || usaAntecipacao || ehCrediario);
+        // Extra-config some inteiro quando nao ha campo aplicavel (dinheiro/pix-direto/boleto).
+        show(extraConfig, (usaLiquidacao && gera) || (usaTaxaPlana && gera) || usaMaxParcelas || usaAntecipacao || ehCrediario);
 
         maxParcelasLabel.textContent = ehCrediario ? 'Máx. de parcelas do cliente' : 'Máx. de parcelas no cartão';
     }
@@ -193,6 +243,7 @@
 
     tipo.addEventListener('change', function () { prefillDias(); refresh(); });
     antecipacaoAuto.addEventListener('change', refresh);
+    geraRecebivel.addEventListener('change', refresh);
     addBtn.addEventListener('click', novaFaixa);
     faixas.addEventListener('click', function (e) {
         const btn = e.target.closest('.fp-remove-faixa');

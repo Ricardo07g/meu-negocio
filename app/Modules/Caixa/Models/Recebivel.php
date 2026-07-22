@@ -6,6 +6,7 @@ namespace App\Modules\Caixa\Models;
 
 use App\Enums\StatusRecebivel;
 use App\Models\BaseModel;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Traits\EmpresaTrait;
 use Illuminate\Database\Eloquent\{Builder, SoftDeletes};
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $rede_id
  * @property int $empresa_id
+ * @property int|null $conta_id
  * @property int $forma_pagamento_id
  * @property int|null $baixa_pagamento_id
  * @property string $descricao
@@ -36,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read FormaPagamento $forma
  * @property-read BaixaPagamento|null $baixa
+ * @property-read Conta|null $conta
  */
 class Recebivel extends BaseModel
 {
@@ -46,6 +49,7 @@ class Recebivel extends BaseModel
     protected $fillable = [
         'rede_id',
         'empresa_id',
+        'conta_id',
         'forma_pagamento_id',
         'baixa_pagamento_id',
         'descricao',
@@ -88,6 +92,12 @@ class Recebivel extends BaseModel
     public function baixa(): BelongsTo
     {
         return $this->belongsTo(BaixaPagamento::class, 'baixa_pagamento_id');
+    }
+
+    /** Conta (banco/carteira) em que o recebivel cai quando liquida. */
+    public function conta(): BelongsTo
+    {
+        return $this->belongsTo(Conta::class, 'conta_id');
     }
 
     // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗

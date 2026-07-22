@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Caixa;
 
-use App\Enums\{CondicaoPagamento, StatusCaixa, StatusPagamento, StatusVendaProduto, TipoFormaPagamento, TipoMovimentoCaixa};
-use App\Modules\Caixa\Models\{Caixa, MovimentoCaixa};
+use App\Enums\{CondicaoPagamento, StatusCaixa, StatusPagamento, StatusVendaProduto, TipoFormaPagamento, TipoLancamento};
+use App\Modules\Caixa\Models\Caixa;
+use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Models\VendaProduto;
@@ -18,7 +19,7 @@ use Tests\TestCase;
  * Estorno automatico ao cancelar venda a vista:
  *  - Venda passa para Cancelada;
  *  - Pagamento passa para Estornado;
- *  - Caixa recebe MovimentoCaixa de saida com o valor recebido;
+ *  - A conta recebe um contra-lancamento (debito) com o valor recebido;
  *  - Estoque e devolvido.
  */
 class EstornoTest extends TestCase
@@ -73,13 +74,12 @@ class EstornoTest extends TestCase
         $pagamento = Pagamento::where('venda_produto_id', $venda->id)->firstOrFail();
         $this->assertSame(StatusPagamento::Estornado, $pagamento->status);
 
-        // Houve uma entrada e uma saida — saldo do caixa deve fechar em 0
-        // (ignorando saldo_abertura).
-        $entradas = MovimentoCaixa::where('tipo', TipoMovimentoCaixa::Entrada)->sum('valor');
-        $saidas = MovimentoCaixa::where('tipo', TipoMovimentoCaixa::Saida)->sum('valor');
+        // Um credito (recebimento) e um debito (estorno) — o saldo da conta fecha em 0.
+        $creditos = Lancamento::where('tipo', TipoLancamento::Credito)->sum('valor');
+        $debitos = Lancamento::where('tipo', TipoLancamento::Debito)->sum('valor');
 
-        $this->assertSame(80.00, (float) $entradas);
-        $this->assertSame(80.00, (float) $saidas, 'Cancelar venda paga deveria gerar saida igual ao recebido.');
+        $this->assertSame(80.00, (float) $creditos);
+        $this->assertSame(80.00, (float) $debitos, 'Cancelar venda paga deveria gerar débito de estorno igual ao recebido.');
 
         $this->assertSame(20, $produto->fresh()->quantidade, 'Estoque deveria ter sido devolvido.');
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Modules\Caixa\Models\Recebivel;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -24,6 +25,11 @@ class RecebivelFactory extends Factory
             'forma_pagamento_id' => FormaPagamentoFactory::new()->credito(),
             'rede_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->rede_id,
             'empresa_id' => fn (array $attrs) => FormaPagamento::withoutGlobalScopes()->findOrFail($attrs['forma_pagamento_id'])->empresa_id,
+            // Conta destino do recebivel: a conta banco padrao da empresa (se houver).
+            'conta_id' => fn (array $attrs) => Conta::withoutGlobalScopes()
+                ->where('empresa_id', $attrs['empresa_id'])
+                ->where('eh_destino_recebivel_padrao', true)
+                ->value('id'),
             'baixa_pagamento_id' => null,
             'descricao' => 'Recebível de cartão',
             'valor_bruto' => $bruto,

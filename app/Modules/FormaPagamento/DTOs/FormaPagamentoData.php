@@ -20,5 +20,6 @@ class FormaPagamentoData extends Data
         public ?int $max_parcelas = null,
         public bool $antecipacao_automatica = false,
         public float $taxa_antecipacao_mensal = 0,
+        public ?int $conta_destino_id = null,
     ) {}
 }

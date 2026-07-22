@@ -116,6 +116,13 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
             Route::resource('formas-pagamento', FormaPagamentoController::class)->except(['show']);
 
             // Contas financeiras (caixa, banco, carteira)
+            Route::get('contas/{conta}/extrato', [ContaController::class, 'extrato'])->name('contas.extrato');
+            Route::post('contas/{conta}/exportar', [ContaController::class, 'exportar'])->name('contas.exportar');
+            Route::get('contas/{conta}/exportacoes/status', [ContaController::class, 'exportacoesStatus'])->name('contas.exportacoes.status');
+            Route::get('contas/{conta}/exportacoes/{exportacao}/baixar', [ContaController::class, 'baixarExportacao'])->name('contas.exportacoes.baixar');
+            Route::delete('contas/{conta}/exportacoes/{exportacao}', [ContaController::class, 'excluirExportacao'])->name('contas.exportacoes.excluir');
+            Route::patch('contas/{conta}/inativar', [ContaController::class, 'inativar'])->name('contas.inativar');
+            Route::patch('contas/{conta}/reativar', [ContaController::class, 'reativar'])->name('contas.reativar');
             Route::resource('contas', ContaController::class)->except(['show']);
 
             // Caixa

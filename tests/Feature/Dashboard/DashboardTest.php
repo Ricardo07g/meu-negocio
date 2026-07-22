@@ -117,6 +117,10 @@ class DashboardTest extends TestCase
 
     public function test_proximos_agendamentos_traz_apenas_futuros_do_dia_em_andamento(): void
     {
+        // Ancora o "agora" cedo no dia: a janela e "hoje a partir de agora ate o fim
+        // do dia", entao +1..4h precisam caber no mesmo dia (evita flaky proximo da meia-noite).
+        $this->travelTo(today()->setTime(9, 0));
+
         $contexto = $this->criarRedeAutenticada();
 
         // Futuro hoje, em andamento -> deve aparecer.

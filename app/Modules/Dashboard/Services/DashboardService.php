@@ -8,6 +8,7 @@ use App\Enums\{StatusAgendamento, StatusCaixa, StatusParcela};
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa};
 use App\Modules\Cliente\Models\Cliente;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Modules\Servico\Models\Servico;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,11 +31,24 @@ class DashboardService
             'contasReceber' => $this->contasReceberQuantidade(),
             'totalContasReceber' => $this->contasReceberTotal(),
             'caixaAberto' => $this->caixaAberto(),
+            'saldoPorConta' => $this->saldoPorConta(),
             'proximosAgendamentos' => $this->proximosAgendamentos(),
             'parcelasVencendo' => $this->parcelasVencendo(),
             'fluxoUltimos6Meses' => $this->fluxoUltimos6Meses(),
             'agendamentosPorStatusMes' => $this->agendamentosPorStatusMes(),
         ];
+    }
+
+    /**
+     * Contas ativas da empresa (gaveta primeiro). So a gaveta (Caixa) tem saldo
+     * controlado; banco/carteira sao rotulos de origem (ADR-0011) — a view mostra
+     * o saldo so da gaveta.
+     *
+     * @return Collection<int, Conta>
+     */
+    public function saldoPorConta(): Collection
+    {
+        return Conta::ativas()->orderByDesc('eh_caixa_padrao')->orderBy('nome')->get();
     }
 
     public function agendamentosHoje(): int

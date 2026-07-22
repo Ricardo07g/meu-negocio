@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\FormaPagamento\Services;
 
 use App\Enums\TipoFormaPagamento;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\FormaPagamento\DTOs\FormaPagamentoData;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use Illuminate\Database\Eloquent\Collection;
@@ -79,6 +80,14 @@ class FormaPagamentoService
     {
         $base = ['rede_id' => $redeId, 'empresa_id' => $empresaId];
 
+        // Conta bancaria padrao (destino de cartao/pix). semearPadrao das contas roda
+        // antes (CriarEmpresaAction / seeders); se ausente, fica null e o motor resolve
+        // pela natureza (fallback) — cartao/pix so exigem conta na tela do lojista.
+        $contaRecebivelId = Conta::withoutGlobalScope('empresa')
+            ->where('empresa_id', $empresaId)
+            ->where('eh_destino_recebivel_padrao', true)
+            ->value('id');
+
         FormaPagamento::create($base + [
             'nome' => 'Dinheiro',
             'tipo' => TipoFormaPagamento::Dinheiro,
@@ -93,6 +102,7 @@ class FormaPagamentoService
             'gera_recebivel' => false,
             'dias_liquidacao' => 0,
             'taxa_percentual' => 0,
+            'conta_destino_id' => $contaRecebivelId, // Pix direto: cai no banco (D+0)
         ]);
 
         FormaPagamento::create($base + [
@@ -101,6 +111,7 @@ class FormaPagamentoService
             'gera_recebivel' => true,
             'dias_liquidacao' => 1,
             'taxa_percentual' => 1.99,
+            'conta_destino_id' => $contaRecebivelId,
         ]);
 
         $credito = FormaPagamento::create($base + [
@@ -111,6 +122,7 @@ class FormaPagamentoService
             'taxa_percentual' => 3.20,
             'permite_parcelas' => true,
             'max_parcelas' => 12,
+            'conta_destino_id' => $contaRecebivelId,
         ]);
 
         foreach ([
@@ -134,7 +146,9 @@ class FormaPagamentoService
 
     /**
      * Força os campos por tipo: um "Dinheiro" nunca guarda taxa/recebível/parcelas, mesmo que a UI
-     * (ou um POST forjado) tente. `gera_recebivel` e `permite_parcelas` são DERIVADOS do tipo.
+     * (ou um POST forjado) tente. `permite_parcelas` é DERIVADO do tipo; `gera_recebivel` é derivado
+     * do tipo, EXCETO no PIX (recebivelConfiguravel), em que o lojista escolhe: direto ao banco
+     * (imediato) ou via maquineta/adquirente (recebível D+N com taxa).
      *
      * @return array<string, mixed>
      */
@@ -143,15 +157,21 @@ class FormaPagamentoService
         $tipo = $dados->tipo;
         $attrs = $dados->toArray();
 
-        // Comportamento intrínseco ao tipo — não é escolha do lojista.
-        $attrs['gera_recebivel'] = $tipo->geraRecebivelPadrao();
+        // gera_recebivel: configurável só onde o tipo permite (PIX); senão travado pelo tipo.
+        $geraRecebivel = $tipo->recebivelConfiguravel()
+            ? $dados->gera_recebivel
+            : $tipo->geraRecebivelPadrao();
+
+        $attrs['gera_recebivel'] = $geraRecebivel;
         $attrs['permite_parcelas'] = $tipo->permiteParcelasPadrao();
 
-        if (! $tipo->usaLiquidacao()) {
+        // Liquidação (D+N) e taxa plana só valem quando o tipo os usa E o dinheiro é diferido
+        // (recebível). PIX direto ao banco (gera_recebivel=false) volta a D+0 sem taxa.
+        if (! $tipo->usaLiquidacao() || ! $geraRecebivel) {
             $attrs['dias_liquidacao'] = 0;
         }
 
-        if (! $tipo->usaTaxaPlana()) {
+        if (! $tipo->usaTaxaPlana() || ! $geraRecebivel) {
             $attrs['taxa_percentual'] = 0;
         }
 

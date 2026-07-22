@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Conta;
 
-use App\Enums\{TipoConta, TipoLancamento};
+use App\Enums\{TipoConta, TipoFormaPagamento, TipoLancamento};
 use App\Modules\Conta\Models\{Conta, Lancamento};
-use Database\Factories\ContaFactory;
+use Database\Factories\{ContaFactory, LancamentoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -71,7 +71,8 @@ class ContaTest extends TestCase
 
         $this->get(route('contas.create'))
             ->assertOk()
-            ->assertSee('id="conta-tipo"', false);
+            ->assertSee('name="tipo"', false)
+            ->assertDontSee('Caixa (dinheiro físico)'); // tipo Caixa nao e ofertado ao lojista
     }
 
     public function test_cria_conta_bancaria(): void
@@ -83,7 +84,6 @@ class ContaTest extends TestCase
             'tipo' => TipoConta::Banco->value,
             'ativo' => 1,
             'saldo_inicial' => 500.00,
-            'eh_destino_recebivel_padrao' => 1,
             'instituicao' => 'Itaú',
             'agencia' => '1234',
             'numero' => '56789-0',
@@ -94,44 +94,95 @@ class ContaTest extends TestCase
         $conta = Conta::where('nome', 'Itaú PJ')->firstOrFail();
         $this->assertSame(TipoConta::Banco, $conta->tipo);
         $this->assertSame(500.00, (float) $conta->saldo_inicial);
-        $this->assertTrue($conta->eh_destino_recebivel_padrao);
+        // Destino-recebivel-padrao e interno (so o seed marca) — conta nova nasce sem a flag.
+        $this->assertFalse($conta->eh_destino_recebivel_padrao);
         $this->assertSame('Itaú', $conta->instituicao);
     }
 
-    public function test_conta_caixa_nao_guarda_dados_de_banco(): void
-    {
-        $this->criarRedeAutenticada();
-
-        $this->post(route('contas.store'), [
-            'nome' => 'Cofre',
-            'tipo' => TipoConta::Caixa->value,
-            'ativo' => 1,
-            'eh_destino_recebivel_padrao' => 1, // não se aplica ao caixa
-            'instituicao' => 'Banco X',         // idem
-        ]);
-
-        $conta = Conta::where('nome', 'Cofre')->firstOrFail();
-        $this->assertFalse($conta->eh_destino_recebivel_padrao);
-        $this->assertNull($conta->instituicao);
-    }
-
-    public function test_apenas_uma_conta_caixa_padrao_por_empresa(): void
+    public function test_nao_permite_criar_conta_tipo_caixa(): void
     {
         $contexto = $this->criarRedeAutenticada();
 
-        // Já existe a conta "Caixa" padrão semeada. Marcar outra como padrão desmarca a anterior.
         $this->post(route('contas.store'), [
             'nome' => 'Caixa 2',
             'tipo' => TipoConta::Caixa->value,
             'ativo' => 1,
-            'eh_caixa_padrao' => 1,
+        ])->assertSessionHasErrors('tipo');
+
+        $this->assertDatabaseMissing('contas', ['nome' => 'Caixa 2']);
+
+        // Continua havendo exatamente uma conta Caixa por empresa (a do sistema).
+        $this->assertSame(1, Conta::where('empresa_id', $contexto['empresa']->id)
+            ->where('tipo', TipoConta::Caixa)->count());
+    }
+
+    public function test_conta_caixa_nao_pode_ser_excluida(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $caixa = $this->contaCaixa($contexto['empresa']->id);
+
+        $this->delete(route('contas.destroy', $caixa));
+
+        $this->assertDatabaseHas('contas', ['id' => $caixa->id, 'deleted_at' => null]);
+    }
+
+    public function test_conta_caixa_pode_ser_renomeada_mas_nao_muda_de_tipo(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $caixa = $this->contaCaixa($contexto['empresa']->id);
+
+        $this->put(route('contas.update', $caixa), [
+            'nome' => 'Caixa Loja',
+            'tipo' => TipoConta::Banco->value, // deve ser ignorado
+        ])->assertRedirect(route('contas.index'));
+
+        $caixa->refresh();
+        $this->assertSame('Caixa Loja', $caixa->nome);
+        $this->assertSame(TipoConta::Caixa, $caixa->tipo);
+        $this->assertTrue($caixa->ativo);
+    }
+
+    public function test_nao_exclui_conta_com_movimentacao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $conta = ContaFactory::new()->banco()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
         ]);
 
-        $padroes = Conta::where('empresa_id', $contexto['empresa']->id)
-            ->where('eh_caixa_padrao', true)->get();
+        LancamentoFactory::new()->credito()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'conta_id' => $conta->id,
+            'valor' => 10.00,
+        ]);
 
-        $this->assertCount(1, $padroes, 'Só pode haver uma conta-caixa padrão por empresa.');
-        $this->assertSame('Caixa 2', $padroes->first()->nome);
+        $this->delete(route('contas.destroy', $conta));
+
+        $this->assertDatabaseHas('contas', ['id' => $conta->id, 'deleted_at' => null]);
+    }
+
+    public function test_nao_exclui_conta_vinculada_a_forma(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $conta = ContaFactory::new()->banco()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+        ]);
+
+        $this->formaPagamento($contexto['rede'], TipoFormaPagamento::CartaoCredito)
+            ->update(['conta_destino_id' => $conta->id]);
+
+        $this->delete(route('contas.destroy', $conta));
+
+        $this->assertDatabaseHas('contas', ['id' => $conta->id, 'deleted_at' => null]);
+    }
+
+    private function contaCaixa(int $empresaId): Conta
+    {
+        return Conta::where('empresa_id', $empresaId)
+            ->where('tipo', TipoConta::Caixa)
+            ->firstOrFail();
     }
 
     public function test_excluir_conta_faz_soft_delete(): void
@@ -146,6 +197,56 @@ class ContaTest extends TestCase
             ->assertRedirect(route('contas.index'));
 
         $this->assertSoftDeleted('contas', ['id' => $conta->id]);
+    }
+
+    public function test_extrato_da_conta_renderiza_lancamentos(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $conta = Conta::where('empresa_id', $contexto['empresa']->id)
+            ->where('eh_destino_recebivel_padrao', true)
+            ->firstOrFail();
+
+        LancamentoFactory::new()->credito()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'conta_id' => $conta->id,
+            'valor' => 100.00,
+            'descricao' => 'Recebimento venda 42',
+        ]);
+
+        $this->get(route('contas.extrato', $conta))
+            ->assertOk()
+            ->assertViewIs('conta::extrato')
+            ->assertSee('Recebimento venda 42');
+    }
+
+    public function test_extrato_filtra_pelo_mes(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $conta = Conta::where('empresa_id', $contexto['empresa']->id)
+            ->where('eh_caixa_padrao', true)->firstOrFail();
+
+        // Lançamento dois meses atrás (sempre em outro mês que o atual).
+        $outroMes = now()->subMonthsNoOverflow(2)->startOfMonth();
+        LancamentoFactory::new()->credito()->create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'conta_id' => $conta->id,
+            'valor' => 100.00,
+            'data' => $outroMes->copy()->addDays(9)->toDateString(),
+            'descricao' => 'Lancamento antigo',
+        ]);
+
+        // Mês atual (default): não mostra o antigo.
+        $this->get(route('contas.extrato', $conta))
+            ->assertOk()
+            ->assertDontSee('Lancamento antigo');
+
+        // Navegando para o mês do lançamento: aparece.
+        $this->get(route('contas.extrato', ['conta' => $conta, 'mes' => $outroMes->format('Y-m')]))
+            ->assertOk()
+            ->assertSee('Lancamento antigo');
     }
 
     public function test_nao_acessa_conta_de_outra_rede(): void

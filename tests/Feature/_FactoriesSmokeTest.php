@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use Database\Factories\{AgendamentoFactory, CaixaFactory, CategoriaDespesaFactory, CategoriaProdutoFactory, ClienteFactory, DespesaFactory, MovimentoCaixaFactory, MovimentoEstoqueFactory, PagamentoFactory, ParcelaDespesaFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
+use Database\Factories\{AgendamentoFactory, CaixaFactory, CategoriaDespesaFactory, CategoriaProdutoFactory, ClienteFactory, DespesaFactory, LancamentoFactory, MovimentoEstoqueFactory, PagamentoFactory, ParcelaDespesaFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -105,7 +105,10 @@ class _FactoriesSmokeTest extends TestCase
             'empresa_id' => $empresa->id,
             'usuario_id' => $contexto['usuario']->id,
         ]);
-        $movimentoCaixa = MovimentoCaixaFactory::new()->entrada()->create([
+        $lancamento = LancamentoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'empresa_id' => $empresa->id,
+            'conta_id' => $caixa->conta_id,
             'caixa_id' => $caixa->id,
         ]);
 
@@ -117,10 +120,10 @@ class _FactoriesSmokeTest extends TestCase
         ]);
 
         $this->assertModelExists($caixa);
-        $this->assertModelExists($movimentoCaixa);
+        $this->assertModelExists($lancamento);
         $this->assertModelExists($movimentoEstoque);
 
-        $this->assertSame($caixa->id, $movimentoCaixa->caixa_id);
+        $this->assertSame($caixa->id, $lancamento->caixa_id);
         $this->assertSame($produto->id, $movimentoEstoque->produto_id);
     }
 

@@ -6,6 +6,7 @@ namespace Database\Factories;
 
 use App\Enums\StatusCaixa;
 use App\Modules\Caixa\Models\Caixa;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\Tenant\Models\Empresa;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -21,6 +22,15 @@ class CaixaFactory extends Factory
         return [
             'empresa_id' => EmpresaFactory::new(),
             'rede_id' => fn (array $attrs) => Empresa::find($attrs['empresa_id'])->rede_id,
+            // A sessao de caixa aponta para a conta-caixa padrao da empresa (cria uma se faltar).
+            'conta_id' => fn (array $attrs) => Conta::withoutGlobalScopes()
+                ->where('empresa_id', $attrs['empresa_id'])
+                ->where('eh_caixa_padrao', true)
+                ->value('id')
+                ?? ContaFactory::new()->caixa()->create([
+                    'rede_id' => $attrs['rede_id'],
+                    'empresa_id' => $attrs['empresa_id'],
+                ])->id,
             'usuario_id' => fn (array $attrs) => UsuarioFactory::new()->state([
                 'rede_id' => $attrs['rede_id'],
                 'empresa_id' => $attrs['empresa_id'],
