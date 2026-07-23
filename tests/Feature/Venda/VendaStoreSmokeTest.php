@@ -57,8 +57,9 @@ class VendaStoreSmokeTest extends TestCase
             'atendente_id' => $contexto['usuario']->id,
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '10:00',
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Pix), 'valor' => 200.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 3,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -101,8 +102,9 @@ class VendaStoreSmokeTest extends TestCase
             'atendente_id' => $contexto['usuario']->id,
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '14:30',
-            'condicao_pagamento' => 'a_vista',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Dinheiro),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Dinheiro), 'valor' => 150.00],
+            ],
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
         ]);
 
@@ -144,8 +146,9 @@ class VendaStoreSmokeTest extends TestCase
                 now()->addDays(8)->format('Y-m-d'),
                 now()->addDays(15)->format('Y-m-d'),
             ],
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Pix), 'valor' => 300.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 3,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -184,8 +187,9 @@ class VendaStoreSmokeTest extends TestCase
                 'desconto' => 0,
                 'acrescimo' => 0,
             ]],
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Pix), 'valor' => 160.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -232,8 +236,9 @@ class VendaStoreSmokeTest extends TestCase
                 'desconto' => '0',
                 'acrescimo' => '0',
             ]],
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => (string) $this->formaId(TipoFormaPagamento::Pix), 'valor' => '100.00'],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => '2',
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -276,8 +281,9 @@ class VendaStoreSmokeTest extends TestCase
                 'desconto' => 0,
                 'acrescimo' => 0,
             ]],
-            'condicao_pagamento' => 'a_vista',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Dinheiro),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Dinheiro), 'valor' => 40.00],
+            ],
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
         ]);
 
@@ -331,8 +337,9 @@ class VendaStoreSmokeTest extends TestCase
                 $inicioOcupado->format('Y-m-d'),
                 now()->addDays(8)->format('Y-m-d'),
             ],
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Pix), 'valor' => 200.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -384,8 +391,9 @@ class VendaStoreSmokeTest extends TestCase
             'atendente_id' => $contexto['usuario']->id,
             'data' => now()->addDay()->format('Y-m-d'),
             'horario' => '10:00',
-            'condicao_pagamento' => 'a_prazo',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Pix),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Pix), 'valor' => 150.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 2,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),
@@ -416,15 +424,14 @@ class VendaStoreSmokeTest extends TestCase
             'valor' => 100.00,
         ]);
 
-        // Servico unico sem cliente, atendente, data, horario nem forma de pagamento.
+        // Servico unico sem cliente, atendente, data, horario nem recebimentos.
         $resp = $this->post(route('vendas.store'), [
             'tipo_venda' => 'servico',
             'servico_id' => $servico->id,
-            'condicao_pagamento' => 'a_vista',
             'mes_referencia' => now()->startOfMonth()->format('Y-m-d'),
         ]);
 
-        $resp->assertSessionHasErrors(['cliente_id', 'atendente_id', 'data', 'horario', 'forma_pagamento']);
+        $resp->assertSessionHasErrors(['cliente_id', 'atendente_id', 'data', 'horario', 'recebimentos']);
         $this->assertSame(0, Agendamento::count());
     }
 
@@ -445,7 +452,7 @@ class VendaStoreSmokeTest extends TestCase
             'valor_venda' => 300.00,
         ]);
 
-        // Envia "à vista" de propósito: a forma Crediário deve sobrepor para "a prazo".
+        // Sem toggle à-vista/a-prazo: escolher a forma Crediário já deriva "a prazo" (carnê).
         $resp = $this->post(route('vendas.store'), [
             'tipo_venda' => 'produto',
             'cliente_id' => $cliente->id,
@@ -456,8 +463,9 @@ class VendaStoreSmokeTest extends TestCase
                 'desconto' => 0,
                 'acrescimo' => 0,
             ]],
-            'condicao_pagamento' => 'a_vista',
-            'forma_pagamento' => $this->formaId(TipoFormaPagamento::Crediario),
+            'recebimentos' => [
+                ['forma_pagamento_id' => $this->formaId(TipoFormaPagamento::Crediario), 'valor' => 300.00],
+            ],
             'forma_recebimento_prazo' => 'carne',
             'numero_parcelas' => 3,
             'primeiro_vencimento' => now()->addMonth()->format('Y-m-d'),

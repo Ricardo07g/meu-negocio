@@ -9,6 +9,7 @@ use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
+use App\Modules\Venda\DTOs\RecebimentoData;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Venda\Services\VendaService;
 use Carbon\Carbon;
@@ -61,7 +62,10 @@ class EstornoTest extends TestCase
             ]],
             condicao: CondicaoPagamento::AVista,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
+            recebimentos: [new RecebimentoData(
+                forma: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Dinheiro),
+                valor: 80.00,
+            )],
             numeroParcelas: null,
             primeiroVencimento: now(),
         );

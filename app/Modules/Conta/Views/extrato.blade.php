@@ -21,9 +21,9 @@
                                 <span class="text-muted d-block mb-1">Saldo da gaveta</span>
                                 <h3 class="fw-bold mb-0">R$ {{ number_format($saldo, 2, ',', '.') }}</h3>
                             @else
-                                <span class="text-muted d-block mb-1">Conta de origem</span>
-                                <h3 class="fw-bold mb-0 text-muted">—</h3>
-                                <span class="text-muted fs-12">Rótulo de recebimento — os valores aparecem no caixa do dia por forma.</span>
+                                <span class="text-muted d-block mb-1">Recebido no mês (fluxo)</span>
+                                <h3 class="fw-bold mb-0 text-success">R$ {{ number_format($recebidoLiquido, 2, ',', '.') }}</h3>
+                                <span class="text-muted fs-12">Conta de recebimento — sem saldo controlado. Os recebimentos que caem aqui estão listados abaixo.</span>
                             @endif
                         </div>
                         <div class="avatar-text avatar-lg bg-soft-primary text-primary">
@@ -156,6 +156,9 @@
         </div>
     </div>
 
+    {{-- Caixa (gaveta): razão de lançamentos com saldo. Banco/carteira: recebimentos por forma
+         (fluxo, sem saldo — ADR-0011), pois cartão/pix não geram lançamento. --}}
+    @if($conta->ehProtegida())
     {{-- Extrato de lancamentos do mes (o razao da conta). Para a conta caixa, sao os movimentos da gaveta. --}}
     <div class="card stretch stretch-full">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -206,6 +209,47 @@
             </div>
         </div>
     </div>
+    @else
+    {{-- Recebimentos que caíram nesta conta no mês (banco/carteira): fluxo por forma, sem saldo. --}}
+    <div class="card stretch stretch-full">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="card-title mb-0">Recebimentos que caíram nesta conta</h5>
+            <span class="badge bg-soft-success text-success">Recebido (líquido): R$ {{ number_format($recebidoLiquido, 2, ',', '.') }}</span>
+        </div>
+        <div class="card-body p-0">
+            <p class="text-muted fs-12 px-3 pt-3 mb-2">
+                <i class="feather-info me-1"></i>Pelo que o cliente pagou (fluxo por forma). Esta conta é um rótulo de recebimento — não há saldo controlado, pois a liquidação acontece no banco/operadora.
+            </p>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Forma</th>
+                            <th>Cliente</th>
+                            <th class="text-end">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recebimentos as $baixa)
+                        <tr class="{{ $baixa->estornado_em ? 'text-muted' : '' }}">
+                            <td>{{ $baixa->data->format('d/m/Y H:i') }}</td>
+                            <td>
+                                {{ $baixa->forma_pagamento_nome ?? '—' }}
+                                @if($baixa->estornado_em)<span class="badge bg-soft-secondary text-secondary ms-1">Estornado</span>@endif
+                            </td>
+                            <td>{{ $baixa->parcela?->pagamento?->cliente?->nome ?? '—' }}</td>
+                            <td class="text-end {{ $baixa->estornado_em ? 'text-decoration-line-through' : 'fw-semibold' }}">R$ {{ number_format((float) $baixa->valorTotal(), 2, ',', '.') }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum recebimento nesta conta neste mês.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- Polling AJAX: atualiza os badges e libera o "Baixar" sem recarregar a pagina. --}}
     @if($exportacoes->isNotEmpty())

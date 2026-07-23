@@ -12,6 +12,7 @@ use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\Models\{VendaProduto, VendaProdutoItem};
+use App\Support\Venda\TotalVenda;
 use Carbon\Carbon;
 
 class CriarVendaProdutoAction
@@ -47,7 +48,7 @@ class CriarVendaProdutoAction
             $item['valor_unitario'] = $item['valor_unitario'] ?? $produto->valor_venda;
             $item['desconto'] = $item['desconto'] ?? 0;
             $item['acrescimo'] = $item['acrescimo'] ?? 0;
-            $item['subtotal'] = ($item['valor_unitario'] * $item['quantidade']) - $item['desconto'] + $item['acrescimo'];
+            $item['subtotal'] = TotalVenda::deItem($item);
             $subtotal += $item['subtotal'];
         }
         unset($item);

@@ -69,6 +69,45 @@ class CaixaController extends Controller
         }
     }
 
+    /**
+     * Relatório de recebimentos por período (por forma + detalhe), no regime
+     * "quando o cliente pagou" (a baixa) — a casa única para ver TODOS os
+     * recebimentos, inclusive os que não passam pela gaveta (cartão/pix).
+     * Eixo disjunto do saldo do caixa (ADR-0011): não há saldo de banco.
+     */
+    public function recebimentos(Request $request): View|RedirectResponse
+    {
+        try {
+            $de = Carbon::parse($request->query('de', today()->startOfMonth()->toDateString()))->startOfDay();
+            $ate = Carbon::parse($request->query('ate', today()->toDateString()))->endOfDay();
+            if ($de->gt($ate)) {
+                [$de, $ate] = [$ate->copy()->startOfDay(), $de->copy()->endOfDay()];
+            }
+
+            // Opera em 1 empresa (mesma resolução do index do Caixa Diário).
+            $contexto = session('empresa_contexto_atual');
+            $empresasAtuais = (array) session('empresas_atuais', []);
+            if ($contexto === null && count($empresasAtuais) > 1) {
+                session(['empresa_contexto_atual' => (int) reset($empresasAtuais)]);
+            }
+
+            $deStr = $de->toDateString();
+            $ateStr = $ate->toDateString();
+
+            $resumo = $this->resumoDia->porPeriodo($deStr, $ateStr);
+            $recebimentos = $this->resumoDia->recebimentos($deStr, $ateStr);
+
+            return view('caixa::recebimentos', [
+                'resumo' => $resumo,
+                'recebimentos' => $recebimentos,
+                'de' => $deStr,
+                'ate' => $ateStr,
+            ]);
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao carregar recebimentos');
+        }
+    }
+
     public function store(AbrirCaixaRequest $request): RedirectResponse
     {
         try {

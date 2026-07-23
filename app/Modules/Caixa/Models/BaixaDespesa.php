@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Caixa\Models;
 
 use App\Models\BaseModel;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\Despesa\Models\ParcelaDespesa;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Traits\EmpresaTrait;
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int $empresa_id
  * @property int $parcela_despesa_id
  * @property int|null $caixa_id
+ * @property int|null $conta_id
  * @property float $valor
  * @property float $multa
  * @property float $juros
@@ -32,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property-read ParcelaDespesa $parcela
  * @property-read FormaPagamento|null $formaPagamento
  * @property-read Caixa|null $caixa
+ * @property-read Conta|null $conta
  */
 class BaixaDespesa extends BaseModel
 {
@@ -44,6 +47,7 @@ class BaixaDespesa extends BaseModel
         'empresa_id',
         'parcela_despesa_id',
         'caixa_id',
+        'conta_id',
         'valor',
         'multa',
         'juros',
@@ -91,5 +95,11 @@ class BaixaDespesa extends BaseModel
     public function caixa(): BelongsTo
     {
         return $this->belongsTo(Caixa::class, 'caixa_id');
+    }
+
+    /** Conta de origem do pagamento (gaveta p/ dinheiro; banco/carteira p/ demais). */
+    public function conta(): BelongsTo
+    {
+        return $this->belongsTo(Conta::class, 'conta_id');
     }
 }

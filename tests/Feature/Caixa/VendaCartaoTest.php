@@ -8,6 +8,7 @@ use App\Enums\{CondicaoPagamento, StatusPagamento, TipoFormaPagamento};
 use App\Modules\Caixa\Models\{BaixaPagamento, Recebivel};
 use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Produto\Models\Produto;
+use App\Modules\Venda\DTOs\RecebimentoData;
 use App\Modules\Venda\Models\VendaProduto;
 use App\Modules\Venda\Services\VendaService;
 use Carbon\Carbon;
@@ -46,8 +47,11 @@ class VendaCartaoTest extends TestCase
             ]],
             condicao: CondicaoPagamento::AVista,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: $this->formaPagamento($contexto['rede'], $tipo),
-            parcelasCartao: $parcelasCartao,
+            recebimentos: [new RecebimentoData(
+                forma: $this->formaPagamento($contexto['rede'], $tipo),
+                valor: $valor,
+                parcelas_cartao: $parcelasCartao,
+            )],
         );
     }
 

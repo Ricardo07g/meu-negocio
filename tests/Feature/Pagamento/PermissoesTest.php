@@ -8,6 +8,7 @@ use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusCaixa, TipoFormaP
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
+use App\Modules\Venda\DTOs\RecebimentoData;
 use App\Modules\Venda\Services\VendaService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -67,7 +68,10 @@ class PermissoesTest extends TestCase
             ]],
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
+            recebimentos: [new RecebimentoData(
+                forma: $this->formaPagamento($contexto['rede'], TipoFormaPagamento::Pix),
+                valor: 100.00,
+            )],
             numeroParcelas: 2,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,

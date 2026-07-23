@@ -30,8 +30,23 @@ class ResumoDiaService
      */
     public function porForma(string $dia): array
     {
-        $recebidos = $this->recebimentosPorForma($dia);
-        $estornados = $this->estornosPorForma($dia);
+        return $this->porPeriodo($dia, $dia);
+    }
+
+    /**
+     * Mesmo panorama por forma, num intervalo de datas [de, ate] (inclusive).
+     *
+     * @return array{
+     *     linhas: list<array{forma: string, qtd: int, recebido: float, estornado: float, liquido: float}>,
+     *     totalRecebido: float,
+     *     totalEstornado: float,
+     *     liquido: float
+     * }
+     */
+    public function porPeriodo(string $de, string $ate): array
+    {
+        $recebidos = $this->recebimentosPorForma($de, $ate);
+        $estornados = $this->estornosPorForma($de, $ate);
 
         $formas = $recebidos->keys()->merge($estornados->keys())->unique()->sort()->values();
 
@@ -60,14 +75,31 @@ class ResumoDiaService
     }
 
     /**
-     * Recebimentos do dia por forma: soma do bruto (valorTotal) das baixas com data = D.
+     * Lista as baixas do periodo (detalhe), pela data do pagamento, com a origem
+     * (cliente) carregada para exibicao. Ordenadas da mais recente para a mais antiga.
+     *
+     * @return Collection<int, BaixaPagamento>
+     */
+    public function recebimentos(string $de, string $ate): Collection
+    {
+        return BaixaPagamento::query()
+            ->whereBetween('data', [$de.' 00:00:00', $ate.' 23:59:59'])
+            ->with('parcela.pagamento.cliente')
+            ->orderByDesc('data')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * Recebimentos por forma no intervalo: soma do bruto (valorTotal) das baixas
+     * com data entre [de, ate].
      *
      * @return Collection<string, array{total: float, qtd: int}>
      */
-    private function recebimentosPorForma(string $dia): Collection
+    private function recebimentosPorForma(string $de, string $ate): Collection
     {
         return BaixaPagamento::query()
-            ->whereDate('data', $dia)
+            ->whereBetween('data', [$de.' 00:00:00', $ate.' 23:59:59'])
             ->selectRaw('forma_pagamento_nome as forma')
             ->selectRaw('SUM(valor + multa + juros - desconto) as total')
             ->selectRaw('COUNT(*) as qtd')
@@ -78,16 +110,16 @@ class ResumoDiaService
     }
 
     /**
-     * Estornos do dia por forma: baixas marcadas como estornadas EM D
-     * (`estornado_em`), valuadas pelo bruto da propria baixa — neta exato contra
-     * o recebido, sem residuo de taxa e sem depender de recebivel/lancamento.
+     * Estornos por forma no intervalo: baixas marcadas como estornadas entre
+     * [de, ate] (`estornado_em`), valuadas pelo bruto da propria baixa — neta
+     * exato contra o recebido, sem residuo de taxa e sem depender de lancamento.
      *
      * @return Collection<string, float>
      */
-    private function estornosPorForma(string $dia): Collection
+    private function estornosPorForma(string $de, string $ate): Collection
     {
         return BaixaPagamento::query()
-            ->whereDate('estornado_em', $dia)
+            ->whereBetween('estornado_em', [$de.' 00:00:00', $ate.' 23:59:59'])
             ->selectRaw('forma_pagamento_nome as forma')
             ->selectRaw('SUM(valor + multa + juros - desconto) as total')
             ->groupBy('forma_pagamento_nome')
