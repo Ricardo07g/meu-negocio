@@ -233,9 +233,44 @@
             </div>
         @endif
 
-        {{-- Aba Pagamentos (parcelas) --}}
+        {{-- Aba Pagamentos --}}
         <div class="tab-pane fade p-0" id="{{ $tabPagamentosId }}" role="tabpanel">
             @if($pagamento && $pagamento->parcelas->count())
+                @php $baixasRec = $pagamento->parcelas->flatMap->baixas->sortBy('data'); @endphp
+
+                {{-- Recebimentos: uma linha por baixa (o split mostra cada forma) --}}
+                @if($baixasRec->count())
+                    <div class="p-3 border-bottom">
+                        <div class="fs-11 text-uppercase text-muted mb-2">Recebimentos</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Forma</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($baixasRec as $baixa)
+                                        <tr class="{{ $baixa->estornado_em ? 'text-muted' : '' }}">
+                                            <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
+                                            <td>
+                                                {{ $baixa->forma_pagamento_nome ?? '—' }}
+                                                @if($baixa->estornado_em)
+                                                    <span class="badge bg-soft-secondary text-secondary ms-1">Estornado</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end {{ $baixa->estornado_em ? 'text-decoration-line-through' : 'fw-semibold' }}">R$ {{ number_format((float) $baixa->valorTotal(), 2, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Parcelas (cronograma): à vista tem 1; a-prazo/crediário tem N --}}
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead>
@@ -250,12 +285,15 @@
                         </thead>
                         <tbody>
                             @foreach($pagamento->parcelas as $parcela)
-                                @php $statusEfetivoP = $parcela->statusEfetivo(); @endphp
+                                @php
+                                    $statusEfetivoP = $parcela->statusEfetivo();
+                                    $formasParcela = $parcela->baixas->pluck('forma_pagamento_nome')->filter()->unique()->implode(', ');
+                                @endphp
                                 <tr>
                                     <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                                     <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
                                     <td><x-badge-status :cor="$statusEfetivoP->cor()" :label="$statusEfetivoP->label()" /></td>
-                                    <td>{{ $parcela->forma_pagamento_nome ?? '—' }}</td>
+                                    <td>{{ $formasParcela ?: ($parcela->forma_pagamento_nome ?? '—') }}</td>
                                     <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                                     <td class="text-end fw-semibold">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
                                 </tr>

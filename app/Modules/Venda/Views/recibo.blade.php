@@ -193,13 +193,33 @@
                 </thead>
                 <tbody>
                     @foreach($pagamento->parcelas as $parcela)
+                        @php $formasParcela = $parcela->baixas->pluck('forma_pagamento_nome')->filter()->unique()->implode(', '); @endphp
                         <tr>
                             <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                             <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>
                             <td>{{ $parcela->statusEfetivo()->label() }}</td>
-                            <td>{{ $parcela->forma_pagamento_nome ?? '—' }}</td>
+                            <td>{{ $formasParcela ?: ($parcela->forma_pagamento_nome ?? '—') }}</td>
                             <td class="text-end">R$ {{ number_format($parcela->valor, 2, ',', '.') }}</td>
                             <td class="text-end">R$ {{ number_format($parcela->valorPagoLiquido(), 2, ',', '.') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+
+        @php $baixasRec = $pagamento->parcelas->flatMap->baixas->sortBy('data'); @endphp
+        @if($baixasRec->count())
+            <div style="margin-top:8px;"><strong>Recebimentos:</strong></div>
+            <table class="baixas">
+                <thead>
+                    <tr><th>Data</th><th>Forma</th><th class="text-end">Valor</th></tr>
+                </thead>
+                <tbody>
+                    @foreach($baixasRec as $baixa)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
+                            <td>{{ $baixa->forma_pagamento_nome ?? '—' }}{{ $baixa->estornado_em ? ' (estornado)' : '' }}</td>
+                            <td class="text-end">R$ {{ number_format((float) $baixa->valorTotal(), 2, ',', '.') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
