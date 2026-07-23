@@ -170,7 +170,12 @@
     <div class="card stretch stretch-full mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">Recebimentos do dia por forma</h5>
-            <span class="badge bg-soft-primary text-primary">Líquido: R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-soft-primary text-primary">Líquido: R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</span>
+                <a href="{{ route('caixas.recebimentos') }}" class="btn btn-sm btn-light">
+                    <i class="feather-calendar me-1"></i>Ver por período
+                </a>
+            </div>
         </div>
         <div class="card-body">
             <p class="text-muted fs-12 mb-3">

@@ -128,6 +128,8 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
             // Caixa
             Route::get('caixas', [CaixaController::class, 'index'])->name('caixas.index');
             Route::post('caixas', [CaixaController::class, 'store'])->name('caixas.store');
+            // Recebimentos por periodo — ANTES de caixas/{caixa} (senao o wildcard captura "recebimentos").
+            Route::get('caixas/recebimentos', [CaixaController::class, 'recebimentos'])->name('caixas.recebimentos');
             Route::get('caixas/{caixa}', [CaixaController::class, 'show'])->name('caixas.show');
             Route::patch('caixas/{caixa}/fechar', [CaixaController::class, 'fechar'])->name('caixas.fechar');
             Route::patch('caixas/{caixa}/reabrir', [CaixaController::class, 'reabrir'])->name('caixas.reabrir');
