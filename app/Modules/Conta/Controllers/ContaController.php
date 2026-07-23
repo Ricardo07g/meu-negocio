@@ -6,6 +6,7 @@ namespace App\Modules\Conta\Controllers;
 
 use App\Enums\{FormatoExportacao, StatusExportacao, TipoConta, TipoLancamento};
 use App\Http\Controllers\Controller;
+use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Conta\DTOs\ContaData;
 use App\Modules\Conta\Models\{Conta, Exportacao};
 use App\Modules\Conta\Requests\{SalvarContaRequest, SalvarExportacaoRequest};
@@ -100,6 +101,18 @@ class ContaController extends Controller
                 ->whereBetween('data', [$inicio->toDateString(), $fim->toDateString()])
                 ->where('tipo', TipoLancamento::Debito->value)->sum('valor'), 2);
 
+            // Recebimentos que caíram NESTA conta no mês (fluxo, sem saldo — ADR-0011).
+            // Só faz sentido em conta banco/carteira: a gaveta (Caixa) já mostra tudo como
+            // Lançamento acima. É a casa coesa onde o cartão/pix aparecem atrelados à conta.
+            $recebimentos = $conta->ehProtegida()
+                ? collect()
+                : BaixaPagamento::where('conta_id', $conta->id)
+                    ->whereBetween('data', [$inicio->copy()->startOfDay(), $fim->copy()->endOfDay()])
+                    ->with('parcela.pagamento.cliente')
+                    ->orderByDesc('data')->orderByDesc('id')
+                    ->get();
+            $recebidoLiquido = round((float) $recebimentos->sum(fn (BaixaPagamento $b): float => $b->estornado_em ? 0.0 : $b->valorTotal()), 2);
+
             // Exportacoes recentes desta conta (para o painel de download por periodo).
             $exportacoes = Exportacao::where('conta_id', $conta->id)
                 ->orderByDesc('id')->limit(8)->get();
@@ -107,6 +120,8 @@ class ContaController extends Controller
             return view('conta::extrato', [
                 'conta' => $conta,
                 'lancamentos' => $lancamentos,
+                'recebimentos' => $recebimentos,
+                'recebidoLiquido' => $recebidoLiquido,
                 'saldo' => $conta->saldo(),
                 'mesSelecionado' => $mes,
                 'mesAnterior' => $mes->copy()->subMonth()->format('Y-m'),

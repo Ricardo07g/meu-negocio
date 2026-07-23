@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Caixa\Models;
 
 use App\Models\BaseModel;
+use App\Modules\Conta\Models\Conta;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Traits\EmpresaTrait;
@@ -18,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int $empresa_id
  * @property int $parcela_pagamento_id
  * @property int|null $caixa_id
+ * @property int|null $conta_id
  * @property float $valor
  * @property float $multa
  * @property float $juros
@@ -32,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property-read ParcelaPagamento $parcela
  * @property-read FormaPagamento|null $formaPagamento
  * @property-read Caixa|null $caixa
+ * @property-read Conta|null $conta
  * @property-read Collection<int, Recebivel> $recebiveis
  */
 class BaixaPagamento extends BaseModel
@@ -45,6 +48,7 @@ class BaixaPagamento extends BaseModel
         'empresa_id',
         'parcela_pagamento_id',
         'caixa_id',
+        'conta_id',
         'valor',
         'multa',
         'juros',
@@ -94,6 +98,12 @@ class BaixaPagamento extends BaseModel
     public function caixa(): BelongsTo
     {
         return $this->belongsTo(Caixa::class, 'caixa_id');
+    }
+
+    /** Conta de destino do recebimento (gaveta p/ dinheiro; banco/carteira p/ cartão/pix). */
+    public function conta(): BelongsTo
+    {
+        return $this->belongsTo(Conta::class, 'conta_id');
     }
 
     /** Recebíveis gerados por esta baixa (quando a forma é diferida: cartão/pix-maquineta). */

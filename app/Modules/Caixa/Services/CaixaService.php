@@ -353,6 +353,7 @@ class CaixaService
             $baixa = $baixaClass::create([
                 $parcelaFk => $parcela->id,
                 'caixa_id' => $caixa?->id,
+                'conta_id' => $conta->id,
                 'valor' => $valor,
                 'multa' => $multa,
                 'juros' => $juros,

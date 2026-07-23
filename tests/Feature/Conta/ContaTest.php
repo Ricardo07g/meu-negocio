@@ -203,8 +203,10 @@ class ContaTest extends TestCase
     {
         $contexto = $this->criarRedeAutenticada();
 
+        // Lançamentos (saldo) vivem na conta Caixa (gaveta); banco/carteira mostram
+        // recebimentos por forma (fluxo, sem lançamento — ADR-0011).
         $conta = Conta::where('empresa_id', $contexto['empresa']->id)
-            ->where('eh_destino_recebivel_padrao', true)
+            ->where('eh_caixa_padrao', true)
             ->firstOrFail();
 
         LancamentoFactory::new()->credito()->create([
