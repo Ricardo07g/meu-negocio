@@ -565,22 +565,14 @@ document.addEventListener('DOMContentLoaded', function() {
         })();
     }
 
-    // Toggle Forma/Condição de Pagamento (à vista, a prazo, boleto, pix parcelado)
-    const formaPagamentoWrapper = document.getElementById('formaPagamentoWrapper');
-    const formaPagamentoSelect = document.getElementById('formaPagamentoSelect');
-    const parcelasWrapper = document.getElementById('parcelasWrapper');
+    // ===== RECEBIMENTOS (split de formas de pagamento) =====
+    // Sem toggle à vista/a prazo: o comportamento é derivado da(s) forma(s).
     const numeroParcelasInput = document.getElementById('numeroParcelas');
-    const primeiroVencimentoWrapper = document.getElementById('primeiroVencimentoWrapper');
     const primeiroVencimento = document.getElementById('primeiroVencimento');
     const mesReferencia = document.getElementById('mesReferencia');
-    const parceladoAviso = document.getElementById('parceladoAviso');
     const valorPorParcelaHint = document.getElementById('valorPorParcelaHint');
-
-    const condicaoSelect = document.getElementById('condicaoPagamentoSelect');
-
-    function condicaoSelecionada() {
-        return condicaoSelect ? condicaoSelect.value : 'a_vista';
-    }
+    const crediarioCampos = document.getElementById('crediarioCampos');
+    const formaRecebPrazoSelect = document.getElementById('formaRecebimentoPrazoSelect');
 
     const previewCarneCard = document.getElementById('previewCarneCard');
     const previewCarneBadge = document.getElementById('previewCarneBadge');
@@ -588,105 +580,312 @@ document.addEventListener('DOMContentLoaded', function() {
     const carneTbody = document.getElementById('carneTbody');
     const carneTotalFoot = document.getElementById('carneTotalFoot');
 
-    // Formas de pagamento configuráveis da rede (vindas do catálogo).
+    // Catálogo de formas da empresa (embarcado; a busca é client-side).
     const FORMAS = cfg.formas || [];
-    const parcelasCartaoWrapper = document.getElementById('parcelasCartaoWrapper');
-    const parcelasCartaoInput = document.getElementById('parcelasCartao');
 
-    function formaSelecionada() {
-        return FORMAS.find(f => String(f.id) === String(formaPagamentoSelect.value)) || null;
+    const recebToolbar = document.getElementById('recebToolbar');
+    const recebVazio = document.getElementById('recebVazio');
+    const recebFormaBusca = document.getElementById('recebFormaBusca');
+    const recebDropdown = document.getElementById('recebDropdown');
+    const recebValorNovo = document.getElementById('recebValorNovo');
+    const recebParcelasNovoWrap = document.getElementById('recebParcelasNovoWrap');
+    const recebParcelasNovo = document.getElementById('recebParcelasNovo');
+    const btnAdicionarRecebimento = document.getElementById('btnAdicionarRecebimento');
+    const recebToolbarAviso = document.getElementById('recebToolbarAviso');
+    const recebCompletoInfo = document.getElementById('recebCompletoInfo');
+    const recebTotalVenda = document.getElementById('recebTotalVenda');
+    const recebTotalInformado = document.getElementById('recebTotalInformado');
+    const recebDiferenca = document.getElementById('recebDiferenca');
+
+    // Itens já adicionados: { formaId, formaNome, valor, parcelasCartao } (strings).
+    let recebimentos = [];
+    // Forma escolhida na toolbar (ainda não adicionada).
+    let formaNovaToolbar = null;
+
+    // Empresa selecionada no sub-seletor da tela: as formas listadas são só dela.
+    const empresaSelect = document.getElementById('empresa_id');
+    function empresaSelecionadaId() {
+        const v = empresaSelect ? parseInt(empresaSelect.value) : null;
+        return v || cfg.empresaId || null;
     }
-
-    // Cartão parcelado (permite_parcelas): mostra o nº de parcelas no cartão.
-    function atualizarParcelasCartao() {
-        const forma = formaSelecionada();
-        const mostra = !!(forma && forma.permite_parcelas);
-        if (parcelasCartaoWrapper) parcelasCartaoWrapper.style.display = mostra ? '' : 'none';
-        if (parcelasCartaoInput) {
-            parcelasCartaoInput.disabled = !mostra;
-            if (mostra && forma.max_parcelas) parcelasCartaoInput.max = forma.max_parcelas;
-        }
+    function formasDaEmpresa() {
+        const eid = empresaSelecionadaId();
+        return eid ? FORMAS.filter(f => String(f.empresa_id) === String(eid)) : FORMAS;
     }
-
-    // A forma pode DITAR a condição do cliente:
-    //  - Crediário (forca_a_prazo): a loja financia → sempre "a prazo" (a receber do cliente).
-    //  - Cartão (gera_recebivel): o cliente é quitado na hora → sempre "à vista".
-    // Nesses casos a condição é definida pela forma; o resto respeita a escolha do usuário.
-    function sincronizarCondicaoComForma() {
-        const forma = formaSelecionada();
-        let novaCondicao = null;
-        if (forma && forma.forca_a_prazo) novaCondicao = 'a_prazo';
-        else if (forma && forma.gera_recebivel) novaCondicao = 'a_vista';
-
-        if (novaCondicao && condicaoSelect.value !== novaCondicao) {
-            condicaoSelect.value = novaCondicao;
-            aplicarCondicaoPagamento();
-        }
-
-        // Crediário respeita o teto de parcelas do cliente configurado na forma.
-        numeroParcelasInput.max = (forma && forma.forca_a_prazo && forma.max_parcelas) ? forma.max_parcelas : 24;
-    }
-
-    function popularFormasPagamento() {
-        const valorAtual = formaPagamentoSelect.value || formaPagamentoSelect.dataset.old || '';
-        // DOM seguro (o nome da forma é dado do usuário — evita XSS via innerHTML).
-        formaPagamentoSelect.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = 'Selecione...';
-        formaPagamentoSelect.appendChild(placeholder);
-        FORMAS.forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f.id;
-            opt.textContent = f.nome;
-            formaPagamentoSelect.appendChild(opt);
+    if (empresaSelect) {
+        empresaSelect.addEventListener('change', function () {
+            // Trocar de empresa invalida as formas escolhidas: recomeça do zero.
+            recebimentos = [];
+            limparToolbar();
+            renderRecebimentos();
+            atualizarHabilitacaoPagamento();
         });
-        // Restaura a selecao se ainda for valida.
-        if (FORMAS.some(f => String(f.id) === String(valorAtual))) {
-            formaPagamentoSelect.value = valorAtual;
-        } else {
-            formaPagamentoSelect.value = '';
-        }
-        atualizarParcelasCartao();
     }
 
-    formaPagamentoSelect.addEventListener('change', function () {
-        sincronizarCondicaoComForma();
-        atualizarParcelasCartao();
-        atualizarPreviewCarne();
-    });
+    function formaPorId(id) {
+        return FORMAS.find(f => String(f.id) === String(id)) || null;
+    }
 
-    function aplicarCondicaoPagamento() {
-        const c = condicaoSelecionada();
-        const aVista = c === 'a_vista';
-        const aPrazo = c === 'a_prazo';
-        const parcelado = aPrazo;
-        const exigeForma = aVista || aPrazo;
+    // Retorna a forma crediário selecionada (se houver) — dita o modo a prazo.
+    function linhaCrediario() {
+        for (const r of recebimentos) {
+            const f = formaPorId(r.formaId);
+            if (f && f.forca_a_prazo) return f;
+        }
+        return null;
+    }
 
-        formaPagamentoWrapper.style.display = exigeForma ? '' : 'none';
-        formaPagamentoSelect.disabled = !exigeForma;
-        if (!exigeForma) {
-            formaPagamentoSelect.value = '';
+    function ehModoCrediario() {
+        return !!linhaCrediario();
+    }
+
+    function somaRecebimentos() {
+        return recebimentos.reduce((acc, r) => acc + (parseFloat(r.valor) || 0), 0);
+    }
+
+    function somaCarneAtual() {
+        let soma = 0;
+        carneTbody.querySelectorAll('input[data-parcela-valor]').forEach(function (el) { soma += parseFloat(el.value) || 0; });
+        return soma;
+    }
+
+    // O que ainda falta receber (joga a diferença/centavo na próxima forma adicionada).
+    function restanteAReceber() {
+        return Math.round((obterTotalVenda() - somaRecebimentos()) * 100) / 100;
+    }
+
+    function recalcularRecebimentos() {
+        const total = obterTotalVenda();
+        const soma = somaRecebimentos();
+        recebTotalVenda.textContent = 'R$ ' + formatarBR(total);
+        recebTotalInformado.textContent = 'R$ ' + formatarBR(soma);
+
+        const diff = Math.round((soma - total) * 100) / 100;
+        let txt = 'R$ 0,00';
+        let cls = 'text-muted';
+        if (total > 0 && Math.abs(diff) < 0.01) {
+            cls = 'text-success';
+        } else if (total > 0 && diff < 0) {
+            txt = 'Faltam R$ ' + formatarBR(Math.abs(diff));
+            cls = 'text-danger';
+        } else if (total > 0 && diff > 0) {
+            txt = 'Excedem R$ ' + formatarBR(diff);
+            cls = 'text-danger';
+        }
+        recebDiferenca.textContent = txt;
+        recebDiferenca.className = 'fw-bold ' + cls;
+        atualizarValorNovoDefault();
+        atualizarToolbarEstado();
+    }
+
+    // Quando o total já foi coberto, não há mais o que receber: inativa a barra
+    // de inclusão (não deixa adicionar valor além do total). Excluir um item reabre.
+    function atualizarToolbarEstado() {
+        if (!recebToolbar) return;
+        // Card não pronto: quem controla o disable é atualizarHabilitacaoPagamento.
+        if (cardPagamento && cardPagamento.classList.contains('opacity-50')) return;
+        // No crediário a barra já fica escondida; nada a inativar.
+        if (ehModoCrediario()) {
+            if (recebCompletoInfo) recebCompletoInfo.style.display = 'none';
+            return;
+        }
+        const completo = obterTotalVenda() > 0 && restanteAReceber() <= 0.001;
+        [recebFormaBusca, recebValorNovo, recebParcelasNovo, btnAdicionarRecebimento].forEach(function (el) {
+            if (el) el.disabled = completo;
+        });
+        recebToolbar.classList.toggle('opacity-50', completo);
+        if (recebCompletoInfo) recebCompletoInfo.style.display = completo ? '' : 'none';
+        if (completo && recebDropdown) recebDropdown.style.display = 'none';
+    }
+
+    // Valor sugerido para o PRÓXIMO recebimento = o que falta. Não atropela o
+    // que o usuário está digitando na toolbar.
+    function atualizarValorNovoDefault() {
+        if (!recebValorNovo || document.activeElement === recebValorNovo) return;
+        if (formaNovaToolbar && formaNovaToolbar.forca_a_prazo) {
+            recebValorNovo.value = (obterTotalVenda() || 0).toFixed(2);
+            return;
+        }
+        const restante = restanteAReceber();
+        recebValorNovo.value = restante > 0 ? restante.toFixed(2) : '';
+    }
+
+    function avisarToolbar(msg) {
+        if (!recebToolbarAviso) return;
+        recebToolbarAviso.textContent = msg || '';
+        recebToolbarAviso.style.display = msg ? '' : 'none';
+    }
+
+    function limparToolbar() {
+        formaNovaToolbar = null;
+        if (recebFormaBusca) recebFormaBusca.value = '';
+        if (recebDropdown) recebDropdown.style.display = 'none';
+        if (recebParcelasNovoWrap) recebParcelasNovoWrap.style.display = 'none';
+        if (recebParcelasNovo) recebParcelasNovo.value = '1';
+        avisarToolbar('');
+    }
+
+    // A forma é de parcelamento no cartão? (cartão de crédito parcelável)
+    function formaParcelavel(forma) {
+        return !!(forma && forma.gera_recebivel && forma.permite_parcelas);
+    }
+
+    // Dropdown de busca de formas da toolbar (filtro client-side, só da empresa).
+    function montarDropdownToolbar(filtro) {
+        const q = (filtro || '').toLowerCase();
+        const itens = formasDaEmpresa().filter(f => f.nome.toLowerCase().includes(q));
+        recebDropdown.innerHTML = '';
+        if (itens.length === 0) {
+            const vazio = document.createElement('div');
+            vazio.className = 'px-3 py-2 text-muted fs-13';
+            vazio.textContent = 'Nenhuma forma encontrada.';
+            recebDropdown.appendChild(vazio);
         } else {
-            popularFormasPagamento();
+            itens.forEach(f => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item text-wrap';
+                item.textContent = f.nome;
+                item.addEventListener('mousedown', function (e) {
+                    e.preventDefault(); // evita o blur antes do clique
+                    escolherFormaToolbar(f);
+                });
+                recebDropdown.appendChild(item);
+            });
         }
-        atualizarParcelasCartao();
+        recebDropdown.style.display = '';
+    }
 
-        const formaLabel = document.getElementById('formaPagamentoLabel');
-        if (formaLabel) {
-            formaLabel.innerHTML = aVista
-                ? 'Recebimento à vista em <span class="text-danger">*</span>'
-                : 'Forma de recebimento prevista <span class="text-danger">*</span>';
+    function escolherFormaToolbar(forma) {
+        formaNovaToolbar = forma;
+        recebFormaBusca.value = forma.nome;
+        recebDropdown.style.display = 'none';
+        avisarToolbar('');
+        // Parcelas só entram na barra quando a forma é de parcelamento (cartão),
+        // pois o item, depois de adicionado, não é mais editável (só excluído).
+        const parcelavel = formaParcelavel(forma);
+        if (recebParcelasNovoWrap) recebParcelasNovoWrap.style.display = parcelavel ? '' : 'none';
+        if (recebParcelasNovo) {
+            recebParcelasNovo.value = '1';
+            if (parcelavel && forma.max_parcelas) recebParcelasNovo.max = forma.max_parcelas;
         }
+        atualizarValorNovoDefault();
+        recebValorNovo.focus();
+    }
 
-        parcelasWrapper.style.display = parcelado ? '' : 'none';
-        numeroParcelasInput.disabled = !parcelado;
-        primeiroVencimentoWrapper.style.display = parcelado ? '' : 'none';
-        primeiroVencimento.disabled = !parcelado;
-        parceladoAviso.style.display = parcelado ? '' : 'none';
-        previewCarneCard.style.display = parcelado ? '' : 'none';
+    // Adiciona um recebimento a partir da toolbar (forma + valor).
+    function tentarAdicionar() {
+        if (!formaNovaToolbar) {
+            avisarToolbar('Busque e selecione uma forma de recebimento.');
+            recebFormaBusca.focus();
+            return;
+        }
+        const forma = formaNovaToolbar;
 
+        if (forma.forca_a_prazo) {
+            // Crediário é single-line e financia o total; não combina com outras formas.
+            if (recebimentos.length > 0) {
+                avisarToolbar('Crediário não pode ser combinado com outras formas de recebimento.');
+                return;
+            }
+            recebimentos.push({ formaId: String(forma.id), formaNome: forma.nome, valor: (obterTotalVenda() || 0).toFixed(2), parcelasCartao: '' });
+        } else {
+            if (ehModoCrediario()) {
+                avisarToolbar('Há um crediário na venda. Remova-o para usar outras formas.');
+                return;
+            }
+            const valor = parseFloat(recebValorNovo.value);
+            if (!(valor > 0)) {
+                avisarToolbar('Informe o valor deste recebimento.');
+                recebValorNovo.focus();
+                return;
+            }
+            // Parcelas do cartão definidas AGORA (o item não será mais editável).
+            let parcelasCartao = '';
+            if (formaParcelavel(forma)) {
+                const p = parseInt(recebParcelasNovo.value) || 1;
+                const max = forma.max_parcelas || 1;
+                parcelasCartao = String(Math.min(Math.max(1, p), max));
+            }
+            recebimentos.push({
+                formaId: String(forma.id),
+                formaNome: forma.nome,
+                valor: valor.toFixed(2),
+                parcelasCartao: parcelasCartao,
+            });
+        }
+        limparToolbar();
+        renderRecebimentos();
+        recebFormaBusca.focus();
+    }
+
+    if (recebFormaBusca) {
+        recebFormaBusca.addEventListener('focus', function () { montarDropdownToolbar(recebFormaBusca.value); });
+        recebFormaBusca.addEventListener('input', function () {
+            formaNovaToolbar = null; // digitar limpa a seleção até escolher de novo
+            if (recebParcelasNovoWrap) recebParcelasNovoWrap.style.display = 'none';
+            montarDropdownToolbar(recebFormaBusca.value);
+        });
+        recebFormaBusca.addEventListener('blur', function () {
+            setTimeout(function () { recebDropdown.style.display = 'none'; }, 150);
+        });
+    }
+    btnAdicionarRecebimento.addEventListener('click', tentarAdicionar);
+
+    // Item já adicionado: SOMENTE-LEITURA (forma + valor + parcelas). Para alterar,
+    // exclua e adicione de novo. Os valores vão ao backend por hidden inputs.
+    function criarItemRecebimento(r, idx) {
+        const forma = formaPorId(r.formaId);
+        const parcelas = parseInt(r.parcelasCartao) || 0;
+        const badgeParc = parcelas > 1
+            ? '<span class="badge bg-soft-primary text-primary ms-2">' + parcelas + 'x no cartão</span>'
+            : '';
+        const wrap = document.createElement('div');
+        wrap.className = 'receb-linha border rounded p-3 mb-2';
+        wrap.dataset.recebIdx = idx;
+        wrap.innerHTML =
+            '<div class="d-flex align-items-center justify-content-between gap-3">' +
+                '<div class="flex-grow-1" style="min-width:0;">' +
+                    '<div class="fw-semibold text-dark">' + escaparHtml(r.formaNome || (forma ? forma.nome : '')) + badgeParc + '</div>' +
+                    '<div class="fs-13 text-muted">R$ ' + formatarBR(parseFloat(r.valor) || 0) + '</div>' +
+                '</div>' +
+                '<button type="button" class="btn btn-sm btn-light text-danger receb-remover flex-shrink-0"><i class="feather-trash-2 me-1"></i>Excluir</button>' +
+                '<input type="hidden" name="recebimentos[' + idx + '][forma_pagamento_id]" value="' + escaparHtml(r.formaId || '') + '">' +
+                '<input type="hidden" name="recebimentos[' + idx + '][valor]" value="' + escaparHtml(r.valor || '') + '">' +
+                (r.parcelasCartao ? '<input type="hidden" name="recebimentos[' + idx + '][parcelas_cartao]" value="' + escaparHtml(r.parcelasCartao) + '">' : '') +
+            '</div>';
+
+        wrap.querySelector('.receb-remover').addEventListener('click', function () {
+            recebimentos.splice(idx, 1);
+            renderRecebimentos();
+        });
+
+        return wrap;
+    }
+
+    function renderRecebimentos() {
+        recebimentosLista.innerHTML = '';
+        recebimentos.forEach(function (r, idx) {
+            recebimentosLista.appendChild(criarItemRecebimento(r, idx));
+        });
+        if (recebVazio) recebVazio.style.display = recebimentos.length ? 'none' : '';
+        sincronizarModoPagamento();
+        recalcularRecebimentos();
         atualizarPreviewCarne();
+    }
+
+    // Ajusta a UI ao modo derivado das formas: crediário (a prazo, single-line,
+    // mostra o carnê e esconde a toolbar) x imediato (split via toolbar).
+    function sincronizarModoPagamento() {
+        const formaCred = linhaCrediario();
+        const modoCred = !!formaCred;
+
+        crediarioCampos.style.display = modoCred ? '' : 'none';
+        crediarioCampos.querySelectorAll('input, select').forEach(function (el) { el.disabled = !modoCred; });
+        previewCarneCard.style.display = modoCred ? '' : 'none';
+        if (recebToolbar) recebToolbar.style.display = modoCred ? 'none' : '';
+
+        numeroParcelasInput.max = (modoCred && formaCred.max_parcelas) ? formaCred.max_parcelas : 24;
     }
 
     function obterTotalVenda() {
@@ -742,7 +941,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function atualizarPreviewCarne() {
-        if (condicaoSelecionada() === 'a_vista') {
+        if (!ehModoCrediario()) {
             valorPorParcelaHint.textContent = '';
             previewCarneBadge.textContent = '';
             carneTbody.innerHTML = '';
@@ -830,21 +1029,27 @@ document.addEventListener('DOMContentLoaded', function() {
         recalcularSomaCarne();
     }
 
-    if (condicaoSelect) condicaoSelect.addEventListener('change', function() {
-        // Se a forma escolhida exige uma condição (crediário=a prazo, cartão=à vista), snap back.
-        const forma = formaSelecionada();
-        if (forma && forma.forca_a_prazo && condicaoSelect.value !== 'a_prazo') condicaoSelect.value = 'a_prazo';
-        else if (forma && forma.gera_recebivel && condicaoSelect.value !== 'a_vista') condicaoSelect.value = 'a_vista';
+    // Quando o total da venda muda (valor das etapas ou carrinho), reavalia o card,
+    // atualiza o resumo e o valor sugerido; no crediário mantém o item = total.
+    function aoMudarTotalVenda() {
         atualizarHabilitacaoPagamento();
-    });
+        if (cardPagamento.classList.contains('opacity-50')) return;
+        if (ehModoCrediario() && recebimentos[0]) {
+            recebimentos[0].valor = (obterTotalVenda() || 0).toFixed(2);
+            renderRecebimentos();
+        } else {
+            recalcularRecebimentos();
+        }
+    }
+
     numeroParcelasInput.addEventListener('input', atualizarPreviewCarne);
     primeiroVencimento.addEventListener('change', atualizarPreviewCarne);
     mesReferencia.addEventListener('change', atualizarPreviewCarne);
     const valorTotalEl = document.getElementById('valorTotal');
-    if (valorTotalEl) valorTotalEl.addEventListener('input', function() { atualizarHabilitacaoPagamento(); });
+    if (valorTotalEl) valorTotalEl.addEventListener('input', aoMudarTotalVenda);
     const carrinhoTotalObs = document.getElementById('carrinhoTotal');
     if (carrinhoTotalObs) {
-        new MutationObserver(function() { atualizarHabilitacaoPagamento(); }).observe(carrinhoTotalObs, { childList: true, characterData: true, subtree: true });
+        new MutationObserver(aoMudarTotalVenda).observe(carrinhoTotalObs, { childList: true, characterData: true, subtree: true });
     }
 
     // ── Habilitação do card de Pagamento conforme estado da venda ──
@@ -911,15 +1116,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Pagamento: so cobra quando o card ja esta habilitado (dados basicos ok).
+        // Recebimentos: so cobra quando o card ja esta habilitado (dados basicos ok).
         if (!cardPagamento.classList.contains('opacity-50')) {
-            if (!formaPagamentoSelect.value) add(formaPagamentoSelect, 'Selecione a forma de pagamento');
-            if (!mesReferencia.value) add(mesReferencia, 'Informe o mês de referência');
-            if (condicaoSelect.value === 'a_prazo') {
+            if (!mesReferencia.value) add(mesReferencia, 'Informe a competência (mês de referência)');
+
+            if (recebimentos.length === 0) {
+                add(recebFormaBusca, 'Adicione ao menos uma forma de recebimento');
+            } else if (ehModoCrediario()) {
                 if (!(parseInt(numeroParcelasInput.value) >= 2)) add(numeroParcelasInput, 'Informe o número de parcelas (mínimo 2)');
                 if (!primeiroVencimento.value) add(primeiroVencimento, 'Informe o primeiro vencimento');
-                const formaReceb = document.getElementById('formaRecebimentoPrazoSelect');
-                if (formaReceb && !formaReceb.value) add(formaReceb, 'Selecione a forma de recebimento');
+                if (formaRecebPrazoSelect && !formaRecebPrazoSelect.value) add(formaRecebPrazoSelect, 'Selecione a forma de recebimento');
+                const totalCred = obterTotalVenda();
+                if (totalCred > 0 && Math.abs(somaCarneAtual() - totalCred) > 0.01) {
+                    add(carneTbody, 'A soma das parcelas deve ser igual ao total da venda');
+                }
+            } else {
+                const total = obterTotalVenda();
+                const soma = somaRecebimentos();
+                if (total > 0 && Math.abs(soma - total) > 0.01) {
+                    add(recebimentosLista, 'A soma dos recebimentos (R$ ' + formatarBR(soma) + ') deve bater com o total da venda (R$ ' + formatarBR(total) + ')');
+                }
             }
         }
 
@@ -927,24 +1143,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const PAGAMENTO_DEFAULTS = {
-        condicao: 'a_vista',
-        forma: '',
         numeroParcelas: '2',
         primeiroVencimento: cfg.pagamentoDefaults.primeiroVencimento,
         mesReferencia: cfg.pagamentoDefaults.mesReferencia,
     };
 
     function resetarPagamentoDefault() {
-        condicaoSelect.value = PAGAMENTO_DEFAULTS.condicao;
-        formaPagamentoSelect.value = PAGAMENTO_DEFAULTS.forma;
+        recebimentos = [];
+        limparToolbar();
         numeroParcelasInput.value = PAGAMENTO_DEFAULTS.numeroParcelas;
         primeiroVencimento.value = PAGAMENTO_DEFAULTS.primeiroVencimento;
         mesReferencia.value = PAGAMENTO_DEFAULTS.mesReferencia;
+        if (formaRecebPrazoSelect) formaRecebPrazoSelect.value = 'carne';
         valorPorParcelaHint.textContent = '';
         previewCarneBadge.textContent = '';
         previewCarneInfo.textContent = 'Simulação das parcelas que serão geradas ao salvar.';
         carneTbody.innerHTML = '';
         carneTotalFoot.textContent = 'R$ 0,00';
+        renderRecebimentos();
     }
 
     let ultimoEstadoPronto = null;
@@ -952,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function atualizarHabilitacaoPagamento() {
         const { pronto, motivo } = obterEstadoVenda();
 
-        // Reset dos campos só na transição pronto → não pronto, pra não apagar old() após erro de validação
+        // Reset só na transição pronto → não pronto, pra não apagar old() após erro de validação
         if (ultimoEstadoPronto === true && !pronto) {
             resetarPagamentoDefault();
         }
@@ -965,7 +1181,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (pronto) {
             pagamentoAvisoInline.style.display = 'none';
-            aplicarCondicaoPagamento();
+            sincronizarModoPagamento();
+            recalcularRecebimentos();
+            atualizarPreviewCarne();
         } else {
             pagamentoAvisoTexto.textContent = motivo;
             pagamentoAvisoInline.style.display = '';
@@ -980,7 +1198,20 @@ document.addEventListener('DOMContentLoaded', function() {
         atualizarHabilitacaoPagamento();
     };
 
-    aplicarCondicaoPagamento();
+    // Repopula os recebimentos a partir do old() (após erro de validação).
+    if (Array.isArray(cfg.recebimentosOld) && cfg.recebimentosOld.length) {
+        recebimentos = cfg.recebimentosOld.map(function (o) {
+            const forma = formaPorId(o.forma_pagamento_id);
+            return {
+                formaId: o.forma_pagamento_id ? String(o.forma_pagamento_id) : '',
+                formaNome: forma ? forma.nome : '',
+                valor: (o.valor !== undefined && o.valor !== null) ? String(o.valor) : '',
+                parcelasCartao: (o.parcelas_cartao !== undefined && o.parcelas_cartao !== null) ? String(o.parcelas_cartao) : '',
+            };
+        });
+    }
+
+    renderRecebimentos();
     atualizarHabilitacaoPagamento();
 
     // Bloqueia o submit e lista TUDO que falta, destacando e rolando ate o 1o campo.

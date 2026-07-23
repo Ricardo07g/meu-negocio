@@ -10,14 +10,13 @@ use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
 use App\Modules\Estoque\Models\MovimentoEstoque;
-use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Actions\CriarPagamentoComParcelasAction;
 use App\Modules\Pagamento\DTOs\CriarPagamentoData;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Venda\Actions\{CriarVendaProdutoAction, VenderEtapasAction};
-use App\Modules\Venda\DTOs\VenderEtapasData;
+use App\Modules\Venda\DTOs\{RecebimentoData, VenderEtapasData};
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use Carbon\Carbon;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -327,14 +326,13 @@ class VendaService
         AgendamentoData $data,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
-        ?FormaPagamento $formaAvista = null,
+        array $recebimentos,
         ?int $numeroParcelas = null,
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
-        ?int $parcelasCartao = null,
     ): Agendamento {
-        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo, $parcelasCartao) {
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $agendamento = $this->criarAgendamento->executar($data);
             $servico = Servico::findOrFail($data->servico_id);
 
@@ -346,12 +344,12 @@ class VendaService
                 agendamento_id: $agendamento->id,
                 numero_parcelas: $numeroParcelas,
                 primeiro_vencimento: $primeiroVencimento ?? now(),
-                forma_pagamento_avista: $formaAvista,
+                forma_pagamento_avista: $recebimentos[0]->forma,
                 forma_recebimento_prazo: $formaRecebimentoPrazo,
                 parcelas_personalizadas: $parcelasPersonalizadas,
             ));
 
-            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista, $parcelasCartao);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $recebimentos);
 
             return $agendamento;
         });
@@ -364,14 +362,13 @@ class VendaService
         VenderEtapasData $data,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
-        ?FormaPagamento $formaAvista = null,
+        array $recebimentos,
         ?int $numeroParcelas = null,
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
-        ?int $parcelasCartao = null,
     ): VendaEtapas {
-        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo, $parcelasCartao) {
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $etapas = $this->venderEtapas->executar($data);
 
             $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
@@ -382,12 +379,12 @@ class VendaService
                 venda_etapas_id: $etapas->id,
                 numero_parcelas: $numeroParcelas,
                 primeiro_vencimento: $primeiroVencimento ?? now(),
-                forma_pagamento_avista: $formaAvista,
+                forma_pagamento_avista: $recebimentos[0]->forma,
                 forma_recebimento_prazo: $formaRecebimentoPrazo,
                 parcelas_personalizadas: $parcelasPersonalizadas,
             ));
 
-            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista, $parcelasCartao);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $recebimentos);
 
             return $etapas;
         });
@@ -398,22 +395,21 @@ class VendaService
         array $itens,
         CondicaoPagamento $condicao,
         Carbon $mesReferencia,
-        ?FormaPagamento $formaAvista = null,
+        array $recebimentos,
         ?int $numeroParcelas = null,
         ?Carbon $primeiroVencimento = null,
         ?string $data = null,
         ?string $observacao = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
-        ?int $parcelasCartao = null,
     ): VendaProduto {
-        return DB::transaction(function () use ($cliente_id, $itens, $condicao, $mesReferencia, $formaAvista, $numeroParcelas, $primeiroVencimento, $data, $observacao, $parcelasPersonalizadas, $formaRecebimentoPrazo, $parcelasCartao) {
+        return DB::transaction(function () use ($cliente_id, $itens, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $data, $observacao, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             ['venda' => $venda, 'pagamento' => $pagamento] = $this->criarVendaProdutoAction->executar(
                 cliente_id: $cliente_id,
                 itens: $itens,
                 condicao: $condicao,
                 mesReferencia: $mesReferencia,
-                formaAvista: $formaAvista,
+                formaAvista: $recebimentos[0]->forma,
                 numeroParcelas: $numeroParcelas,
                 primeiroVencimento: $primeiroVencimento,
                 data: $data,
@@ -422,20 +418,24 @@ class VendaService
                 formaRecebimentoPrazo: $formaRecebimentoPrazo,
             );
 
-            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $formaAvista, $parcelasCartao);
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $recebimentos);
 
             return $venda;
         });
     }
 
     /**
-     * Se for venda à vista, aplica baixa automática na parcela única.
-     * Dinheiro/Pix exigem caixa aberto; cartão vira recebível (sem caixa).
-     * $parcelasCartao é o nº de parcelas no cartão do adquirente (agenda + taxa).
+     * Se for venda à vista, aplica as baixas na parcela única — uma por
+     * recebimento (split de formas: parte pix, parte dinheiro, parte cartão).
+     * A soma dos recebimentos já foi validada == total da venda; cada baixa é
+     * roteada pela sua forma (dinheiro exige caixa aberto e gera lançamento;
+     * cartão/pix só registram a baixa). A prazo (crediário) não baixa aqui.
+     *
+     * @param  array<int, RecebimentoData>  $recebimentos
      */
-    private function baixarAVistaSeAplicavel(Pagamento $pagamento, CondicaoPagamento $condicao, ?FormaPagamento $forma, ?int $parcelasCartao = null): void
+    private function baixarAVistaSeAplicavel(Pagamento $pagamento, CondicaoPagamento $condicao, array $recebimentos): void
     {
-        if ($condicao !== CondicaoPagamento::AVista || ! $forma) {
+        if ($condicao !== CondicaoPagamento::AVista) {
             return;
         }
 
@@ -444,12 +444,16 @@ class VendaService
             return;
         }
 
-        $this->caixaService->darBaixaParcelaPagamento(
-            $parcela,
-            (float) $parcela->valor,
-            $forma,
-            parcelasCartao: $parcelasCartao,
-        );
+        foreach ($recebimentos as $recebimento) {
+            $this->caixaService->darBaixaParcelaPagamento(
+                $parcela,
+                $recebimento->valor,
+                $recebimento->forma,
+                parcelasCartao: $recebimento->parcelas_cartao,
+            );
+            // saldoRestante() fresco para a próxima linha (a última cai no restante).
+            $parcela->refresh();
+        }
     }
 
     public function cancelarUnico(Agendamento $agendamento): Agendamento

@@ -14,7 +14,7 @@ use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
-use App\Modules\Venda\DTOs\VenderEtapasData;
+use App\Modules\Venda\DTOs\{RecebimentoData, VenderEtapasData};
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Requests\CriarVendaRequest;
 use App\Modules\Venda\Services\VendaService;
@@ -91,7 +91,14 @@ class VendaController extends Controller
                 }
             }
 
-            $formas = FormaPagamento::ativos()->orderBy('nome')->get();
+            // Formas de TODAS as empresas acessíveis (não só a de contexto): a tela
+            // tem sub-seletor de empresa e o JS filtra as formas pela empresa escolhida.
+            $empresasAtuais = (array) session('empresas_atuais', []);
+            $formas = FormaPagamento::withoutGlobalScope('empresa')
+                ->when($empresasAtuais !== [], fn ($q) => $q->whereIn('empresa_id', $empresasAtuais))
+                ->ativos()
+                ->orderBy('nome')
+                ->get();
 
             return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld', 'formas'));
         } catch (\Throwable $e) {
@@ -126,50 +133,42 @@ class VendaController extends Controller
      */
     private function processarVenda(CriarVendaRequest $request, int $empresaId): RedirectResponse
     {
-        $condicao = CondicaoPagamento::from($request->condicao_pagamento);
+        $recebimentos = $this->extrairRecebimentos($request, $empresaId);
 
-        $forma = $request->filled('forma_pagamento')
-            ? FormaPagamento::findOrFail((int) $request->forma_pagamento)
-            : null;
-
-        // Cartão quita o cliente na hora (vira recebível): trata como à-vista no
-        // ledger do cliente, independentemente do que o form enviou. O nº de
-        // parcelas informado é do cartão (agenda + taxa), não do cliente.
-        $parcelasCartao = null;
-        if ($forma && $forma->gera_recebivel) {
-            $condicao = CondicaoPagamento::AVista;
-            $parcelasCartao = $forma->permite_parcelas
-                ? min(max(1, (int) $request->input('parcelas_cartao', 1)), $forma->max_parcelas ?? 1)
-                : 1;
-        }
-
-        // Crediário: a loja financia o cliente → força "a prazo" (a receber do cliente),
-        // espelho invertido do cartão. Não gera recebível de banco.
-        if ($forma && $forma->tipo->forcaAPrazo()) {
-            $condicao = CondicaoPagamento::APrazo;
-        }
-
-        $aVista = $condicao === CondicaoPagamento::AVista;
+        // Sem toggle: a condição nasce das formas. Crediário (a loja financia o
+        // cliente) → a prazo (carnê); qualquer combinação de formas imediatas
+        // (dinheiro/pix/cartão) → à vista, com uma baixa por recebimento.
+        $temCrediario = collect($recebimentos)->contains(fn (RecebimentoData $r) => $r->forma->tipo->forcaAPrazo());
+        $condicao = $temCrediario ? CondicaoPagamento::APrazo : CondicaoPagamento::AVista;
 
         $formaRecebimentoPrazo = $request->forma_recebimento_prazo
             ? FormaRecebimentoPrazo::from($request->forma_recebimento_prazo)
             : null;
 
-        $numeroParcelas = $condicao->geraParcelas() ? (int) $request->numero_parcelas : null;
-        // Crediário respeita o teto de parcelas do cliente configurado na forma.
-        if ($numeroParcelas !== null && $forma && $forma->tipo->ehCrediario() && $forma->max_parcelas) {
-            $numeroParcelas = min($numeroParcelas, $forma->max_parcelas);
+        $numeroParcelas = null;
+        $primeiroVencimento = now();
+        if ($condicao->geraParcelas()) {
+            $numeroParcelas = (int) $request->numero_parcelas;
+            // Crediário respeita o teto de parcelas do cliente configurado na forma.
+            $formaCrediario = $recebimentos[0]->forma;
+            if ($formaCrediario->max_parcelas) {
+                $numeroParcelas = min($numeroParcelas, $formaCrediario->max_parcelas);
+            }
+            $primeiroVencimento = Carbon::parse($request->primeiro_vencimento);
         }
-        $primeiroVencimento = $condicao->geraParcelas()
-            ? Carbon::parse($request->primeiro_vencimento)
-            : now();
+
         $mesReferencia = Carbon::parse($request->mes_referencia)->startOfMonth();
 
-        $parcelasPersonalizadas = $this->extrairParcelasPersonalizadas($request);
+        // Parcelas editadas no preview só existem no fluxo a prazo (carnê).
+        $parcelasPersonalizadas = $condicao->geraParcelas()
+            ? $this->extrairParcelasPersonalizadas($request)
+            : null;
 
-        // Só a venda à-vista cujo dinheiro cai na gaveta (conta caixa) exige caixa aberto.
-        // Cartão e PIX que caem em banco/carteira não dependem de caixa.
-        $exigeCaixa = $aVista && $forma && $this->caixaService->exigeCaixaAberto($forma, $empresaId);
+        // Só a venda à-vista cujo dinheiro cai na gaveta (conta caixa) exige caixa
+        // aberto. Basta UMA forma-gaveta (dinheiro) entre os recebimentos para exigir;
+        // cartão e PIX que caem em banco/carteira não dependem de caixa.
+        $exigeCaixa = $condicao === CondicaoPagamento::AVista
+            && collect($recebimentos)->contains(fn (RecebimentoData $r) => $this->caixaService->exigeCaixaAberto($r->forma, $empresaId));
         if ($exigeCaixa && ! $this->caixaService->caixaAbertoDaEmpresa($empresaId, now()->toDateString())) {
             return redirect()->back()->withInput()
                 ->with('erro', 'É necessário abrir o caixa de hoje desta empresa para registrar vendas à vista.');
@@ -187,14 +186,13 @@ class VendaController extends Controller
                 $itens,
                 $condicao,
                 $mesReferencia,
-                $forma,
+                $recebimentos,
                 $numeroParcelas,
                 $primeiroVencimento,
                 $request->data,
                 $request->observacao,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
-                $parcelasCartao,
             );
 
             return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
@@ -207,12 +205,11 @@ class VendaController extends Controller
                 VenderEtapasData::from($request->validated()),
                 $condicao,
                 $mesReferencia,
-                $forma,
+                $recebimentos,
                 $numeroParcelas,
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
-                $parcelasCartao,
             );
             $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
         } else {
@@ -222,17 +219,45 @@ class VendaController extends Controller
                 AgendamentoData::from($payload),
                 $condicao,
                 $mesReferencia,
-                $forma,
+                $recebimentos,
                 $numeroParcelas,
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
-                $parcelasCartao,
             );
             $msg = 'Agendamento criado com sucesso.';
         }
 
         return redirect()->route('vendas.index')->with('sucesso', $msg);
+    }
+
+    /**
+     * Resolve as linhas de recebimento do request em RecebimentoData, com a
+     * forma (empresa-level) carregada e validada contra a empresa da venda.
+     * O clamp de parcelas do cartão é por linha (só faz sentido em cartão
+     * parcelável). A soma dos valores == total já foi validada no Request.
+     *
+     * @return array<int, RecebimentoData>
+     */
+    private function extrairRecebimentos(CriarVendaRequest $request, int $empresaId): array
+    {
+        return array_map(function (array $linha) use ($empresaId) {
+            $forma = FormaPagamento::findOrFail((int) $linha['forma_pagamento_id']);
+
+            // Defesa em profundidade: a forma tem de ser da MESMA empresa da venda
+            // (um Admin multi-empresa não pode injetar forma de outra empresa numa baixa).
+            abort_unless($forma->empresa_id === $empresaId, 422, 'Forma de pagamento inválida para esta empresa.');
+
+            $parcelasCartao = ($forma->gera_recebivel && $forma->permite_parcelas)
+                ? min(max(1, (int) ($linha['parcelas_cartao'] ?? 1)), $forma->max_parcelas ?? 1)
+                : null;
+
+            return new RecebimentoData(
+                forma: $forma,
+                valor: (float) $linha['valor'],
+                parcelas_cartao: $parcelasCartao,
+            );
+        }, array_values($request->input('recebimentos', [])));
     }
 
     /**

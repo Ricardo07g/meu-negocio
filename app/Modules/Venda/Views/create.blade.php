@@ -293,49 +293,107 @@
             </div>
         </div>
 
-        {{-- Pagamento --}}
+        {{-- Recebimentos --}}
         <div class="card stretch stretch-full mt-4" id="cardPagamento">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Pagamento</h5>
+                <h5 class="card-title mb-0">Recebimentos</h5>
                 <span id="pagamentoAvisoInline" class="badge bg-soft-warning text-warning" style="display:none;">
                     <i class="feather-alert-circle me-1"></i><span id="pagamentoAvisoTexto"></span>
                 </span>
             </div>
             <div class="card-body">
-                <div class="row g-3">
-                    @php $condAtual = old('condicao_pagamento', 'a_vista'); @endphp
-                    <div class="col-12 col-sm-6 col-md-4">
-                        <label class="form-label">Condição de Pagamento <span class="text-danger">*</span></label>
-                        <select name="condicao_pagamento" id="condicaoPagamentoSelect" class="form-select @error('condicao_pagamento') is-invalid @enderror">
-                            <option value="a_vista" @selected($condAtual === 'a_vista')>À Vista</option>
-                            <option value="a_prazo" @selected($condAtual === 'a_prazo')>A Prazo</option>
-                        </select>
-                        @error('condicao_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                {{-- Painel fixo no topo (sempre visível): resumo (competência + totais) + barra de inclusão --}}
+                <div class="bg-light border rounded p-3 mb-4" id="recebPainel">
+                    {{-- Resumo — sempre visível ao olho do usuário --}}
+                    <div class="row g-3 align-items-end" id="recebResumo">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fs-12 text-muted mb-1" for="mesReferencia">Competência <span class="text-danger">*</span></label>
+                            <input type="month" name="mes_referencia" id="mesReferencia"
+                                   class="form-control @error('mes_referencia') is-invalid @enderror"
+                                   value="{{ old('mes_referencia', now()->format('Y-m')) }}" required>
+                            @error('mes_referencia') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-4 col-md-3">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Total da venda</div>
+                            <div class="fw-semibold" id="recebTotalVenda">R$ 0,00</div>
+                        </div>
+                        <div class="col-4 col-md-3">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Recebido</div>
+                            <div class="fw-semibold" id="recebTotalInformado">R$ 0,00</div>
+                        </div>
+                        <div class="col-4 col-md-3">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Falta receber</div>
+                            <div class="fw-bold text-muted" id="recebDiferenca">R$ 0,00</div>
+                        </div>
                     </div>
 
-                    <div class="col-12 col-sm-6 col-md-4" id="formaPagamentoWrapper">
-                        <label class="form-label" id="formaPagamentoLabel">Forma de Pagamento <span class="text-danger">*</span></label>
-                        <select name="forma_pagamento" id="formaPagamentoSelect"
-                                class="form-select @error('forma_pagamento') is-invalid @enderror"
-                                data-old="{{ old('forma_pagamento') }}">
-                            <option value="">Selecione...</option>
-                            {{-- Opcoes preenchidas dinamicamente pelo JS conforme a condicao de pagamento --}}
-                        </select>
-                        @error('forma_pagamento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    {{-- Barra de inclusão (some no crediário): forma + valor + parcelas + adicionar --}}
+                    <div id="recebToolbar">
+                        <hr class="my-3">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-12 col-md-5">
+                                <label class="form-label fs-12 text-muted mb-1" for="recebFormaBusca">Forma de recebimento</label>
+                                <div class="position-relative">
+                                    <input type="text" id="recebFormaBusca" class="form-control" placeholder="Buscar forma de pagamento..." autocomplete="off">
+                                    <div id="recebDropdown" class="border rounded bg-white shadow-sm py-1" style="display:none;position:absolute;z-index:1050;left:0;right:0;top:100%;max-height:220px;overflow:auto;"></div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label fs-12 text-muted mb-1" for="recebValorNovo">Valor (R$)</label>
+                                <input type="number" step="0.01" min="0.01" id="recebValorNovo" class="form-control" placeholder="0,00">
+                            </div>
+                            {{-- Parcelas no cartão: só quando a forma escolhida é de parcelamento --}}
+                            <div class="col-6 col-md-2" id="recebParcelasNovoWrap" style="display:none;">
+                                <label class="form-label fs-12 text-muted mb-1" for="recebParcelasNovo">
+                                    Parcelas
+                                    <x-label-info content="Em quantas vezes o cliente parcelou no cartão. Define a agenda dos recebíveis. O cliente já está quitado — quem recebe parcelado é a loja." />
+                                </label>
+                                <input type="number" min="1" step="1" id="recebParcelasNovo" class="form-control" value="1">
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <button type="button" id="btnAdicionarRecebimento" class="btn btn-primary w-100">
+                                    <i class="feather-plus me-1"></i> Adicionar
+                                </button>
+                            </div>
+                        </div>
+                        <div id="recebToolbarAviso" class="text-danger fs-13 mt-2" style="display:none;"></div>
                     </div>
 
-                    <div class="col-12 col-sm-6 col-md-4" id="parcelasCartaoWrapper" style="display:none;">
-                        <label class="form-label" for="parcelasCartao">
-                            Parcelas no cartão
-                            <x-label-info content="Em quantas vezes o cliente parcelou no cartão. Define a taxa e a agenda dos recebíveis (D+30, D+60...). O cliente já está quitado — quem recebe parcelado é a loja, do adquirente." />
-                        </label>
-                        <input type="number" min="1" step="1" name="parcelas_cartao" id="parcelasCartao"
-                               class="form-control @error('parcelas_cartao') is-invalid @enderror"
-                               value="{{ old('parcelas_cartao', 1) }}">
-                        @error('parcelas_cartao') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    {{-- Total já coberto: barra fica inativa --}}
+                    <div id="recebCompletoInfo" class="alert alert-success py-2 px-3 fs-13 mt-3 mb-0" style="display:none;">
+                        <i class="feather-info me-1"></i>Total da venda já coberto pelos recebimentos. Exclua um item para adicionar ou trocar uma forma.
+                    </div>
+                </div>
+
+                {{-- Estado vazio --}}
+                <div id="recebVazio" class="text-center text-muted py-3">
+                    <div class="fs-13"><i class="feather-info me-1"></i>Nenhum recebimento adicionado. Busque uma forma acima.</div>
+                </div>
+
+                {{-- Itens de recebimento (montados pelo JS) --}}
+                <div id="recebimentosLista"></div>
+
+                {{-- Campos do crediário (a prazo): visíveis só quando a forma escolhida é crediário --}}
+                <div class="row g-3 mt-1" id="crediarioCampos" style="display:none;">
+                    <div class="col-12 col-sm-6 col-md-4" id="parcelasWrapper">
+                        <label class="form-label" for="numeroParcelas">Número de Parcelas <span class="text-danger">*</span></label>
+                        <input type="number" min="2" max="24" step="1" name="numero_parcelas" id="numeroParcelas"
+                               class="form-control @error('numero_parcelas') is-invalid @enderror"
+                               value="{{ old('numero_parcelas', 2) }}">
+                        <div class="form-text" id="valorPorParcelaHint"></div>
+                        @error('numero_parcelas') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-12 col-sm-6 col-md-4" id="formaRecebimentoPrazoWrapper" style="display:none;">
+                    <div class="col-12 col-sm-6 col-md-4" id="primeiroVencimentoWrapper">
+                        <label class="form-label" for="primeiroVencimento">Primeiro Vencimento <span class="text-danger">*</span></label>
+                        <input type="date" name="primeiro_vencimento" id="primeiroVencimento"
+                               class="form-control @error('primeiro_vencimento') is-invalid @enderror"
+                               value="{{ old('primeiro_vencimento', now()->addDays(30)->format('Y-m-d')) }}"
+                               min="{{ now()->format('Y-m-d') }}">
+                        @error('primeiro_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-md-4" id="formaRecebimentoPrazoWrapper">
                         <label class="form-label" for="formaRecebimentoPrazoSelect">
                             Forma de Recebimento <span class="text-danger">*</span>
                             <x-label-info content="Como as parcelas serão cobradas do cliente.<br><b>Carnê</b>: controle manual — cada parcela é recebida e baixada aqui no sistema.<br><br>Novas formas (boleto registrado, Pix parcelado) serão adicionadas no futuro." />
@@ -349,34 +407,7 @@
                         @error('forma_recebimento_prazo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-12 col-sm-6 col-md-4" id="parcelasWrapper" style="display:none;">
-                        <label class="form-label" for="numeroParcelas">Número de Parcelas <span class="text-danger">*</span></label>
-                        <input type="number" min="2" max="24" step="1" name="numero_parcelas" id="numeroParcelas"
-                               class="form-control @error('numero_parcelas') is-invalid @enderror"
-                               value="{{ old('numero_parcelas', 2) }}">
-                        <div class="form-text" id="valorPorParcelaHint"></div>
-                        @error('numero_parcelas') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="col-12 col-sm-6 col-md-4" id="primeiroVencimentoWrapper" style="display:none;">
-                        <label class="form-label" for="primeiroVencimento">Primeiro Vencimento <span class="text-danger">*</span></label>
-                        <input type="date" name="primeiro_vencimento" id="primeiroVencimento"
-                               class="form-control @error('primeiro_vencimento') is-invalid @enderror"
-                               value="{{ old('primeiro_vencimento', now()->addDays(30)->format('Y-m-d')) }}"
-                               min="{{ now()->format('Y-m-d') }}">
-                        @error('primeiro_vencimento') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="col-12 col-sm-6 col-md-4">
-                        <label class="form-label" for="mesReferencia">Mês de Referência <span class="text-danger">*</span></label>
-                        <input type="month" name="mes_referencia" id="mesReferencia"
-                               class="form-control @error('mes_referencia') is-invalid @enderror"
-                               value="{{ old('mes_referencia', now()->format('Y-m')) }}" required>
-                        <div class="form-text">Competência contábil da venda.</div>
-                        @error('mes_referencia') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                    </div>
-
-                    <div class="col-12" id="parceladoAviso" style="display:none;">
+                    <div class="col-12" id="parceladoAviso">
                         <small class="text-muted">
                             <i class="feather-info me-1"></i>
                             A venda entra em <strong>Contas a Receber</strong> com as parcelas listadas abaixo.
@@ -384,6 +415,10 @@
                         </small>
                     </div>
                 </div>
+
+                @error('recebimentos')
+                    <div class="alert alert-danger mt-3 mb-0 fs-13"><i class="feather-alert-triangle me-1"></i>{{ $message }}</div>
+                @enderror
             </div>
         </div>
 
@@ -428,6 +463,7 @@
 @php
     $formasJs = $formas->map(fn ($f) => [
         'id' => $f->id,
+        'empresa_id' => $f->empresa_id,
         'nome' => $f->nome,
         'gera_recebivel' => (bool) $f->gera_recebivel,
         'permite_parcelas' => (bool) $f->permite_parcelas,
@@ -452,6 +488,8 @@ window.vendaCreateConfig = {
     oldDatas: @json(old('datas', [])),
     oldHorarios: @json(old('horarios', [])),
     formas: @json($formasJs),
+    empresaId: @json($empresaId),
+    recebimentosOld: @json(array_values(old('recebimentos', []))),
     pagamentoDefaults: {
         primeiroVencimento: @json(now()->addDays(30)->format('Y-m-d')),
         mesReferencia: @json(now()->format('Y-m')),

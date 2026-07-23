@@ -9,6 +9,7 @@ use App\Modules\Caixa\Models\{BaixaPagamento, Caixa};
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Tenant\Models\Empresa;
+use App\Modules\Venda\DTOs\RecebimentoData;
 use App\Modules\Venda\Services\VendaService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,7 +69,10 @@ class BaixaParcelaPagamentoComMultiplasEmpresasTest extends TestCase
             ]],
             condicao: CondicaoPagamento::APrazo,
             mesReferencia: Carbon::now()->startOfMonth(),
-            formaAvista: $this->formaPagamento($rede, TipoFormaPagamento::Pix),
+            recebimentos: [new RecebimentoData(
+                forma: $this->formaPagamento($rede, TipoFormaPagamento::Pix),
+                valor: 100.00,
+            )],
             numeroParcelas: 2,
             primeiroVencimento: Carbon::now()->addMonth()->startOfDay(),
             formaRecebimentoPrazo: FormaRecebimentoPrazo::Carne,
