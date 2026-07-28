@@ -56,7 +56,7 @@ class ReciboSmokeTest extends TestCase
     {
         $contexto = $this->criarRedeAutenticada();
         $empresaPadrao = $contexto['empresa'];
-        $empresaOutra = Empresa::create(['rede_id' => $contexto['rede']->id, 'nome' => 'Filial Norte']);
+        $empresaOutra = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial Norte');
         session(['empresas_atuais' => [$empresaPadrao->id, $empresaOutra->id]]);
 
         $pagamento = PagamentoFactory::new()->aPrazo()->create([

@@ -6,18 +6,21 @@ namespace Tests\Feature\Tenant;
 
 use App\Modules\Tenant\Models\{Fatura, Plano};
 use Carbon\Carbon;
-use Database\Factories\{EmpresaFactory, PlanoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;
 
+/**
+ * A licenca e da EMPRESA: a troca de plano opera sobre uma unidade, e a fatura da rede
+ * e a soma das licencas cobraveis (unidade em teste gratuito nao entra).
+ */
 class AssinaturaTest extends TestCase
 {
     use CriaTenant;
     use RefreshDatabase;
 
-    public function test_admin_ve_pagina_de_assinatura_e_gera_fatura_do_mes(): void
+    public function test_admin_ve_pagina_de_assinatura_sem_fabricar_fatura(): void
     {
         $this->criarRedeAutenticada();
 
@@ -25,7 +28,10 @@ class AssinaturaTest extends TestCase
 
         $resp->assertOk();
         $resp->assertViewIs('tenant::assinatura');
-        $this->assertDatabaseHas('faturas', ['referencia' => Carbon::now()->format('Y-m')]);
+
+        // Abrir a tela e um GET: nao pode escrever no banco (o antigo
+        // garantirHistoricoFaturas fabricava meses retroativos na leitura).
+        $this->assertDatabaseCount('faturas', 0);
     }
 
     public function test_usuario_comum_ve_a_pagina_mas_sem_poder_trocar(): void
@@ -43,106 +49,143 @@ class AssinaturaTest extends TestCase
         $resp->assertViewHas('podeTrocar', false);
     }
 
-    public function test_admin_troca_de_plano_e_ajusta_fatura_pro_rata(): void
+    public function test_admin_faz_upgrade_da_unidade_e_ajusta_fatura_pro_rata(): void
     {
-        $contexto = $this->criarRedeAutenticada();
-        $rede = $contexto['rede'];
+        $contexto = $this->criarRede(planoSlug: Plano::GRATIS);
+        $this->actingAs($contexto['usuario']);
+        session(['empresas_atuais' => [$contexto['empresa']->id]]);
 
-        $origem = PlanoFactory::new()->create(['nome' => 'basico', 'preco_mensal' => 100, 'max_empresas' => 5, 'max_usuarios' => 10]);
-        $destino = PlanoFactory::new()->create(['nome' => 'pro', 'preco_mensal' => 200, 'max_empresas' => 10, 'max_usuarios' => 20]);
-        $rede->update(['plano_id' => $origem->id]);
+        $empresa = $contexto['empresa'];
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
 
-        $resp = $this->post(route('assinatura.transicionar'), ['plano_id' => $destino->id]);
+        $resp = $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $empresa->id,
+            'plano_id' => $pro->id,
+        ]);
 
         $resp->assertRedirect(route('assinatura.index'));
         $resp->assertSessionHas('sucesso');
-        $this->assertSame($destino->id, $rede->fresh()->plano_id);
+        $this->assertSame($pro->id, $empresa->fresh()->plano_id);
 
         $hoje = Carbon::now();
         $dias = $hoje->daysInMonth;
         $usados = $hoje->day - 1;
         $restantes = $dias - $usados;
-        $esperado = round((100 * $usados + 200 * $restantes) / $dias, 2);
+        $esperado = round(
+            ((float) $gratis->preco_por_licenca * $usados + (float) $pro->preco_por_licenca * $restantes) / $dias,
+            2
+        );
 
-        $fatura = Fatura::where('rede_id', $rede->id)->where('referencia', $hoje->format('Y-m'))->first();
+        $fatura = Fatura::where('rede_id', $contexto['rede']->id)
+            ->where('referencia', $hoje->format('Y-m'))
+            ->first();
+
         $this->assertNotNull($fatura);
-        $this->assertSame($destino->id, $fatura->plano_id);
         $this->assertEqualsWithDelta($esperado, (float) $fatura->valor, 0.01);
+    }
+
+    public function test_fatura_soma_as_demais_licencas_cobraveis_da_rede(): void
+    {
+        $contexto = $this->criarRede(planoSlug: Plano::GRATIS);
+        $this->actingAs($contexto['usuario']);
+
+        // Segunda unidade ja no Pro (contratada, sem trial): entra inteira na fatura.
+        $outra = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial Centro');
+        session(['empresas_atuais' => [$contexto['empresa']->id, $outra->id]]);
+
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
+
+        $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $contexto['empresa']->id,
+            'plano_id' => $pro->id,
+        ])->assertRedirect();
+
+        $fatura = Fatura::where('rede_id', $contexto['rede']->id)->firstOrFail();
+
+        // A unidade que mudou entra rateada; a outra entra pelo mes cheio.
+        $this->assertGreaterThan((float) $pro->preco_por_licenca, (float) $fatura->valor);
     }
 
     public function test_troca_ajusta_a_fatura_em_aberto_ja_existente(): void
     {
-        $contexto = $this->criarRedeAutenticada();
-        $rede = $contexto['rede'];
+        $contexto = $this->criarRede(planoSlug: Plano::GRATIS);
+        $this->actingAs($contexto['usuario']);
+        session(['empresas_atuais' => [$contexto['empresa']->id]]);
 
-        $origem = PlanoFactory::new()->create(['preco_mensal' => 100, 'max_empresas' => 5, 'max_usuarios' => 10]);
-        $destino = PlanoFactory::new()->create(['preco_mensal' => 300, 'max_empresas' => 10, 'max_usuarios' => 20]);
-        $rede->update(['plano_id' => $origem->id]);
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
 
         $ref = Carbon::now()->format('Y-m');
         $faturaExistente = Fatura::create([
-            'rede_id' => $rede->id,
-            'plano_id' => $origem->id,
+            'rede_id' => $contexto['rede']->id,
+            'plano_id' => $gratis->id,
             'referencia' => $ref,
-            'valor' => 100,
+            'valor' => 0,
             'vencimento' => Carbon::now()->endOfMonth(),
             'status' => 'em_aberto',
         ]);
 
-        $this->post(route('assinatura.transicionar'), ['plano_id' => $destino->id])->assertRedirect();
+        $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $contexto['empresa']->id,
+            'plano_id' => $pro->id,
+        ])->assertRedirect();
 
-        // Mesma fatura (sem duplicar — unique rede+referencia), agora no plano novo.
-        $this->assertSame(1, Fatura::where('rede_id', $rede->id)->where('referencia', $ref)->count());
-        $atualizada = $faturaExistente->fresh();
-        $this->assertSame($destino->id, $atualizada->plano_id);
-        $this->assertGreaterThan(100, (float) $atualizada->valor);
+        // Mesma fatura (sem duplicar — unique rede+referencia), agora com valor.
+        $this->assertSame(1, Fatura::where('rede_id', $contexto['rede']->id)->where('referencia', $ref)->count());
+        $this->assertGreaterThan(0, (float) $faturaExistente->fresh()->valor);
     }
 
-    public function test_downgrade_bloqueado_quando_excede_limite_de_empresas(): void
+    public function test_downgrade_bloqueado_quando_excede_assentos_da_unidade(): void
     {
         $contexto = $this->criarRedeAutenticada();
-        $rede = $contexto['rede'];
+        $empresa = $contexto['empresa'];
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
 
-        $origem = PlanoFactory::new()->create(['preco_mensal' => 200, 'max_empresas' => 5, 'max_usuarios' => 10]);
-        $destino = PlanoFactory::new()->create(['preco_mensal' => 50, 'max_empresas' => 1, 'max_usuarios' => 10]);
-        $rede->update(['plano_id' => $origem->id]);
+        // Gratis permite 2 assentos; com admin + 2 comuns a unidade fica com 3.
+        $this->criarUsuarioComum($contexto['rede'], $empresa, 'Recepcao');
+        $this->criarUsuarioComum($contexto['rede'], $empresa, 'Profissional');
 
-        // Rede ja tem 1 empresa; adiciona outra -> 2 > limite 1 do destino.
-        EmpresaFactory::new()->create(['rede_id' => $rede->id]);
-
-        $resp = $this->post(route('assinatura.transicionar'), ['plano_id' => $destino->id]);
+        $resp = $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $empresa->id,
+            'plano_id' => $gratis->id,
+        ]);
 
         $resp->assertRedirect();
         $resp->assertSessionHas('erro');
-        $this->assertSame($origem->id, $rede->fresh()->plano_id, 'O plano nao deve mudar quando o limite e violado.');
+        $this->assertSame($pro->id, $empresa->fresh()->plano_id, 'O plano nao deve mudar quando o limite e violado.');
     }
 
-    public function test_downgrade_bloqueado_quando_excede_limite_de_usuarios(): void
+    public function test_segunda_licenca_gratis_na_mesma_rede_e_rejeitada(): void
     {
-        $contexto = $this->criarRedeAutenticada();
-        $rede = $contexto['rede'];
+        $contexto = $this->criarRede(planoSlug: Plano::GRATIS);
+        $this->actingAs($contexto['usuario']);
 
-        $origem = PlanoFactory::new()->create(['preco_mensal' => 200, 'max_empresas' => 10, 'max_usuarios' => 10]);
-        $destino = PlanoFactory::new()->create(['preco_mensal' => 50, 'max_empresas' => 10, 'max_usuarios' => 1]);
-        $rede->update(['plano_id' => $origem->id]);
+        $outra = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial Centro');
+        session(['empresas_atuais' => [$contexto['empresa']->id, $outra->id]]);
 
-        // Rede ja tem 1 usuario (admin); adiciona outro -> 2 > limite 1 do destino.
-        $this->criarUsuarioComum($rede, $contexto['empresa'], 'Recepcao');
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
 
-        $resp = $this->post(route('assinatura.transicionar'), ['plano_id' => $destino->id]);
+        $resp = $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $outra->id,
+            'plano_id' => $gratis->id,
+        ]);
 
         $resp->assertRedirect();
         $resp->assertSessionHas('erro');
-        $this->assertSame($origem->id, $rede->fresh()->plano_id);
+        $this->assertNotSame($gratis->id, $outra->fresh()->plano_id);
     }
 
     public function test_trocar_para_o_mesmo_plano_e_rejeitado(): void
     {
         $contexto = $this->criarRedeAutenticada();
-        $rede = $contexto['rede'];
-        $planoAtual = Plano::find($rede->plano_id);
+        $empresa = $contexto['empresa'];
 
-        $resp = $this->post(route('assinatura.transicionar'), ['plano_id' => $planoAtual->id]);
+        $resp = $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $empresa->id,
+            'plano_id' => $empresa->plano_id,
+        ]);
 
         $resp->assertRedirect();
         $resp->assertSessionHas('erro');
@@ -151,16 +194,20 @@ class AssinaturaTest extends TestCase
     public function test_usuario_sem_permissao_recebe_403_ao_transicionar(): void
     {
         $contexto = $this->criarRede();
-        $destino = PlanoFactory::new()->create(['max_empresas' => 10, 'max_usuarios' => 10]);
         $comum = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Recepcao');
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->actingAs($comum);
         session(['empresas_atuais' => [$contexto['empresa']->id]]);
 
-        $resp = $this->post(route('assinatura.transicionar'), ['plano_id' => $destino->id]);
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
+
+        $resp = $this->post(route('assinatura.transicionar'), [
+            'empresa_id' => $contexto['empresa']->id,
+            'plano_id' => $gratis->id,
+        ]);
 
         $resp->assertForbidden();
-        $this->assertSame($contexto['rede']->plano_id, $contexto['rede']->fresh()->plano_id);
+        $this->assertSame($contexto['empresa']->plano_id, $contexto['empresa']->fresh()->plano_id);
     }
 }

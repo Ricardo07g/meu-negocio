@@ -373,8 +373,8 @@ class VendaStoreSmokeTest extends TestCase
         $empresaPadrao = $contexto['empresa'];
 
         // Rede multi-empresa; sessao com todas e SEM empresa_contexto_atual (cenario do bug).
-        $empresa2 = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial Norte']);
-        $empresa3 = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial Sul']);
+        $empresa2 = $this->criarEmpresaExtra($rede->id, 'Filial Norte');
+        $empresa3 = $this->criarEmpresaExtra($rede->id, 'Filial Sul');
         session(['empresas_atuais' => [$empresaPadrao->id, $empresa2->id, $empresa3->id]]);
         session()->forget('empresa_contexto_atual');
 

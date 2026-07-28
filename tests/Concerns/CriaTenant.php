@@ -52,22 +52,24 @@ trait CriaTenant
      *
      * @return array{rede: Rede, empresa: Empresa, usuario: Usuario}
      */
-    protected function criarRede(?string $sufixo = null): array
+    protected function criarRede(?string $sufixo = null, string $planoSlug = Plano::PRO): array
     {
         $this->garantirSeedsBase();
 
         $sufixo ??= (string) random_int(1, 999_999);
 
-        $plano = Plano::where('nome', 'free')->firstOrFail();
+        // A licenca e da empresa, nao da rede. Pro por padrao: e o que o registro real
+        // entrega (trial no Pro) e o que mantem estoque/financeiro ligados nos fluxos.
+        $plano = Plano::where('slug', $planoSlug)->firstOrFail();
 
         $rede = Rede::create([
             'nome' => "Rede Teste {$sufixo}",
-            'plano_id' => $plano->id,
             'status' => StatusRede::Ativa,
         ]);
 
         $empresa = Empresa::create([
             'rede_id' => $rede->id,
+            'plano_id' => $plano->id,
             'nome' => "Empresa {$sufixo}",
         ]);
 
@@ -91,6 +93,22 @@ trait CriaTenant
         app(FormaPagamentoService::class)->semearPadrao($rede->id, $empresa->id);
 
         return compact('rede', 'empresa', 'usuario');
+    }
+
+    /**
+     * Cria uma unidade extra na rede para cenarios multi-empresa.
+     *
+     * Toda empresa e uma licenca: `plano_id` e obrigatorio. Pro por padrao, para os
+     * fluxos de estoque/financeiro seguirem disponiveis. Nao semeia contas nem formas
+     * de pagamento — os testes que precisam disso chamam os services explicitamente.
+     */
+    protected function criarEmpresaExtra(int $redeId, string $nome): Empresa
+    {
+        return Empresa::create([
+            'rede_id' => $redeId,
+            'plano_id' => Plano::where('slug', Plano::PRO)->firstOrFail()->id,
+            'nome' => $nome,
+        ]);
     }
 
     /**
@@ -138,7 +156,7 @@ trait CriaTenant
      */
     protected function garantirSeedsBase(): void
     {
-        if (Plano::where('nome', 'free')->doesntExist()) {
+        if (Plano::where('slug', Plano::PRO)->doesntExist()) {
             $this->seed(PlanoSeeder::class);
         }
 

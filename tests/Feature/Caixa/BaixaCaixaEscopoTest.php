@@ -79,7 +79,7 @@ class BaixaCaixaEscopoTest extends TestCase
         $usuario = $ctx['usuario'];
 
         // Segunda empresa na mesma rede, com suas proprias contas e formas.
-        $emp2 = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Empresa 2']);
+        $emp2 = $this->criarEmpresaExtra($rede->id, 'Empresa 2');
         app(ContaService::class)->semearPadrao($rede->id, $emp2->id);
         app(FormaPagamentoService::class)->semearPadrao($rede->id, $emp2->id);
 

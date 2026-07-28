@@ -30,10 +30,7 @@ class TrocaEmpresaNaoDeslogaTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa']; // empresa default do user (empresa_id=$empA->id)
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         // Usuario tem empresa_id default = empA, mas vai narrowar contexto para empB.
         session(['empresas_atuais' => [$empA->id, $empB->id]]);
@@ -55,10 +52,7 @@ class TrocaEmpresaNaoDeslogaTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         // Simula estado herdado de uma navegacao anterior — contexto em empB.
         session([

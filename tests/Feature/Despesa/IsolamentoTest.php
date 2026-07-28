@@ -59,10 +59,7 @@ class IsolamentoTest extends TestCase
     {
         $contexto = $this->criarRedeAutenticada();
 
-        $outraEmpresa = Empresa::create([
-            'rede_id' => $contexto['rede']->id,
-            'nome' => 'Filial 2',
-        ]);
+        $outraEmpresa = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial 2');
 
         $daEmpresaAtual = DespesaFactory::new()->create([
             'rede_id' => $contexto['rede']->id,

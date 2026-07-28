@@ -62,10 +62,7 @@ class IsolamentoAgendamentoTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         session(['empresas_atuais' => [$empA->id, $empB->id]]);
 

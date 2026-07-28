@@ -27,10 +27,7 @@ class AtendentesEscopoTest extends TestCase
         $empA = $contexto['empresa'];
         $admin = $contexto['usuario']; // Admin, atende=true, acessa toda a rede
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         // Profissional vinculado SOMENTE a empresa A.
         $profA = $this->criarUsuarioComum($rede, $empA, 'Profissional');

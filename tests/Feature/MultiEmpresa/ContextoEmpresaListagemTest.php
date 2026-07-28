@@ -26,10 +26,7 @@ class ContextoEmpresaListagemTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         session(['empresas_atuais' => [$empA->id, $empB->id]]);
 
@@ -45,10 +42,7 @@ class ContextoEmpresaListagemTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         session([
             'empresas_atuais' => [$empA->id, $empB->id],
@@ -68,10 +62,7 @@ class ContextoEmpresaListagemTest extends TestCase
         $empA = $contexto['empresa'];
 
         // Cria empresa fora do alcance do usuario (outra rede simulada via id alto).
-        $empOutraRede = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa Inacessivel',
-        ]);
+        $empOutraRede = $this->criarEmpresaExtra($rede->id, 'Empresa Inacessivel');
 
         // Apenas empA esta em empresas_atuais — empOutraRede nao e acessivel.
         session(['empresas_atuais' => [$empA->id]]);
@@ -88,10 +79,7 @@ class ContextoEmpresaListagemTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         session(['empresas_atuais' => [$empA->id, $empB->id]]);
 
@@ -137,10 +125,7 @@ class ContextoEmpresaListagemTest extends TestCase
         $rede = $contexto['rede'];
         $empA = $contexto['empresa'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         $produto = Produto::create([
             'rede_id' => $rede->id,

@@ -86,7 +86,7 @@ class ResumoDiaTest extends TestCase
         $this->criarBaixa($ctx['rede'], $ctx['empresa'], 'Dinheiro', 100, $hoje);
 
         // Segunda empresa na MESMA rede, com baixa propria — nao deve entrar no resumo da empresa em contexto.
-        $empB = Empresa::create(['rede_id' => $ctx['rede']->id, 'nome' => 'Filial B']);
+        $empB = $this->criarEmpresaExtra($ctx['rede']->id, 'Filial B');
         $this->criarBaixa($ctx['rede'], $empB, 'Dinheiro', 500, $hoje);
 
         $resumo = app(ResumoDiaService::class)->porForma($hoje);
