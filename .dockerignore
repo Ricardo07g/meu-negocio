@@ -1,0 +1,34 @@
+.git
+.github
+.idea
+.vscode
+
+# Dependencias (rebuildadas dentro da imagem)
+vendor
+node_modules
+
+# Segredos e ambiente local — NUNCA vao para a imagem
+.env
+.env.*
+!.env.example
+
+# Assets buildados localmente (gerados no stage de assets)
+public/build
+public/hot
+public/storage
+
+# Ambiente de desenvolvimento / docker-compose
+docker-compose.yml
+
+# Logs e caches locais
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*.php
+
+# Testes e ferramentas
+tests
+phpunit.xml
+.phpunit.result.cache
+devkit

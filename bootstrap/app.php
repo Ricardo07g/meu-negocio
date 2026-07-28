@@ -21,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         LimparExportacoes::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        // Railway (e afins) terminam o TLS no proxy e encaminham via HTTP.
+        // Confiar no proxy faz o Laravel enxergar o esquema HTTPS correto (assets, cookies, redirects).
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'verificar.rede' => VerificarRede::class,
             'verificar.empresa' => VerificarEmpresa::class,
