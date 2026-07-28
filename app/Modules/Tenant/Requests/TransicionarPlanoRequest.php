@@ -17,6 +17,8 @@ class TransicionarPlanoRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // A licenca e da unidade: a troca precisa dizer QUAL unidade muda de plano.
+            'empresa_id' => ['required', 'integer', 'exists:empresas,id'],
             'plano_id' => ['required', 'integer', 'exists:planos,id'],
         ];
     }

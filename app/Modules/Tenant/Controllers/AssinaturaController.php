@@ -6,14 +6,21 @@ namespace App\Modules\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Tenant\Actions\TransicionarPlanoAction;
-use App\Modules\Tenant\Models\{Fatura, Plano, Rede};
+use App\Modules\Tenant\Models\{Empresa, Fatura, Plano};
 use App\Modules\Tenant\Requests\TransicionarPlanoRequest;
-use App\Modules\Usuario\Models\Usuario;
+use App\Support\PlanoVigente;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
+/**
+ * "Minha Assinatura": as licencas da rede (uma por unidade), a fatura consolidada do
+ * mes e o historico.
+ *
+ * Nao ha gateway de pagamento — a cobranca e simulada, e a tela diz isso. Faturas
+ * tambem nao sao mais fabricadas na leitura da tela: um `GET` nao escreve no banco.
+ */
 class AssinaturaController extends Controller
 {
     use TratamentoErros;
@@ -23,13 +30,16 @@ class AssinaturaController extends Controller
         $this->authorize('viewAny', Fatura::class);
 
         $usuario = auth()->user();
-        $rede = $usuario->rede->loadMissing('plano');
-        $plano = $rede->plano;
+        $rede = $usuario->rede;
 
-        $usoEmpresas = $rede->empresas()->count();
-        $usoUsuarios = $rede->usuarios()->count();
+        // RedeTrait ja restringe a rede do usuario.
+        $licencas = Empresa::with('plano')->orderBy('nome')->get();
 
-        $this->garantirHistoricoFaturas($rede);
+        $empresaVigente = PlanoVigente::empresa();
+        $plano = $empresaVigente?->plano;
+
+        $cobraveis = $licencas->reject(fn (Empresa $e) => $e->emTrial());
+        $valorMensal = (float) $cobraveis->sum(fn (Empresa $e) => (float) $e->plano->preco_por_licenca);
 
         $referenciaAtual = Carbon::now()->format('Y-m');
         $faturaAtual = Fatura::with('plano:id,nome')
@@ -52,11 +62,11 @@ class AssinaturaController extends Controller
 
         $totalPagoNoAno = (float) $faturas->where('status', 'paga')->sum('valor');
 
-        $todosPlanos = Plano::orderBy('preco_mensal')->get();
+        $todosPlanos = Plano::orderBy('preco_por_licenca')->get();
         $podeTrocar = $usuario->can('transicionar', Fatura::class);
 
         return view('tenant::assinatura', compact(
-            'rede', 'plano', 'usoEmpresas', 'usoUsuarios',
+            'rede', 'plano', 'empresaVigente', 'licencas', 'valorMensal',
             'faturaAtual', 'faturas', 'anoSelecionado', 'anosDisponiveis', 'totalPagoNoAno',
             'todosPlanos', 'podeTrocar'
         ));
@@ -65,73 +75,18 @@ class AssinaturaController extends Controller
     public function transicionar(TransicionarPlanoRequest $request, TransicionarPlanoAction $action): RedirectResponse
     {
         try {
-            /** @var Usuario $usuario */
-            $usuario = auth()->user();
-            /** @var Rede $rede */
-            $rede = $usuario->rede;
+            // O global scope de rede impede alcançar unidade de outra rede.
+            $empresa = Empresa::findOrFail($request->integer('empresa_id'));
             $destino = Plano::findOrFail($request->integer('plano_id'));
-            $fatura = $action->executar($rede, $destino);
+
+            $action->executar($empresa, $destino);
 
             return redirect()->route('assinatura.index')->with(
                 'sucesso',
-                "Plano alterado para \"{$destino->nome}\". Fatura do mes ajustada para R$ "
-                .number_format((float) $fatura->valor, 2, ',', '.').'.'
+                "A unidade \"{$empresa->nome}\" passou para o plano \"{$destino->nome}\"."
             );
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Falha ao transicionar plano de assinatura');
-        }
-    }
-
-    /**
-     * Cria, sob demanda, faturas mensais entre a criacao da rede e o mes atual.
-     * Faturas de meses passados sao marcadas como "paga"; a do mes vigente
-     * fica em aberto (ou paga se o vencimento ja passou). E idempotente por
-     * causa do unique (rede_id, referencia).
-     */
-    private function garantirHistoricoFaturas(Rede $rede): void
-    {
-        if (! $rede->created_at || ! $rede->plano) {
-            return;
-        }
-
-        $cursor = $rede->created_at->copy()->startOfMonth();
-        $fim = Carbon::now()->startOfMonth();
-        $iteracoes = 0;
-
-        while ($cursor->lte($fim) && $iteracoes < 60) {
-            $referencia = $cursor->format('Y-m');
-            $existe = Fatura::where('referencia', $referencia)->exists();
-
-            if (! $existe) {
-                $diaCriacao = $rede->created_at->day;
-                $diaVencimento = min($diaCriacao, $cursor->copy()->endOfMonth()->day);
-                $vencimento = Carbon::create($cursor->year, $cursor->month, $diaVencimento);
-                $eMesAtual = $referencia === $fim->format('Y-m');
-
-                $status = 'em_aberto';
-                $pagoEm = null;
-
-                if (! $eMesAtual) {
-                    $status = 'paga';
-                    $pagoEm = $vencimento->copy()->addDays(rand(0, 4));
-                } elseif ($vencimento->isPast()) {
-                    $status = 'paga';
-                    $pagoEm = $vencimento->copy()->addDays(rand(0, 2));
-                }
-
-                Fatura::create([
-                    'rede_id' => $rede->id,
-                    'plano_id' => $rede->plano_id,
-                    'referencia' => $referencia,
-                    'valor' => $rede->plano->preco_mensal,
-                    'vencimento' => $vencimento,
-                    'pago_em' => $pagoEm,
-                    'status' => $status,
-                ]);
-            }
-
-            $cursor->addMonth();
-            $iteracoes++;
         }
     }
 }

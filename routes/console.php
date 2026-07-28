@@ -14,3 +14,6 @@ Schedule::command('arquivos:limpar-rascunhos')->daily();
 
 // Remove exportacoes de extrato expiradas (arquivo + registro), de hora em hora.
 Schedule::command('exportacoes:limpar')->hourly();
+
+// Encerra os testes gratuitos vencidos (unidade cai do Pro para o Gratis).
+Schedule::command('assinaturas:expirar-trial')->daily();

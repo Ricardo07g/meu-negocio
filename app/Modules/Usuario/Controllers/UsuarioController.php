@@ -11,6 +11,7 @@ use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\SalvarUsuarioRequest;
 use App\Modules\Usuario\Services\UsuarioService;
+use App\Support\PlanoVigente;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -31,13 +32,14 @@ class UsuarioController extends Controller
             $this->authorize('viewAny', Usuario::class);
             $usuarios = $this->service->listar();
 
-            $rede = auth()->user()->rede;
-            $maxUsuarios = (int) ($rede->plano->max_usuarios ?? 0);
-            $atualUsuarios = $rede->usuarios()->count();
+            // Assentos sao da licenca da unidade em contexto, nao da rede.
+            $empresa = PlanoVigente::empresa();
+            $maxUsuarios = (int) ($empresa?->plano->max_usuarios ?? 0);
+            $atualUsuarios = $empresa?->contarUsuarios() ?? 0;
             $limite = [
                 'atual' => $atualUsuarios,
                 'maximo' => $maxUsuarios,
-                'atingido' => $maxUsuarios !== 0 && $atualUsuarios >= $maxUsuarios,
+                'atingido' => $atualUsuarios >= $maxUsuarios,
             ];
 
             return view('usuario::index', compact('usuarios', 'limite'));

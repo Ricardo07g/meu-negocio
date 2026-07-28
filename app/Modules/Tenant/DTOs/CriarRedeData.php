@@ -10,6 +10,5 @@ class CriarRedeData extends Data
 {
     public function __construct(
         public string $nome,
-        public ?int $plano_id = null,
     ) {}
 }

@@ -1,32 +1,28 @@
 {{--
-    Aviso visual de limite de plano + botao "novo" desabilitado quando atingido.
+    Aviso visual de limite da licenca + botao "novo" desabilitado quando atingido.
+
+    Todo limite e finito: nao existe mais a convencao `0 = ilimitado`.
 
     Uso:
         @include('partials.aviso-limite-plano', [
-            'recurso'     => 'empresas',         // label plural exibido
+            'recurso'     => 'usuarios',         // label plural exibido
             'atual'       => $limite['atual'],
-            'maximo'      => $limite['maximo'],  // 0 = ilimitado
+            'maximo'      => $limite['maximo'],
             'atingido'    => $limite['atingido'],
-            'rotaCriar'   => route('empresas.create'),
-            'labelBotao'  => 'Nova Empresa',
-            'permissaoBlade' => 'empresa.criar',
+            'rotaCriar'   => route('usuarios.create'),
+            'labelBotao'  => 'Novo Usuario',
+            'permissaoBlade' => 'usuario.criar',
         ])
 --}}
 @php
     $atingido = $atingido ?? false;
     $atual = $atual ?? 0;
     $maximo = $maximo ?? 0;
-    $ilimitado = $maximo === 0;
-    $proximoLimite = ! $ilimitado && ! $atingido && $atual >= ($maximo - 1);
+    $proximoLimite = ! $atingido && $atual >= ($maximo - 1);
 @endphp
 
 @php
-    if ($ilimitado) {
-        $alertClass = 'alert-light border';
-        $iconClass = 'feather-info';
-        $badgeClass = 'bg-success-subtle text-success';
-        $badgeTexto = $atual.' cadastrados';
-    } elseif ($atingido) {
+    if ($atingido) {
         $alertClass = 'alert-warning';
         $iconClass = 'feather-alert-triangle';
         $badgeClass = 'bg-warning';
@@ -47,14 +43,12 @@
 <div class="alert {{ $alertClass }} d-flex align-items-center mb-3" role="alert">
     <i class="{{ $iconClass }} me-2"></i>
     <div class="flex-grow-1">
-        @if ($ilimitado)
-            Voce esta no plano com <strong>{{ ucfirst($recurso) }} ilimitados</strong>. {{ $atual }} cadastrados ate o momento.
-        @elseif ($atingido)
-            <strong>Limite do plano atingido.</strong>
-            Voce ja cadastrou {{ $atual }} de {{ $maximo }} {{ $recurso }} permitidos.
-            Para cadastrar mais, fale com o suporte para ampliar o plano.
+        @if ($atingido)
+            <strong>Limite da licenca atingido.</strong>
+            Voce ja cadastrou {{ $atual }} de {{ $maximo }} {{ $recurso }} permitidos nesta unidade.
+            Para cadastrar mais, fale com o suporte para ampliar a licenca.
         @else
-            Em uso: <strong>{{ $atual }}</strong> de <strong>{{ $maximo }}</strong> {{ $recurso }} disponiveis no seu plano.
+            Em uso: <strong>{{ $atual }}</strong> de <strong>{{ $maximo }}</strong> {{ $recurso }} disponiveis na licenca desta unidade.
         @endif
     </div>
     <span class="badge {{ $badgeClass }}">{{ $badgeTexto }}</span>

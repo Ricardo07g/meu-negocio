@@ -151,6 +151,13 @@
 </head>
 
 <body>
+@php
+    // A licenca e da empresa em contexto, nao da rede: duas unidades da mesma rede
+    // podem estar em planos diferentes, e a sidebar acompanha a troca de contexto.
+    $empresaVigente = \App\Support\PlanoVigente::empresa();
+    $planoVigente = $empresaVigente?->plano;
+@endphp
+
     {{-- Sidebar Navigation --}}
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
@@ -227,7 +234,7 @@
                     </li>
                     @endcan
 
-                    @if(auth()->user()->rede->plano->tem_financeiro)
+                    @if($planoVigente?->tem_financeiro)
                     <li class="nxl-item nxl-caption">
                         <label>Financeiro</label>
                     </li>
@@ -278,7 +285,7 @@
                     @endcan
                     @endif
 
-                    @if(auth()->user()->rede->plano->tem_estoque)
+                    @if($planoVigente?->tem_estoque)
                     <li class="nxl-item nxl-caption">
                         <label>Estoque</label>
                     </li>
@@ -457,6 +464,24 @@
                 </div>
             </div>
             <div class="main-content">
+                {{-- Teste gratuito da unidade: ao vencer, a licenca cai para o Gratis. --}}
+                @if($empresaVigente?->emTrial())
+                @php $diasDeTeste = $empresaVigente->diasRestantesTrial(); @endphp
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="feather-clock me-2"></i>
+                    <div class="flex-grow-1">
+                        <strong>Teste grátis do plano Pro.</strong>
+                        @if($diasDeTeste === 0)
+                            Último dia — depois esta unidade passa para o plano Grátis.
+                        @else
+                            Faltam {{ $diasDeTeste }} {{ $diasDeTeste === 1 ? 'dia' : 'dias' }} —
+                            depois esta unidade passa para o plano Grátis.
+                        @endif
+                    </div>
+                    <a href="{{ route('assinatura.index') }}" class="btn btn-sm btn-primary ms-2">Ver assinatura</a>
+                </div>
+                @endif
+
                 {{-- Flash messages --}}
                 @if(session('sucesso'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">

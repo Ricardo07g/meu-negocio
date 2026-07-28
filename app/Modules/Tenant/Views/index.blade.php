@@ -7,15 +7,16 @@
 @endsection
 
 @section('content')
-    @include('partials.aviso-limite-plano', [
-        'recurso' => 'empresas',
-        'atual' => $limite['atual'],
-        'maximo' => $limite['maximo'],
-        'atingido' => $limite['atingido'],
-        'rotaCriar' => route('empresas.create'),
-        'labelBotao' => 'Nova Empresa',
-        'permissaoBlade' => 'empresa.criar',
-    ])
+    {{-- Cada unidade e uma licenca contratada. Contratar outra e ato comercial: nao ha
+         botao de "Nova Empresa" — o operador do SaaS provisiona. --}}
+    <div class="alert alert-light border d-flex align-items-center mb-3" role="alert">
+        <i class="feather-info me-2"></i>
+        <div class="flex-grow-1">
+            <strong>{{ $empresas->count() }}</strong>
+            {{ $empresas->count() === 1 ? 'unidade licenciada' : 'unidades licenciadas' }}.
+            Para contratar outra unidade, fale com o suporte.
+        </div>
+    </div>
 
     {{-- Card with table --}}
     <div class="card stretch stretch-full">
@@ -25,6 +26,7 @@
                     <thead>
                         <tr>
                             <th>Nome</th>
+                            <th>Licença</th>
                             <th>Documento</th>
                             <th>Telefone</th>
                             <th>Email</th>
@@ -35,6 +37,14 @@
                         @forelse($empresas as $empresa)
                         <tr>
                             <td>{{ $empresa->nome }}</td>
+                            <td>
+                                <span class="badge bg-soft-{{ $empresa->plano->tem_financeiro ? 'primary text-primary' : 'secondary text-secondary' }}">
+                                    {{ $empresa->plano->nome }}
+                                </span>
+                                @if ($empresa->emTrial())
+                                    <small class="text-muted ms-1">teste · {{ $empresa->diasRestantesTrial() }}d</small>
+                                @endif
+                            </td>
                             <td>{{ $empresa->documento ?? '-' }}</td>
                             <td>{{ $empresa->telefone ?? '-' }}</td>
                             <td>{{ $empresa->email ?? '-' }}</td>
@@ -53,25 +63,13 @@
                                                 </a>
                                             </li>
                                             @endcan
-                                            @can('empresa.excluir')
-                                            <li class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('empresas.destroy', $empresa) }}" method="POST" data-confirm="Excluir esta empresa?">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Excluir</span>
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            @endcan
                                         </ul>
                                     </div>
                                 </div>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhuma empresa cadastrada.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma unidade licenciada.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

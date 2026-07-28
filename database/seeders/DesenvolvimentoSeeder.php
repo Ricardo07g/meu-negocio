@@ -125,16 +125,18 @@ class DesenvolvimentoSeeder extends Seeder
 
     private function criarRedeEEmpresa(): void
     {
-        $plano = Plano::where('nome', 'business')->firstOrFail();
+        // A licenca e da empresa: as tres unidades da demo sao contratos Pro.
+        $plano = Plano::where('slug', Plano::PRO)->firstOrFail();
 
         $this->rede = Rede::firstOrCreate(
             ['nome' => 'Rede Demo'],
-            ['plano_id' => $plano->id, 'status' => StatusRede::Ativa],
+            ['status' => StatusRede::Ativa],
         );
 
         $this->empresa = Empresa::firstOrCreate(
             ['rede_id' => $this->rede->id, 'nome' => 'Unidade Central'],
             [
+                'plano_id' => $plano->id,
                 'documento' => $this->faker->numerify('##.###.###/0001-##'),
                 'telefone' => $this->faker->cellphoneNumber(),
                 'email' => 'contato@teste.com',
@@ -147,6 +149,7 @@ class DesenvolvimentoSeeder extends Seeder
             $this->empresasExtras[] = Empresa::firstOrCreate(
                 ['rede_id' => $this->rede->id, 'nome' => $nome],
                 [
+                    'plano_id' => $plano->id,
                     'documento' => $this->faker->numerify('##.###.###/0001-##'),
                     'telefone' => $this->faker->cellphoneNumber(),
                     'email' => strtolower(str_replace(' ', '', $nome)).'@teste.com',

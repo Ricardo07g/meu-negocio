@@ -5,22 +5,23 @@ declare(strict_types=1);
 namespace App\Modules\Tenant\Actions;
 
 use App\Exceptions\PlanoLimiteException;
-use App\Modules\Tenant\Models\Rede;
+use App\Modules\Tenant\Models\Empresa;
 
+/**
+ * Valida limites e feature flags da licenca de UMA empresa.
+ *
+ * Nao existe mais o recurso `empresa` (o plano nao concede unidades) nem o
+ * `0 = ilimitado`: todo limite e finito.
+ */
 class ValidarPlanoAction
 {
-    public function executar(Rede $rede, string $recurso): void
+    public function executar(Empresa $empresa, string $recurso): void
     {
-        $plano = $rede->plano;
+        $plano = $empresa->plano;
 
         match ($recurso) {
-            'empresa' => $this->validarLimite(
-                $rede->empresas()->count(),
-                $plano->max_empresas,
-                'empresas'
-            ),
             'usuario' => $this->validarLimite(
-                $rede->usuarios()->count(),
+                $empresa->contarUsuarios(),
                 $plano->max_usuarios,
                 'usuários'
             ),
@@ -32,8 +33,7 @@ class ValidarPlanoAction
 
     private function validarLimite(int $atual, int $maximo, string $recurso): void
     {
-        // 0 = ilimitado
-        if ($maximo > 0 && $atual >= $maximo) {
+        if ($atual >= $maximo) {
             throw new PlanoLimiteException($recurso);
         }
     }

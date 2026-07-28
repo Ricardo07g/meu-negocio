@@ -17,7 +17,7 @@ class CriarUsuarioAction
 
     public function executar(Rede $rede, UsuarioData $data): Usuario
     {
-        $this->validarPlano->executar($rede, 'usuario');
+        $this->validarAssentos($rede, $data);
 
         $papel = $data->papel;
 
@@ -42,5 +42,18 @@ class CriarUsuarioAction
         }
 
         return $usuario;
+    }
+
+    /**
+     * O limite de usuarios e da licenca de cada unidade, nao da rede: um usuario com
+     * acesso a tres empresas ocupa um assento em cada uma.
+     */
+    private function validarAssentos(Rede $rede, UsuarioData $data): void
+    {
+        $ids = $data->empresas ?? array_filter([$data->empresa_id]);
+
+        foreach ($rede->empresas()->whereIn('id', $ids)->get() as $empresa) {
+            $this->validarPlano->executar($empresa, 'usuario');
+        }
     }
 }
