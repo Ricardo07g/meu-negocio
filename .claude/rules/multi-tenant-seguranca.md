@@ -76,8 +76,12 @@ Single DB + colunas de tenant, em dois niveis:
 4. **Permissao**: `XxxPolicy` em todo model sensivel + `$this->authorize(...)` em todo metodo de
    escrita do controller (spatie/laravel-permission). A Policy precisa estar **registrada** em
    `app/Providers/AppServiceProvider.php`.
-5. **Plano** (quando aplicavel): `verificar.plano:{modulo}` — feature flags (`tem_estoque`,
-   `tem_financeiro`) + limites (`max_empresas`, `max_usuarios`; `0` = ilimitado).
+5. **Plano/licenca** (quando aplicavel): `verificar.plano:{modulo}` — feature flags (`tem_estoque`,
+   `tem_financeiro`) + assentos (`max_usuarios`). **A licenca e da EMPRESA, nao da rede**
+   (ADR-0013): duas unidades da mesma rede podem estar em planos diferentes. Resolva sempre via
+   `App\Support\PlanoVigente` (`ContextoEmpresa::resolver() ?? $usuario->empresa_id`) — nunca
+   `$rede->plano`, que nao existe mais. Todo limite e finito: a convencao `0 = ilimitado` foi
+   removida junto com `max_empresas`.
 
 ### Permissoes (spatie/laravel-permission)
 - Roles/permissions sao GLOBAIS (`teams => false`), nao tenant-scoped.

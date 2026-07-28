@@ -2,7 +2,10 @@
 
 ## Status
 
-Aceito — junho/2026.
+Aceito — junho/2026. **Parcialmente substituído pelo [ADR-0013](0013-licenca-por-empresa.md)**
+(julho/2026): a unidade comercial deixou de ser a rede e passou a ser a empresa, `max_empresas`
+e o histórico retroativo de faturas foram removidos. O rateio pro-rata na fatura do mês descrito
+aqui continua valendo, agora aplicado à licença que muda de plano.
 
 ## Contexto
 
