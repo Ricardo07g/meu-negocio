@@ -48,7 +48,7 @@
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover tabela-empilha mb-0">
                     <thead>
                         <tr>
                             <th style="width:56px"></th>
@@ -63,8 +63,8 @@
                         @forelse($servicos as $servico)
                         <tr>
                             <td><x-thumb :url="$servico->imagem_thumb_url" :nome="$servico->nome" icone="feather-scissors" :circulo="false" /></td>
-                            <td>{{ $servico->nome }}</td>
-                            <td>
+                            <td data-label="Nome">{{ $servico->nome }}</td>
+                            <td data-label="Tipo">
                                 @switch($servico->tipo->value)
                                     @case('etapas')
                                         <span class="badge bg-primary">Etapas ({{ $servico->qtd_etapas }}x)</span>
@@ -73,57 +73,24 @@
                                         <span class="badge bg-light text-dark">Único</span>
                                 @endswitch
                             </td>
-                            <td>{{ $servico->duracao }} min</td>
-                            <td>R$ {{ number_format($servico->valor, 2, ',', '.') }}</td>
+                            <td data-label="Duração (min)">{{ $servico->duracao }} min</td>
+                            <td data-label="Valor">R$ {{ number_format($servico->valor, 2, ',', '.') }}</td>
                             <td>
-                                <div class="hstack gap-2 justify-content-end">
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('servicos.show', $servico) }}">
-                                                    <i class="feather-eye me-3"></i>
-                                                    <span>Ver</span>
-                                                </a>
-                                            </li>
-                                            @can('servico.editar')
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('servicos.edit', $servico) }}">
-                                                    <i class="feather-edit-3 me-3"></i>
-                                                    <span>Editar</span>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                            @can('servico.excluir')
-                                            <li class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('servicos.destroy', $servico) }}" method="POST" data-confirm="Excluir este serviço?">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Excluir</span>
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            @endcan
-                                        </ul>
-                                    </div>
-                                </div>
+                                <x-acoes-linha :ver="route('servicos.show', $servico)"
+                                               :editar="route('servicos.edit', $servico)"
+                                               permissaoEditar="servico.editar"
+                                               :excluir="route('servicos.destroy', $servico)"
+                                               permissaoExcluir="servico.excluir"
+                                               confirmacao="Excluir este serviço?" />
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Nenhum serviço cadastrado.</td></tr>
+                        <tr class="sem-registros"><td colspan="6" class="text-center text-muted py-4">Nenhum serviço cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-        @if($servicos->hasPages())
-            <div class="card-footer">
-                {{ $servicos->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$servicos" />
     </div>
 @endsection

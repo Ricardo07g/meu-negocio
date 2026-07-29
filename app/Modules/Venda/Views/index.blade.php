@@ -128,10 +128,6 @@
                 </div>
             @endforelse
         </div>
-        @if($vendas->hasPages())
-            <div class="card-footer">
-                {{ $vendas->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$vendas" />
     </div>
 @endsection

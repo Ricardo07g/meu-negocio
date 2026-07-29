@@ -57,7 +57,9 @@
         <div class="row mb-4">
             <div class="col-md-6">
                 <label class="form-label">Telefone</label>
-                <div class="d-flex align-items-center gap-3">
+                {{-- Abaixo de sm o checkbox desce: o label e text-nowrap e, lado a lado,
+                     espremia o input de telefone ate cortar a mascara. --}}
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2 gap-sm-3">
                     <input type="text" name="telefone" class="form-control mask-telefone @error('telefone') is-invalid @enderror" value="{{ old('telefone', $entidade?->telefone) }}" placeholder="(00) 00000-0000">
                     <div class="form-check text-nowrap mb-0">
                         <input type="hidden" name="telefone_whatsapp" value="0">

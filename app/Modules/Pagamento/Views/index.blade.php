@@ -77,10 +77,6 @@
                 </div>
             @endforelse
         </div>
-        @if($pagamentos->hasPages())
-            <div class="card-footer">
-                {{ $pagamentos->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$pagamentos" />
     </div>
 @endsection

@@ -65,7 +65,7 @@
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover tabela-empilha mb-0">
                     <thead>
                         <tr>
                             <th>Produto</th>
@@ -77,8 +77,8 @@
                     <tbody>
                         @forelse($movimentos as $movimento)
                         <tr>
-                            <td>{{ $movimento->produto->nome ?? '-' }}</td>
-                            <td>
+                            <td data-label="Produto">{{ $movimento->produto->nome ?? '-' }}</td>
+                            <td data-label="Tipo">
                                 @switch($movimento->tipo->value)
                                     @case('entrada')
                                         <span class="badge bg-success">Entrada</span>
@@ -93,20 +93,16 @@
                                         <span class="badge bg-secondary">{{ ucfirst($movimento->tipo->value) }}</span>
                                 @endswitch
                             </td>
-                            <td>{{ $movimento->quantidade }}</td>
-                            <td>{{ $movimento->created_at->format('d/m/Y H:i') }}</td>
+                            <td data-label="Quantidade">{{ $movimento->quantidade }}</td>
+                            <td data-label="Data">{{ $movimento->created_at->format('d/m/Y H:i') }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
+                        <tr class="sem-registros"><td colspan="4" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-        @if($movimentos->hasPages())
-            <div class="card-footer">
-                {{ $movimentos->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$movimentos" />
     </div>
 @endsection
