@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Button row OUTSIDE the card --}}
-    @can('servico.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('servicos.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Serviço
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('servicos.create')" label="Novo Serviço" permissao="servico.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('servicos.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('servicos.index')">
         <div class="col-12">
             <label class="form-label">Buscar</label>
             <input type="text" name="q" class="form-control" placeholder="Nome ou descrição..." value="{{ request('q') }}">

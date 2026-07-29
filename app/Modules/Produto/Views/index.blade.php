@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Button row OUTSIDE the card --}}
-    @can('produto.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('produtos.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Produto
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('produtos.create')" label="Novo Produto" permissao="produto.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('produtos.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('produtos.index')">
         <div class="col-12">
             <label class="form-label">Buscar</label>
             <input type="text" name="q" class="form-control" placeholder="Nome, código, código de barras ou descrição..." value="{{ request('q') }}">

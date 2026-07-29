@@ -9,15 +9,7 @@
 @section('content')
     @php $multiEmpresa = count((array) session('empresas_atuais', [])) > 1; @endphp
 
-    @can('conta.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('contas.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Nova Conta
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('contas.create')" label="Nova Conta" permissao="conta.criar" />
 
     <div class="card stretch stretch-full mb-4">
         <div class="card-body">

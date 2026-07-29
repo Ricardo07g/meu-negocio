@@ -9,15 +9,7 @@
 @section('content')
     @php $multiEmpresa = count((array) session('empresas_atuais', [])) > 1; @endphp
 
-    @can('forma_pagamento.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('formas-pagamento.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Nova Forma
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('formas-pagamento.create')" label="Nova Forma" permissao="forma_pagamento.criar" />
 
     {{-- Filtros --}}
     <div class="card stretch stretch-full mb-4">

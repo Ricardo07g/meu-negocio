@@ -9,15 +9,7 @@
 
 @section('content')
     {{-- Button row OUTSIDE the card --}}
-    @can('produto.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('categorias-produto.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Nova Categoria
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('categorias-produto.create')" label="Nova Categoria" permissao="produto.criar" />
 
     {{-- Filtros --}}
     <div class="card stretch stretch-full mb-4">

@@ -7,15 +7,7 @@
 @endsection
 
 @section('content')
-    @can('papel.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('perfis-acesso.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Perfil de Acesso
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('perfis-acesso.create')" label="Novo Perfil de Acesso" permissao="papel.criar" />
 
     <div class="card stretch stretch-full">
         <div class="card-body p-0">

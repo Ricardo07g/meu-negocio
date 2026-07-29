@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Botao Novo Cliente --}}
-    @can('cliente.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('clientes.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Cliente
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('clientes.create')" label="Novo Cliente" permissao="cliente.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('clientes.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('clientes.index')">
         <div class="col-12">
             <label class="form-label">Buscar</label>
             <input type="text" name="q" class="form-control" placeholder="Nome, telefone, email, CPF ou cidade..." value="{{ request('q') }}">

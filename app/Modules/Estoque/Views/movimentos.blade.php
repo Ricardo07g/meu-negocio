@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Botao Novo Movimento --}}
-    @can('movimento_estoque.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('movimentos-estoque.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Movimento
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('movimentos-estoque.create')" label="Novo Movimento" permissao="movimento_estoque.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('movimentos-estoque.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('movimentos-estoque.index')">
         {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
         @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
 

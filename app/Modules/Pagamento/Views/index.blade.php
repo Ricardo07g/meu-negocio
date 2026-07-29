@@ -8,8 +8,7 @@
 
 @section('content')
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('pagamentos.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('pagamentos.index')">
         {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
         @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
 

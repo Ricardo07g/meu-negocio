@@ -8,15 +8,7 @@
 @endsection
 
 @section('content')
-    @can('categoria_despesa.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('categorias-despesa.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Nova Categoria
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('categorias-despesa.create')" label="Nova Categoria" permissao="categoria_despesa.criar" />
 
     {{-- Filtros --}}
     <div class="card stretch stretch-full mb-4">
