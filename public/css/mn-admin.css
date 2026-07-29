@@ -128,10 +128,21 @@ html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
 /* O tema define .btn { padding: 12px 16px; font-size: 10px } => ~38px, e     */
 /* .btn-sm => ~28px. Abaixo do minimo confortavel de toque (44px).            */
 @media (max-width: 767.98px) {
-    .btn { min-height: 44px; }
-    .btn-sm { min-height: 38px; }
+    /* .btn-sm tambem vai a 44px: no celular nao existe acao "pequena" — quem
+       aciona "Mostrar filtros" ou "Extrato" usa o mesmo dedo. */
+    .btn,
+    .btn-sm { min-height: 44px; }
     .form-check-input { width: 1.25em; height: 1.25em; }
     .dropdown-item { padding-top: .6rem; padding-bottom: .6rem; }
+
+    /* Avatar do usuario no header: o <a> so envolvia a imagem de 30px. */
+    .nxl-header .nxl-h-item > a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
 }
 
 /* ── Barra de acoes de formulario (x-form-botoes / x-show-botoes) ───────── */

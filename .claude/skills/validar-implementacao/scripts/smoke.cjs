@@ -49,15 +49,34 @@ function resolveChrome() {
   return candidates.find((p) => fs.existsSync(p));
 }
 
-/** Elementos que estouram a largura da viewport, filtrados para os mais internos. */
+/**
+ * Overflow horizontal da PAGINA.
+ *
+ * O que importa e o documento rolar de lado, nao um elemento passar da borda:
+ * tabela dentro de .table-responsive (overflow-x: auto) e mais larga que a tela
+ * de proposito e rola sozinha. Por isso os culpados sao filtrados para fora de
+ * qualquer ancestral com scroll horizontal proprio.
+ */
 function coletarOverflow() {
-  const limite = document.documentElement.clientWidth;
+  const doc = document.documentElement;
+  const limite = doc.clientWidth;
+  const paginaEstoura = doc.scrollWidth > limite + 1;
+
+  const dentroDeScrollX = (el) => {
+    for (let p = el.parentElement; p && p !== doc; p = p.parentElement) {
+      const ox = getComputedStyle(p).overflowX;
+      if (ox === 'auto' || ox === 'scroll') return true;
+    }
+    return false;
+  };
+
   const todos = Array.from(document.querySelectorAll('body *')).filter((el) => {
     const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0 && r.right > limite + 1;
+    return r.width > 0 && r.height > 0 && r.right > limite + 1 && !dentroDeScrollX(el);
   });
+
   // Se um descendente tambem estoura, ele e a causa mais precisa — fica so a folha.
-  return todos
+  const culpados = todos
     .filter((el) => !todos.some((o) => o !== el && el.contains(o)))
     .slice(0, 5)
     .map((el) => ({
@@ -66,6 +85,8 @@ function coletarOverflow() {
       direita: Math.round(el.getBoundingClientRect().right),
       limite,
     }));
+
+  return { paginaEstoura, larguraDocumento: doc.scrollWidth, limite, culpados };
 }
 
 /** Botoes visiveis abaixo do alvo minimo de toque. */
@@ -173,7 +194,7 @@ function coletarAlvosPequenos(min) {
           status > 0 && status < 400 &&
           errors.length === 0 &&
           seletorPresente !== false &&
-          overflow.length === 0 &&
+          !overflow.paginaEstoura &&
           alvosPequenos.length === 0;
       } else {
         resultado.ok = status > 0 && status < 400 && errors.length === 0 && seletorPresente !== false;
