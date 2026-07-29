@@ -100,7 +100,10 @@ function coletarAlvosPequenos(min) {
     return r.width > 0 && r.height > 0;
   };
 
-  return Array.from(document.querySelectorAll('a.btn, button, [role=button]'))
+  // [data-bs-toggle=dropdown] entra porque o tema monta o "..." de acoes e o
+  // avatar do header como <a class="avatar-text">, sem .btn nem role=button —
+  // justamente os alvos mais tocados de uma listagem.
+  return Array.from(document.querySelectorAll('a.btn, button, [role=button], [data-bs-toggle="dropdown"]'))
     .filter((el) => !ignorar.some((sel) => el.matches(sel)))
     .filter(visivel)
     .filter((el) => el.getBoundingClientRect().height < min - 0.5)
