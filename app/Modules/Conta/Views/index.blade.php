@@ -11,45 +11,35 @@
 
     <x-botao-novo :rota="route('contas.create')" label="Nova Conta" permissao="conta.criar" />
 
-    <div class="card stretch stretch-full mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('contas.index') }}">
-                <div class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label">Buscar</label>
-                        <input type="text" name="q" class="form-control" placeholder="Nome da conta..." value="{{ request('q') }}">
-                    </div>
-                    @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
-                    <div class="col-md-3">
-                        <label class="form-label">Tipo</label>
-                        <select name="tipo" class="form-select">
-                            <option value="">Todos</option>
-                            @foreach($tipos as $tipo)
-                                <option value="{{ $tipo->value }}" @selected(request('tipo') === $tipo->value)>{{ $tipo->label() }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select name="ativo" class="form-select">
-                            <option value="">Todos</option>
-                            <option value="1" @selected(request('ativo') === '1')>Ativa</option>
-                            <option value="0" @selected(request('ativo') === '0')>Inativa</option>
-                        </select>
-                    </div>
-                    <div class="col-12 d-flex justify-content-end gap-2">
-                        <a href="{{ route('contas.index') }}" class="btn btn-light"><i class="feather-x me-1"></i>Limpar</a>
-                        <button type="submit" class="btn btn-primary"><i class="feather-filter me-1"></i>Filtrar</button>
-                    </div>
-                </div>
-            </form>
+    <x-filtros-listagem :action="route('contas.index')">
+        <div class="col-12 col-md-4">
+            <label class="form-label">Buscar</label>
+            <input type="text" name="q" class="form-control" placeholder="Nome da conta..." value="{{ request('q') }}">
         </div>
-    </div>
+        @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select">
+                <option value="">Todos</option>
+                @foreach($tipos as $tipo)
+                    <option value="{{ $tipo->value }}" @selected(request('tipo') === $tipo->value)>{{ $tipo->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-2">
+            <label class="form-label">Status</label>
+            <select name="ativo" class="form-select">
+                <option value="">Todos</option>
+                <option value="1" @selected(request('ativo') === '1')>Ativa</option>
+                <option value="0" @selected(request('ativo') === '0')>Inativa</option>
+            </select>
+        </div>
+    </x-filtros-listagem>
 
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover tabela-empilha mb-0">
                     <thead>
                         <tr>
                             <th>Nome</th>
@@ -64,10 +54,10 @@
                     <tbody>
                         @forelse($contas as $conta)
                         <tr>
-                            <td><i class="{{ $conta->tipo->icone() }} me-2 text-muted"></i>{{ $conta->nome }}</td>
-                            @if($multiEmpresa)<td class="text-muted">{{ $conta->empresa?->nome ?? '—' }}</td>@endif
-                            <td><span class="badge bg-soft-secondary text-secondary">{{ $conta->tipo->label() }}</span></td>
-                            <td>
+                            <td data-label="Nome"><i class="{{ $conta->tipo->icone() }} me-2 text-muted"></i>{{ $conta->nome }}</td>
+                            @if($multiEmpresa)<td class="text-muted" data-label="Empresa">{{ $conta->empresa?->nome ?? '—' }}</td>@endif
+                            <td data-label="Tipo"><span class="badge bg-soft-secondary text-secondary">{{ $conta->tipo->label() }}</span></td>
+                            <td data-label="Padrão">
                                 @if($conta->eh_caixa_padrao)
                                     <span class="badge bg-soft-success text-success">Caixa</span>
                                 @endif
@@ -75,8 +65,8 @@
                                     <span class="badge bg-soft-info text-info">Recebíveis</span>
                                 @endif
                             </td>
-                            <td class="text-end">R$ {{ number_format($conta->saldo(), 2, ',', '.') }}</td>
-                            <td>
+                            <td class="text-end" data-label="Saldo atual">R$ {{ number_format($conta->saldo(), 2, ',', '.') }}</td>
+                            <td data-label="Status">
                                 @if($conta->ativo)
                                     <span class="badge bg-soft-success text-success">Ativa</span>
                                 @else
@@ -143,7 +133,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="{{ $multiEmpresa ? 7 : 6 }}" class="text-center text-muted py-4">Nenhuma conta cadastrada.</td></tr>
+                        <tr class="sem-registros"><td colspan="{{ $multiEmpresa ? 7 : 6 }}" class="text-center text-muted py-4">Nenhuma conta cadastrada.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
