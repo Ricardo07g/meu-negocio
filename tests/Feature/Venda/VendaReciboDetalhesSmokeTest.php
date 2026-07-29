@@ -284,7 +284,7 @@ class VendaReciboDetalhesSmokeTest extends TestCase
     {
         $ctx = $this->montarContexto();
         $empresaPadrao = $ctx['empresa'];
-        $empresaOutra = Empresa::create(['rede_id' => $ctx['rede']->id, 'nome' => 'Filial Norte']);
+        $empresaOutra = $this->criarEmpresaExtra($ctx['rede']->id, 'Filial Norte');
         // Admin enxerga as duas empresas (senao o global scope esconderia a venda da Filial).
         session(['empresas_atuais' => [$empresaPadrao->id, $empresaOutra->id]]);
 

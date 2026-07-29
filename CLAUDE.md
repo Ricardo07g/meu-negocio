@@ -36,6 +36,9 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
   rede-level; transacional (Agendamento/Venda/Pagamento/Despesa/Caixa/Estoque/FormaPagamento/Conta) e
   por empresa (config financeira — formas e contas — e por empresa).
   -> isolamento, ME-010 e camadas de auth em `.claude/rules/multi-tenant-seguranca.md`.
+- **Licenca por empresa (ADR-0013)**: o `Plano` e da **Empresa** (`empresas.plano_id`), nao da rede —
+  cada unidade e um contrato. Feature flags e assentos resolvem pela empresa em contexto via
+  `App\Support\PlanoVigente`; **nunca** `$rede->plano` (nao existe). Dois planos: Gratis e Pro.
 - **Modelo financeiro**: Titulo (`Pagamento`/`Despesa`) + Parcela + Baixa; `forma_pagamento` mora na
   parcela/baixa. -> `.claude/rules/modelo-financeiro.md`.
 - **BaseModel**: `App\Models\BaseModel` (Model + `RedeTrait`). Excecoes (Model direto): Plano, Rede.
@@ -59,12 +62,12 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
-Assinatura (troca de plano pro-rata, sem gateway — ADR-0007), Arquivo (uploads genericos —
+Assinatura (licenca por empresa + trial de 14 dias, sem gateway — ADR-0013), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
 ## Banco de Dados — tabelas
-planos, redes, empresas, usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto,
+planos, redes, empresas (com `plano_id` = licenca), usuarios, clientes, servicos, agendamentos, vendas_etapas, vendas_produto,
 venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas,
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
 movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **recebiveis**,
@@ -82,7 +85,11 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
 | TemArquivos | Anexos polimorficos (imagens/PDFs) via tabela `arquivos` + colecoes |
 
 ## Seeds (ao registrar)
-Categorias, produtos, servicos, clientes padrao criados automaticamente ao registrar nova rede.
+Conta nova nasce **enxuta**: 1 categoria `Geral`, 1 `Produto exemplo`, 1 `Servico exemplo`,
+1 `Cliente exemplo` — catalogo ficticio so gera faxina para quem acabou de entrar. Contas (Caixa +
+Banco) e formas de pagamento continuam vindo do `CriarEmpresaAction`: sao infraestrutura da unidade.
+A primeira empresa nasce no plano Pro com **14 dias de teste** (`empresas.trial_expira_em`); ao
+vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 
 ---
 
@@ -90,8 +97,8 @@ Categorias, produtos, servicos, clientes padrao criados automaticamente ao regis
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
   Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
   `_FactoriesSmokeTest`.
-- **141 testes Feature** (510 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda, dashboard e plano pro-rata.
+- **268 testes** (1044 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa e trial.
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -104,7 +111,7 @@ Categorias, produtos, servicos, clientes padrao criados automaticamente ao regis
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (7 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (13 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

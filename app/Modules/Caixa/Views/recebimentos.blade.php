@@ -8,25 +8,27 @@
 @endsection
 
 @section('content')
-    {{-- Filtro de período --}}
-    <div class="card stretch stretch-full mb-4">
-        <div class="card-body">
-            <form method="GET" action="{{ route('caixas.recebimentos') }}" class="row g-3 align-items-end">
-                <div class="col-6 col-md-3">
-                    <label class="form-label" for="de">De</label>
-                    <input type="date" name="de" id="de" class="form-control" value="{{ $de }}" max="{{ $ate }}">
-                </div>
-                <div class="col-6 col-md-3">
-                    <label class="form-label" for="ate">Até</label>
-                    <input type="date" name="ate" id="ate" class="form-control" value="{{ $ate }}">
-                </div>
-                <div class="col-12 col-md-6 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary"><i class="feather-search me-1"></i>Filtrar</button>
-                    <a href="{{ route('caixas.index') }}" class="btn btn-light"><i class="feather-arrow-left me-1"></i>Voltar ao caixa</a>
-                </div>
-            </form>
+    {{-- "Voltar ao caixa" fica FORA do filtro: dentro dele sumiria atras do
+         colapso no mobile, e navegacao nao pode depender de abrir filtro. --}}
+    <div class="row mb-4">
+        <div class="col-xxl-3 col-md-6">
+            <a href="{{ route('caixas.index') }}" class="btn btn-light w-100">
+                <i class="feather-arrow-left me-2"></i>Voltar ao caixa
+            </a>
         </div>
     </div>
+
+    {{-- Filtro de período --}}
+    <x-filtros-listagem :action="route('caixas.recebimentos')">
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="de">De</label>
+            <input type="date" name="de" id="de" class="form-control" value="{{ $de }}" max="{{ $ate }}">
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="ate">Até</label>
+            <input type="date" name="ate" id="ate" class="form-control" value="{{ $ate }}">
+        </div>
+    </x-filtros-listagem>
 
     {{-- Resumo por forma (mesmo eixo do painel diário, agora por período) --}}
     <div class="card stretch stretch-full mb-4">
@@ -39,7 +41,7 @@
                 <i class="feather-info me-1"></i>Tudo que o cliente pagou no período, por forma (pela data do pagamento — não pela liquidação no banco). Dinheiro entra na gaveta do caixa; as demais formas são registradas aqui.
             </p>
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover table-sticky-col mb-0" style="min-width: 560px;">
                     <thead>
                         <tr>
                             <th>Forma</th>
@@ -89,7 +91,7 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
+                <table class="table table-hover table-sticky-col mb-0 align-middle" style="min-width: 620px;">
                     <thead>
                         <tr>
                             <th>Data</th>

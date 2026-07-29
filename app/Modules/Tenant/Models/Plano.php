@@ -8,24 +8,32 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
+ * Licenca de UMA empresa. O plano nao concede empresas: cada empresa contrata a sua.
+ *
  * @property int $id
+ * @property string $slug
  * @property string $nome
- * @property float $preco_mensal
+ * @property float $preco_por_licenca
  * @property string|null $descricao
- * @property int $max_empresas
  * @property int $max_usuarios
  * @property bool $tem_estoque
  * @property bool $tem_financeiro
  */
 class Plano extends Model
 {
+    /** Slug do plano gratuito — limitado a uma empresa por rede. */
+    public const GRATIS = 'gratis';
+
+    /** Slug do plano pago — e o plano do trial e das unidades contratadas. */
+    public const PRO = 'pro';
+
     protected $table = 'planos';
 
     protected $fillable = [
+        'slug',
         'nome',
-        'preco_mensal',
+        'preco_por_licenca',
         'descricao',
-        'max_empresas',
         'max_usuarios',
         'tem_estoque',
         'tem_financeiro',
@@ -34,7 +42,7 @@ class Plano extends Model
     protected function casts(): array
     {
         return [
-            'preco_mensal' => 'decimal:2',
+            'preco_por_licenca' => 'decimal:2',
             'tem_estoque' => 'boolean',
             'tem_financeiro' => 'boolean',
         ];
@@ -47,8 +55,9 @@ class Plano extends Model
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-    public function redes(): HasMany
+    /** Empresas licenciadas neste plano (uma licenca por empresa). */
+    public function empresas(): HasMany
     {
-        return $this->hasMany(Rede::class, 'plano_id');
+        return $this->hasMany(Empresa::class, 'plano_id');
     }
 }

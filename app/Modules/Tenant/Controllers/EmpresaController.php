@@ -13,6 +13,12 @@ use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
+/**
+ * Somente leitura + edicao cadastral. Contratar uma unidade (= contratar uma licenca)
+ * e ato comercial do operador do SaaS, nao do tenant: `create`, `store` e `destroy`
+ * saem do resource. `EmpresaService::criar`/`excluir` e `CriarEmpresaAction` seguem
+ * intactos — sao a costura que o painel de superusuario vai consumir.
+ */
 class EmpresaController extends Controller
 {
     use TratamentoErros;
@@ -27,41 +33,9 @@ class EmpresaController extends Controller
             $this->authorize('viewAny', Empresa::class);
             $empresas = $this->service->listar();
 
-            $rede = auth()->user()->rede;
-            $maxEmpresas = (int) ($rede->plano->max_empresas ?? 0);
-            $atualEmpresas = $rede->empresas()->count();
-            $limite = [
-                'atual' => $atualEmpresas,
-                'maximo' => $maxEmpresas,
-                'atingido' => $maxEmpresas !== 0 && $atualEmpresas >= $maxEmpresas,
-            ];
-
-            return view('tenant::index', compact('empresas', 'limite'));
+            return view('tenant::index', compact('empresas'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar empresas');
-        }
-    }
-
-    public function create(): View|RedirectResponse
-    {
-        try {
-            $this->authorize('create', Empresa::class);
-
-            return view('tenant::create');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao carregar formulário de empresa');
-        }
-    }
-
-    public function store(SalvarEmpresaRequest $request): RedirectResponse
-    {
-        try {
-            $rede = $request->user()->rede;
-            $this->service->criar($rede, EmpresaData::from($request->validated()));
-
-            return redirect()->route('empresas.index')->with('sucesso', 'Empresa criada com sucesso.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao criar empresa');
         }
     }
 
@@ -85,18 +59,6 @@ class EmpresaController extends Controller
             return redirect()->route('empresas.index')->with('sucesso', 'Empresa atualizada com sucesso.');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao atualizar empresa');
-        }
-    }
-
-    public function destroy(Empresa $empresa): RedirectResponse
-    {
-        try {
-            $this->authorize('delete', $empresa);
-            $this->service->excluir($empresa);
-
-            return redirect()->route('empresas.index')->with('sucesso', 'Empresa excluída com sucesso.');
-        } catch (\Throwable $e) {
-            return $this->tratarErro($e, 'Erro ao excluir empresa');
         }
     }
 }

@@ -1,0 +1,269 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   mn-admin.css — estilos proprios do painel admin do Meu Negocio.
+
+   Carregado por resources/views/layouts/app.blade.php DEPOIS do theme.min.css
+   do Duralux, via asset() (o layout admin nao usa Vite — ver
+   .claude/rules/ui-duralux.md). Cache-bust por filemtime no proprio link.
+
+   Antes vivia num <style> inline no layout; foi extraido para ficar cacheavel
+   e para caber a camada mobile sem inchar o Blade.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variaveis de cor (tema claro) ──────────────────────────────────────── */
+:root {
+    --cor-fundo: #ffffff;
+    --cor-fundo-escuro: #f8f9fa;
+    --cor-fundo-hover: #e9ecef;
+    --cor-borda: #e9ecef;
+    --cor-texto: #283c50;
+    --cor-texto-claro: #6c757d;
+    --cor-icone: #94a3b8;
+    --cor-texto-muted: #6c757d;
+    --cor-texto-sutil: #adb5bd;
+    --cor-destaque: #3454d1;
+}
+
+.nxl-container .nxl-content .main-content { overflow-x: visible; }
+.modal-backdrop ~ .nxl-container,
+body.modal-open .nxl-container { filter: none !important; -webkit-filter: none !important; }
+
+/* ── Sidebar minimenu: empurra conteudo ao expandir no hover ────────────── */
+html.minimenu .nxl-container,
+html.minimenu .nxl-header,
+html.minimenu .page-header { transition: all .3s ease; }
+html.minimenu:has(.nxl-navigation:hover) .nxl-container { margin-left: 280px !important; }
+html.minimenu:has(.nxl-navigation:hover) .nxl-header { left: 280px !important; }
+html.minimenu:has(.nxl-navigation:hover) .page-header { left: 280px !important; }
+html.minimenu-hover .nxl-container { margin-left: 280px !important; }
+html.minimenu-hover .nxl-header { left: 280px !important; }
+html.minimenu-hover .page-header { left: 280px !important; }
+html.minimenu .nxl-navigation .navbar-content,
+html.minimenu .nxl-navigation .navbar-wrapper,
+html.minimenu .nxl-navigation .m-header { transition: width .3s ease !important; }
+html.minimenu .nxl-navigation:hover .m-header,
+html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
+
+/* ── Botoes — cor primaria customizavel via variavel ────────────────────── */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active { background-color: var(--cor-destaque) !important; border-color: var(--cor-destaque) !important; }
+
+/* Alinha altura de botoes com form-control/form-select do Duralux (~50px: padding 24 + line-height 24 + border 2) */
+.btn-group .btn,
+.btn.w-100,
+.btn.flex-fill,
+.d-flex.gap-2 > .btn { min-height: calc(3rem + 2px); }
+
+/* ── Tabelas densas: coluna de referencia fixa ao rolar (mobile) ────────── */
+/* Aplique .table-sticky-col na <table> dentro de .table-responsive;         */
+/* combine com um min-width na tabela para acionar o scroll horizontal.      */
+.table-sticky-col thead th:first-child,
+.table-sticky-col tbody td:first-child,
+.table-sticky-col tfoot td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: var(--cor-fundo);
+}
+.table-sticky-col thead th:first-child { z-index: 3; }
+
+/* ── Icone de ajuda nos filtros (x-label-info) ──────────────────────────── */
+.label-info-icon {
+    font-size: 16px;
+    color: #8a94a6;
+    cursor: help;
+    vertical-align: -2px;
+    transition: color .15s ease;
+}
+.label-info-icon:hover { color: #3454d1; }
+
+/* ── Tooltip customizado para explicacoes de filtros ────────────────────── */
+.tooltip.tooltip-label-info { --bs-tooltip-max-width: 320px; }
+.tooltip.tooltip-label-info .tooltip-inner {
+    max-width: 320px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: left;
+    color: #f8f9fb;
+    background-color: #1f2a3d;
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
+    letter-spacing: .1px;
+}
+.tooltip.tooltip-label-info .tooltip-inner b,
+.tooltip.tooltip-label-info .tooltip-inner strong {
+    color: #8ab4ff;
+    font-weight: 600;
+}
+.tooltip.tooltip-label-info .tooltip-inner br + b,
+.tooltip.tooltip-label-info .tooltip-inner br + strong { display: inline-block; margin-top: 4px; }
+.tooltip.tooltip-label-info .tooltip-arrow::before { border-top-color: #1f2a3d; }
+.tooltip.tooltip-label-info.bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: #1f2a3d; }
+.tooltip.tooltip-label-info.bs-tooltip-start .tooltip-arrow::before { border-left-color: #1f2a3d; }
+.tooltip.tooltip-label-info.bs-tooltip-end .tooltip-arrow::before { border-right-color: #1f2a3d; }
+
+/* ── Marca / logo (monograma MN + wordmark) ─────────────────────────────── */
+.b-brand.mn-brand-link { text-decoration: none; }
+.b-brand .mn-brand { display: inline-flex; align-items: center; gap: 10px; }
+.mn-logo-mark { display: block; flex: 0 0 auto; }
+.mn-wordmark {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1;
+    color: var(--cor-texto);
+    white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE
+   O tema Duralux e desktop-first e nao traz nenhuma media query de largura
+   propria do projeto. Tudo daqui para baixo e a camada mobile do Meu Negocio.
+   Breakpoints seguem os do Bootstrap 5: sm 576, md 768.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Alvos de toque ─────────────────────────────────────────────────────── */
+/* O tema define .btn { padding: 12px 16px; font-size: 10px } => ~38px, e     */
+/* .btn-sm => ~28px. Abaixo do minimo confortavel de toque (44px).            */
+@media (max-width: 767.98px) {
+    /* .btn-sm tambem vai a 44px: no celular nao existe acao "pequena" — quem
+       aciona "Mostrar filtros" ou "Extrato" usa o mesmo dedo. */
+    .btn,
+    .btn-sm { min-height: 44px; }
+    .form-check-input { width: 1.25em; height: 1.25em; }
+    .dropdown-item { padding-top: .6rem; padding-bottom: .6rem; }
+
+    /* Gatilhos que o tema monta como .avatar-text (30px) em vez de .btn:
+       o avatar do usuario no header e o "..." de acoes de cada linha. Sao os
+       alvos mais tocados da tela e ficavam abaixo do minimo. */
+    .nxl-header .nxl-h-item > a,
+    .avatar-text[data-bs-toggle="dropdown"] {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* ── Barra de acoes de formulario (x-form-botoes / x-show-botoes) ───────── */
+/* Desktop: dois botoes de 300px nas pontas, como sempre foi.                 */
+/* Mobile:  empilhados e full-width, soltos no fim da pagina — sem fundo,     */
+/*          borda ou sticky. Chegou-se a testar uma barra fixa no rodape;     */
+/*          ela lia como um card preso e competia com o conteudo. Solto no    */
+/*          fim e mais direto: o botao pertence ao formulario que terminou.   */
+.barra-acoes-form {
+    display: flex;
+    gap: .75rem;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+}
+
+@media (min-width: 576px) {
+    .barra-acoes-form { justify-content: space-between; }
+    .barra-acoes-form.barra-acoes-form--unico { justify-content: flex-start; }
+    .barra-acoes-form.barra-acoes-form--direita { justify-content: flex-end; }
+    .btn-acao-form { min-width: 300px; }
+}
+
+@media (max-width: 575.98px) {
+    .barra-acoes-form {
+        /* column-reverse: no DOM o Voltar vem primeiro (ordem de leitura e de
+           tabulacao), mas na tela a acao primaria aparece por cima — fica sob
+           o polegar. */
+        flex-direction: column-reverse;
+        gap: .5rem;
+        margin-bottom: 2rem;
+        padding-bottom: 0;
+    }
+    .barra-acoes-form .btn { width: 100%; }
+}
+
+/* Botao travado durante o submit (anti-double-submit) */
+.btn[data-submetendo] { pointer-events: none; opacity: .65; }
+
+/* ── Tabelas que viram lista de cards no mobile ─────────────────────────── */
+/* Uso: <table class="table table-hover tabela-empilha"> e data-label="Nome"   */
+/* em cada <td>. Abaixo de md o thead some e cada <tr> vira um bloco com o     */
+/* rotulo a esquerda e o valor a direita.                                      */
+/* Para tabela densa e numerica (caixa, extrato, parcelas) prefira            */
+/* .table-sticky-col + min-width: numero se le melhor em coluna.               */
+@media (max-width: 767.98px) {
+    .tabela-empilha thead { display: none; }
+
+    .tabela-empilha,
+    .tabela-empilha tbody,
+    .tabela-empilha tr,
+    .tabela-empilha td {
+        display: block;
+        width: 100%;
+    }
+
+    .tabela-empilha tr {
+        border: 1px solid var(--cor-borda);
+        border-radius: 10px;
+        margin-bottom: .75rem;
+        padding: .25rem 0;
+        background: var(--cor-fundo);
+    }
+    .tabela-empilha tr:last-child { margin-bottom: 0; }
+
+    /* Padding enxuto: cada campo vira uma linha, entao o que e confortavel numa
+       celula de tabela vira um card de altura absurda com 5-6 campos. */
+    .tabela-empilha td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border: 0;
+        padding: .35rem .875rem;
+        text-align: right;
+    }
+
+    .tabela-empilha td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--cor-texto-claro);
+        text-align: left;
+    }
+
+    /* <td> sem data-label ocupa a linha inteira: a primeira (thumb/avatar)
+       alinha a esquerda, as demais (coluna de acoes) a direita. */
+    .tabela-empilha td:not([data-label])::before { content: none; }
+    .tabela-empilha td:not([data-label]) { justify-content: flex-end; }
+    .tabela-empilha td:first-child:not([data-label]) { justify-content: flex-start; }
+
+    /* Linha de "nenhum registro": nao vira card */
+    .tabela-empilha tr.sem-registros { border: 0; background: transparent; }
+    .tabela-empilha tr.sem-registros td { justify-content: center; text-align: center; }
+    .tabela-empilha tr.sem-registros td::before { content: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEMA ESCURO — overrides das variaveis customizadas
+   O CSS dark do tema (theme.min.css -> html.app-skin-dark) cobre os
+   componentes Duralux; aqui ajustamos so as vars custom usadas nas telas
+   proprias para acompanharem a troca.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html.app-skin-dark {
+    --cor-fundo: #1b2333;
+    --cor-fundo-escuro: #151c29;
+    --cor-fundo-hover: #243044;
+    --cor-borda: #2a3550;
+    --cor-texto: #e6ebf4;
+    --cor-texto-claro: #9aa7bd;
+    --cor-icone: #6b7a93;
+    --cor-texto-muted: #9aa7bd;
+    --cor-texto-sutil: #6b7a93;
+    /* --cor-destaque permanece o azul da marca */
+}
+html.app-skin-dark .label-info-icon { color: #7c89a0; }
+/* O tema dark do Duralux faz filter:invert(1) no logo (esperando um PNG
+   monocromatico). Nosso logo e um SVG colorido proprio — desfaz o invert. */
+html.app-skin-dark .nxl-navigation .m-header .logo-lg,
+html.app-skin-dark .nxl-navigation .m-header .logo-sm { filter: none; }
+.theme-toggle { cursor: pointer; }

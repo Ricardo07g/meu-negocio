@@ -34,10 +34,7 @@ class BaixaParcelaPagamentoComMultiplasEmpresasTest extends TestCase
         $empA = $contexto['empresa'];
         $usuario = $contexto['usuario'];
 
-        $empB = Empresa::create([
-            'rede_id' => $rede->id,
-            'nome' => 'Empresa B',
-        ]);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
 
         $produto = Produto::create([
             'rede_id' => $rede->id,

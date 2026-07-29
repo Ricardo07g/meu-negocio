@@ -57,7 +57,7 @@ class VendaSplitRecebimentosTest extends TestCase
         $contexto = $this->criarRedeAutenticada();
 
         // Segunda empresa da MESMA rede, acessível pelo usuário (multi-empresa).
-        $empresaB = Empresa::create(['rede_id' => $contexto['rede']->id, 'nome' => 'Filial B']);
+        $empresaB = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial B');
         app(ContaService::class)->semearPadrao($contexto['rede']->id, $empresaB->id);
         app(FormaPagamentoService::class)->semearPadrao($contexto['rede']->id, $empresaB->id);
         session(['empresas_atuais' => [$contexto['empresa']->id, $empresaB->id]]);

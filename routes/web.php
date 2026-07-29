@@ -158,7 +158,9 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
         });
 
         // Administracao
-        Route::resource('empresas', EmpresaController::class)->except('show');
+        // Contratar/cancelar unidade e ato comercial do operador (painel de superusuario,
+        // futuro; hoje `php artisan empresa:contratar`). O tenant so consulta e edita cadastro.
+        Route::resource('empresas', EmpresaController::class)->only(['index', 'edit', 'update']);
         Route::resource('usuarios', UsuarioController::class)->except(['show']);
         Route::resource('perfis-acesso', PerfilAcessoController::class)->parameters(['perfis-acesso' => 'perfil_acesso']);
         Route::get('minha-assinatura', [AssinaturaController::class, 'index'])->name('assinatura.index');

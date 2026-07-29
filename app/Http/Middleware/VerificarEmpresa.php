@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Exceptions\EmpresaNaoEncontradaException;
+use App\Modules\Tenant\Actions\EncerrarTrialAction;
 use App\Modules\Tenant\Models\Empresa;
 use Closure;
 use Illuminate\Http\Request;
@@ -31,6 +32,8 @@ class VerificarEmpresa
     {
         $usuario = $request->user();
 
+        $this->encerrarTrialsVencidos();
+
         $empresasAcessiveis = $this->resolverEmpresasAcessiveis($usuario);
 
         if ($empresasAcessiveis === []) {
@@ -43,6 +46,26 @@ class VerificarEmpresa
         session(['empresas_atuais' => $selecionadas]);
 
         return $next($request);
+    }
+
+    /**
+     * Rede de seguranca do trial: o caminho normal e o comando agendado
+     * `assinaturas:expirar-trial`, mas se o scheduler cair a conta ficaria presa no Pro.
+     *
+     * Uma vez por sessao por dia — o global scope de rede ja restringe a varredura ao
+     * tenant do usuario, e a coluna `trial_expira_em` e indexada.
+     */
+    private function encerrarTrialsVencidos(): void
+    {
+        $hoje = now()->toDateString();
+
+        if (session('trial_verificado_em') === $hoje) {
+            return;
+        }
+
+        app(EncerrarTrialAction::class)->executar();
+
+        session(['trial_verificado_em' => $hoje]);
     }
 
     /**

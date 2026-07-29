@@ -27,10 +27,10 @@
 @endphp
 
 <div class="d-flex align-items-stretch">
-    <div class="d-flex align-items-stretch border-3 border-start border-{{ $cor }} rounded flex-grow-1">
+    <div class="d-flex align-items-stretch border-3 border-start border-{{ $cor }} rounded flex-grow-1" style="min-width: 0;">
         <button type="button"
                 class="btn btn-link text-reset text-decoration-none shadow-none p-0 d-flex align-items-center"
-                style="flex: 7 1 0;"
+                style="flex: 7 1 0; min-width: 0;"
                 data-bs-toggle="collapse"
                 data-bs-target="#{{ $collapseId }}"
                 aria-expanded="false"
@@ -61,7 +61,7 @@
                 @endif
             </div>
         </button>
-        <div class="d-flex align-items-center justify-content-end gap-2 pe-3 py-2" style="flex: 3 1 0;">
+        <div class="d-flex align-items-center justify-content-end gap-2 pe-3 py-2" style="flex: 3 1 0; min-width: 0;">
             <div class="d-flex flex-column align-items-end gap-1">
                 <x-badge-status :cor="$cor" :label="$statusLabel" />
                 @if($despesa->categoria)

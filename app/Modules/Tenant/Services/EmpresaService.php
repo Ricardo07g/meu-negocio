@@ -17,7 +17,7 @@ class EmpresaService
 
     public function listar(): Collection
     {
-        return Empresa::all();
+        return Empresa::with('plano')->get();
     }
 
     public function buscar(int $id): Empresa

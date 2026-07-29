@@ -33,11 +33,28 @@ node ${CLAUDE_SKILL_DIR}/scripts/smoke.cjs "/pagamentos" "table"   # rota [selet
 ```
 
 - Pre-requisitos (no **host**, nao no container): `google-chrome` instalado e `puppeteer-core`
-  disponivel (`npm i -g puppeteer-core` ou em `node_modules`). Variaveis opcionais: `CHROME_BIN`,
-  `BASE_URL` (default `http://localhost:8080`), `MN_EMAIL`/`MN_PASSWORD` (default
-  `admin@teste.com`/`password`).
+  disponivel (`npm i -g puppeteer-core` ou em `node_modules`). Se instalou global, exporte
+  `NODE_PATH=$(npm root -g)` — o Node nao resolve pacote global a partir do projeto.
+  Variaveis opcionais: `CHROME_BIN`, `BASE_URL` (default `http://localhost:8080`),
+  `MN_EMAIL`/`MN_PASSWORD` (default `admin@teste.com`/`password`).
 - Sem chrome/puppeteer: o script sai com aviso claro — entao **cubra a tela com um teste de view**
   (200 + dado-chave) em vez do smoke, e siga.
+
+### Modo mobile (`--mobile`)
+Se mexeu em View, rode **tambem** em viewport de celular (375x812). O admin nasceu desktop-first
+sobre o Duralux, entao regressao de mobile passa despercebida em revisao de codigo:
+
+```
+node ${CLAUDE_SKILL_DIR}/scripts/smoke.cjs --mobile "/clientes" "/clientes/criar"
+```
+
+Alem do status/console, o modo mobile **reprova** a rota quando:
+- ha **overflow horizontal** (`documentElement.scrollWidth > innerWidth`) — o JSON aponta os
+  elementos culpados (os mais internos que estouram) com tag, classe e a borda direita em px;
+- algum **botao visivel tem altura < 44px** (alvo de toque). `.btn-close`, SweetAlert e o
+  hamburger ficam de fora por serem do tema.
+
+Salva screenshot de pagina inteira em `storage/app/smoke/` para conferencia visual.
 
 ## 4. Tenancy (se tocou dado tenant-aware)
 Mudou Model/Service/Controller/query com `rede_id`/`empresa_id`? Rode `/auditar-tenancy` no diff (ou o

@@ -13,12 +13,16 @@ use App\Modules\Produto\Models\Produto;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
 use Illuminate\Database\Eloquent\{Collection, SoftDeletes};
-use Illuminate\Database\Eloquent\Relations\{BelongsToMany, HasMany};
+use Illuminate\Database\Eloquent\Relations\{BelongsTo, BelongsToMany, HasMany};
 use Illuminate\Support\Carbon;
 
 /**
+ * Uma empresa e uma licenca contratada individualmente: o plano mora aqui, nao na rede.
+ *
  * @property int $id
  * @property int $rede_id
+ * @property int $plano_id
+ * @property Carbon|null $trial_expira_em
  * @property string $nome
  * @property string|null $documento
  * @property string|null $telefone
@@ -34,6 +38,8 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Pagamento> $pagamentos
  * @property-read Collection<int, Despesa> $despesas
  * @property-read Collection<int, Produto> $produtos
+ * @property-read Plano $plano
+ * @property-read Rede $rede
  */
 class Empresa extends BaseModel
 {
@@ -43,11 +49,20 @@ class Empresa extends BaseModel
 
     protected $fillable = [
         'rede_id',
+        'plano_id',
+        'trial_expira_em',
         'nome',
         'documento',
         'telefone',
         'email',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'trial_expira_em' => 'date',
+        ];
+    }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
     // ██╔══██╗██╔════╝██║     ██╔══██╗╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
@@ -55,6 +70,12 @@ class Empresa extends BaseModel
     // ██╔══██╗██╔══╝  ██║     ██╔══██║   ██║   ██║██║   ██║██║╚██╗██║╚════██║
     // ██║  ██║███████╗███████╗██║  ██║   ██║   ██║╚██████╔╝██║ ╚████║███████║
     // ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
+    /** Licenca contratada para esta unidade. */
+    public function plano(): BelongsTo
+    {
+        return $this->belongsTo(Plano::class, 'plano_id');
+    }
 
     /**
      * Usuarios com acesso a esta empresa via pivot empresa_usuario (N:N).
@@ -102,5 +123,47 @@ class Empresa extends BaseModel
     public function produtos(): HasMany
     {
         return $this->hasMany(Produto::class, 'empresa_id');
+    }
+
+    // ██╗     ██╗ ██████╗███████╗███╗   ██╗ ██████╗ █████╗
+    // ██║     ██║██╔════╝██╔════╝████╗  ██║██╔════╝██╔══██╗
+    // ██║     ██║██║     █████╗  ██╔██╗ ██║██║     ███████║
+    // ██║     ██║██║     ██╔══╝  ██║╚██╗██║██║     ██╔══██║
+    // ███████╗██║╚██████╗███████╗██║ ╚████║╚██████╗██║  ██║
+    // ╚══════╝╚═╝ ╚═════╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
+
+    /** Duracao do teste gratuito, em dias, da unidade criada no registro. */
+    public const DIAS_DE_TRIAL = 14;
+
+    /** Esta unidade esta em periodo de teste (no Pro, sem cobranca)? */
+    public function emTrial(): bool
+    {
+        return $this->trial_expira_em !== null
+            && $this->trial_expira_em->endOfDay()->isFuture();
+    }
+
+    /** Dias que faltam para o teste acabar (0 quando nao ha trial vigente). */
+    public function diasRestantesTrial(): int
+    {
+        if (! $this->emTrial()) {
+            return 0;
+        }
+
+        return (int) now()->startOfDay()->diffInDays($this->trial_expira_em->startOfDay(), absolute: true);
+    }
+
+    /**
+     * Assentos ocupados nesta licenca.
+     *
+     * Une o pivot `empresa_usuario` (fonte de verdade de acesso) com os usuarios que
+     * tem esta empresa como default — o Admin criado no registro entra so pelo segundo
+     * caminho, e contar apenas o pivot o deixaria de fora do limite do plano.
+     */
+    public function contarUsuarios(): int
+    {
+        return $this->usuarios()->pluck('usuarios.id')
+            ->merge($this->usuariosDefault()->pluck('id'))
+            ->unique()
+            ->count();
     }
 }

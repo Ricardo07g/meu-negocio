@@ -43,7 +43,7 @@ class FormaPagamentoTest extends TestCase
         $rede = $contexto['rede'];
 
         // Segunda empresa na MESMA rede, com suas próprias formas.
-        $empB = Empresa::create(['rede_id' => $rede->id, 'nome' => 'Filial B']);
+        $empB = $this->criarEmpresaExtra($rede->id, 'Filial B');
         app(FormaPagamentoService::class)->semearPadrao($rede->id, $empB->id);
 
         $formaB = FormaPagamento::withoutGlobalScopes()
@@ -207,7 +207,7 @@ class FormaPagamentoTest extends TestCase
         $contexto = $this->criarRedeAutenticada();
 
         // Segunda empresa na MESMA rede, com suas próprias contas.
-        $empB = Empresa::create(['rede_id' => $contexto['rede']->id, 'nome' => 'Filial B']);
+        $empB = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial B');
         app(ContaService::class)->semearPadrao($contexto['rede']->id, $empB->id);
 
         $contaB = Conta::withoutGlobalScopes()->where('empresa_id', $empB->id)->firstOrFail();

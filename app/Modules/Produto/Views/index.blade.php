@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Button row OUTSIDE the card --}}
-    @can('produto.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('produtos.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Produto
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('produtos.create')" label="Novo Produto" permissao="produto.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('produtos.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('produtos.index')">
         <div class="col-12">
             <label class="form-label">Buscar</label>
             <input type="text" name="q" class="form-control" placeholder="Nome, código, código de barras ou descrição..." value="{{ request('q') }}">
@@ -75,7 +66,7 @@
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover tabela-empilha mb-0">
                     <thead>
                         <tr>
                             <th style="width:56px"></th>
@@ -92,10 +83,10 @@
                         @forelse($produtos as $produto)
                         <tr>
                             <td><x-thumb :url="$produto->imagem_thumb_url" :nome="$produto->nome" icone="feather-package" :circulo="false" /></td>
-                            <td>{{ $produto->codigo ?? '-' }}</td>
-                            <td>{{ $produto->nome }}</td>
-                            <td>{{ $produto->categoria->descricao ?? '-' }}</td>
-                            <td>
+                            <td data-label="Código">{{ $produto->codigo ?? '-' }}</td>
+                            <td data-label="Nome">{{ $produto->nome }}</td>
+                            <td data-label="Categoria">{{ $produto->categoria->descricao ?? '-' }}</td>
+                            <td data-label="Qtd">
                                 @if($produto->estoque_minimo !== null && $produto->quantidade <= $produto->estoque_minimo)
                                     <span class="text-danger fw-bold">{{ $produto->quantidade }}</span>
                                     <i class="feather-alert-triangle text-danger ms-1" title="Estoque baixo"></i>
@@ -103,8 +94,8 @@
                                     {{ $produto->quantidade }}
                                 @endif
                             </td>
-                            <td>R$ {{ number_format($produto->valor_venda, 2, ',', '.') }}</td>
-                            <td>
+                            <td data-label="Valor Venda">R$ {{ number_format($produto->valor_venda, 2, ',', '.') }}</td>
+                            <td data-label="Status">
                                 @if($produto->ativo)
                                     <span class="badge bg-success">Ativo</span>
                                 @else
@@ -112,54 +103,21 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="hstack gap-2 justify-content-end">
-                                    <div class="dropdown">
-                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
-                                            <i class="feather-more-horizontal"></i>
-                                        </a>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('produtos.show', $produto) }}">
-                                                    <i class="feather-eye me-3"></i>
-                                                    <span>Ver</span>
-                                                </a>
-                                            </li>
-                                            @can('produto.editar')
-                                            <li>
-                                                <a class="dropdown-item" href="{{ route('produtos.edit', $produto) }}">
-                                                    <i class="feather-edit-3 me-3"></i>
-                                                    <span>Editar</span>
-                                                </a>
-                                            </li>
-                                            @endcan
-                                            @can('produto.excluir')
-                                            <li class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('produtos.destroy', $produto) }}" method="POST" data-confirm="Excluir este produto?">
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit" class="dropdown-item text-danger">
-                                                        <i class="feather-trash-2 me-3"></i>
-                                                        <span>Excluir</span>
-                                                    </button>
-                                                </form>
-                                            </li>
-                                            @endcan
-                                        </ul>
-                                    </div>
-                                </div>
+                                <x-acoes-linha :ver="route('produtos.show', $produto)"
+                                               :editar="route('produtos.edit', $produto)"
+                                               permissaoEditar="produto.editar"
+                                               :excluir="route('produtos.destroy', $produto)"
+                                               permissaoExcluir="produto.excluir"
+                                               confirmacao="Excluir este produto?" />
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="8" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
+                        <tr class="sem-registros"><td colspan="8" class="text-center text-muted py-4">Nenhum produto cadastrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-        @if($produtos->hasPages())
-            <div class="card-footer">
-                {{ $produtos->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$produtos" />
     </div>
 @endsection

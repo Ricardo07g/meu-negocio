@@ -4,7 +4,8 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- viewport-fit=cover libera env(safe-area-inset-*), usado pela barra de acoes fixa no mobile --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {{-- Tema escuro temporariamente DESATIVADO (deixar claro por padrao ate ajustar).
          Guard anti-flash original — reativar junto com o botao e o JS do toggle:
@@ -18,139 +19,19 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendors/css/sweetalert2.min.css') }}">
     @stack('css')
     <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/theme.min.css') }}">
-    <style>
-        /* Variáveis de cores (tema claro original - altere aqui para customizar) */
-        :root {
-            --cor-fundo: #ffffff;
-            --cor-fundo-escuro: #f8f9fa;
-            --cor-fundo-hover: #e9ecef;
-            --cor-texto: #283c50;
-            --cor-texto-claro: #6c757d;
-            --cor-icone: #94a3b8;
-            --cor-texto-muted: #6c757d;
-            --cor-texto-sutil: #adb5bd;
-            --cor-destaque: #3454d1;
-        }
-
-        .nxl-container .nxl-content .main-content { overflow-x: visible; }
-        .modal-backdrop ~ .nxl-container,
-        body.modal-open .nxl-container { filter: none !important; -webkit-filter: none !important; }
-
-        /* Sidebar minimenu: empurra conteúdo ao expandir no hover */
-        html.minimenu .nxl-container,
-        html.minimenu .nxl-header,
-        html.minimenu .page-header { transition: all .3s ease; }
-        html.minimenu:has(.nxl-navigation:hover) .nxl-container { margin-left: 280px !important; }
-        html.minimenu:has(.nxl-navigation:hover) .nxl-header { left: 280px !important; }
-        html.minimenu:has(.nxl-navigation:hover) .page-header { left: 280px !important; }
-        html.minimenu-hover .nxl-container { margin-left: 280px !important; }
-        html.minimenu-hover .nxl-header { left: 280px !important; }
-        html.minimenu-hover .page-header { left: 280px !important; }
-        html.minimenu .nxl-navigation .navbar-content,
-        html.minimenu .nxl-navigation .navbar-wrapper,
-        html.minimenu .nxl-navigation .m-header { transition: width .3s ease !important; }
-        html.minimenu .nxl-navigation:hover .m-header,
-        html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
-
-        /* Botões - cor primária customizável via variável */
-        .btn-primary,
-        .btn-primary:hover,
-        .btn-primary:focus,
-        .btn-primary:active { background-color: var(--cor-destaque) !important; border-color: var(--cor-destaque) !important; }
-
-        /* Alinha altura de botoes com form-control/form-select do Duralux (~50px: padding 24 + line-height 24 + border 2) */
-        .btn-group .btn,
-        .btn.w-100,
-        .btn.flex-fill,
-        .d-flex.gap-2 > .btn { min-height: calc(3rem + 2px); }
-
-        /* ── Tabelas densas: coluna de referencia fixa ao rolar (mobile) ─── */
-        /* Aplique .table-sticky-col na <table> dentro de .table-responsive;   */
-        /* combine com um min-width na tabela para acionar o scroll horizontal.*/
-        .table-sticky-col thead th:first-child,
-        .table-sticky-col tbody td:first-child,
-        .table-sticky-col tfoot td:first-child {
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            background-color: var(--cor-fundo);
-        }
-        .table-sticky-col thead th:first-child { z-index: 3; }
-
-        /* ── Ícone de ajuda nos filtros (x-label-info) ───────────── */
-        .label-info-icon {
-            font-size: 16px;
-            color: #8a94a6;
-            cursor: help;
-            vertical-align: -2px;
-            transition: color .15s ease;
-        }
-        .label-info-icon:hover { color: #3454d1; }
-
-        /* ── Tooltip customizado para explicações de filtros ─────── */
-        .tooltip.tooltip-label-info { --bs-tooltip-max-width: 320px; }
-        .tooltip.tooltip-label-info .tooltip-inner {
-            max-width: 320px;
-            padding: 10px 14px;
-            font-size: 13px;
-            line-height: 1.55;
-            text-align: left;
-            color: #f8f9fb;
-            background-color: #1f2a3d;
-            border-radius: 8px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, .18);
-            letter-spacing: .1px;
-        }
-        .tooltip.tooltip-label-info .tooltip-inner b,
-        .tooltip.tooltip-label-info .tooltip-inner strong {
-            color: #8ab4ff;
-            font-weight: 600;
-        }
-        .tooltip.tooltip-label-info .tooltip-inner br + b,
-        .tooltip.tooltip-label-info .tooltip-inner br + strong { display: inline-block; margin-top: 4px; }
-        .tooltip.tooltip-label-info .tooltip-arrow::before { border-top-color: #1f2a3d; }
-        .tooltip.tooltip-label-info.bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: #1f2a3d; }
-        .tooltip.tooltip-label-info.bs-tooltip-start .tooltip-arrow::before { border-left-color: #1f2a3d; }
-        .tooltip.tooltip-label-info.bs-tooltip-end .tooltip-arrow::before { border-right-color: #1f2a3d; }
-
-        /* ── Marca / logo (monograma MN + wordmark) ─────────────── */
-        .b-brand.mn-brand-link { text-decoration: none; }
-        .b-brand .mn-brand { display: inline-flex; align-items: center; gap: 10px; }
-        .mn-logo-mark { display: block; flex: 0 0 auto; }
-        .mn-wordmark {
-            font-size: 19px;
-            font-weight: 800;
-            letter-spacing: -.02em;
-            line-height: 1;
-            color: var(--cor-texto);
-            white-space: nowrap;
-        }
-
-        /* ── Tema escuro: overrides das variáveis customizadas ──── */
-        /* O CSS dark do tema (theme.min.css → html.app-skin-dark) cobre os    */
-        /* componentes Duralux; aqui ajustamos só as vars custom usadas nas    */
-        /* telas próprias para acompanharem a troca.                            */
-        html.app-skin-dark {
-            --cor-fundo: #1b2333;
-            --cor-fundo-escuro: #151c29;
-            --cor-fundo-hover: #243044;
-            --cor-texto: #e6ebf4;
-            --cor-texto-claro: #9aa7bd;
-            --cor-icone: #6b7a93;
-            --cor-texto-muted: #9aa7bd;
-            --cor-texto-sutil: #6b7a93;
-            /* --cor-destaque permanece o azul da marca */
-        }
-        html.app-skin-dark .label-info-icon { color: #7c89a0; }
-        /* O tema dark do Duralux faz filter:invert(1) no logo (esperando um PNG */
-        /* monocromático). Nosso logo é um SVG colorido próprio — desfaz o invert. */
-        html.app-skin-dark .nxl-navigation .m-header .logo-lg,
-        html.app-skin-dark .nxl-navigation .m-header .logo-sm { filter: none; }
-        .theme-toggle { cursor: pointer; }
-    </style>
+    {{-- Estilos proprios do admin (vars de cor, ajustes do tema e a camada mobile).
+         Depois do theme.min.css para sobrescrever o Duralux. --}}
+    <link rel="stylesheet" type="text/css" href="{{ asset('css/mn-admin.css') }}?v={{ filemtime(public_path('css/mn-admin.css')) }}">
 </head>
 
 <body>
+@php
+    // A licenca e da empresa em contexto, nao da rede: duas unidades da mesma rede
+    // podem estar em planos diferentes, e a sidebar acompanha a troca de contexto.
+    $empresaVigente = \App\Support\PlanoVigente::empresa();
+    $planoVigente = $empresaVigente?->plano;
+@endphp
+
     {{-- Sidebar Navigation --}}
     <nav class="nxl-navigation">
         <div class="navbar-wrapper">
@@ -227,7 +108,7 @@
                     </li>
                     @endcan
 
-                    @if(auth()->user()->rede->plano->tem_financeiro)
+                    @if($planoVigente?->tem_financeiro)
                     <li class="nxl-item nxl-caption">
                         <label>Financeiro</label>
                     </li>
@@ -278,7 +159,7 @@
                     @endcan
                     @endif
 
-                    @if(auth()->user()->rede->plano->tem_estoque)
+                    @if($planoVigente?->tem_estoque)
                     <li class="nxl-item nxl-caption">
                         <label>Estoque</label>
                     </li>
@@ -457,6 +338,24 @@
                 </div>
             </div>
             <div class="main-content">
+                {{-- Teste gratuito da unidade: ao vencer, a licenca cai para o Gratis. --}}
+                @if($empresaVigente?->emTrial())
+                @php $diasDeTeste = $empresaVigente->diasRestantesTrial(); @endphp
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="feather-clock me-2"></i>
+                    <div class="flex-grow-1">
+                        <strong>Teste grátis do plano Pro.</strong>
+                        @if($diasDeTeste === 0)
+                            Último dia — depois esta unidade passa para o plano Grátis.
+                        @else
+                            Faltam {{ $diasDeTeste }} {{ $diasDeTeste === 1 ? 'dia' : 'dias' }} —
+                            depois esta unidade passa para o plano Grátis.
+                        @endif
+                    </div>
+                    <a href="{{ route('assinatura.index') }}" class="btn btn-sm btn-primary ms-2">Ver assinatura</a>
+                </div>
+                @endif
+
                 {{-- Flash messages --}}
                 @if(session('sucesso'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">

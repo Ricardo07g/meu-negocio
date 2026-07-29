@@ -1,12 +1,20 @@
-@props(['action', 'ativo' => false])
+@props(['action', 'ativo' => null])
+
+@php
+    // Por padrao, "ha filtro aplicado?" = existe qualquer parametro preenchido na
+    // query alem da paginacao. As 7 listagens repetiam esta mesma expressao na
+    // chamada; agora so passam :ativo quando precisam de uma regra diferente.
+    $ativo ??= collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty();
+@endphp
 
 {{--
     Envelope compartilhado de filtros de listagem (card + form GET + botoes Filtrar/Limpar).
     Colapsa no mobile atras de um botao "Filtros"; sempre visivel no desktop (>= md).
 
     Props:
-      - action (string): rota do index; alimenta o <form> E o botao "Limpar".
-      - ativo (bool):    ha filtros aplicados? Abre o bloco no mobile e destaca o botao.
+      - action (string):    rota do index; alimenta o <form> E o botao "Limpar".
+      - ativo (bool|null):  ha filtros aplicados? Abre o bloco no mobile e destaca o
+                            botao. Deixe fora para usar o default acima.
 
     Os campos entram via {{ '{{ $slot }}' }} (cada listagem define os seus). Use classes de
     coluna responsivas nos campos (ex.: col-12 col-sm-6 col-md-3) para 2-por-linha no tablet.

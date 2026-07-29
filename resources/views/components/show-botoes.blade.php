@@ -2,15 +2,28 @@
     'voltar',
     'editar' => null,
     'editarTexto' => 'Editar',
+    'editarIcone' => 'feather-edit',
 ])
 
-<div class="d-flex {{ $editar ? 'justify-content-between' : 'justify-content-start' }} mb-5 pb-4">
-    <a href="{{ $voltar }}" class="btn btn-light px-5" style="min-width: 300px;">
+{{--
+    Barra de acoes de tela de detalhe (Voltar / Editar).
+
+    Mesma mecanica responsiva do <x-form-botoes>: no mobile os botoes empilham
+    e ficam full-width, soltos no fim da pagina; no desktop voltam aos 300px
+    nas pontas.
+
+    O $slot entra entre os dois botoes, para acoes extras (imprimir, estornar...).
+--}}
+<div class="barra-acoes-form {{ $editar ? '' : 'barra-acoes-form--unico' }}">
+    <a href="{{ $voltar }}" class="btn btn-light px-5 btn-acao-form">
         <i class="feather-arrow-left me-2"></i>Voltar
     </a>
+
+    {{ $slot }}
+
     @if($editar)
-    <a href="{{ $editar }}" class="btn btn-primary px-5" style="min-width: 300px;">
-        <i class="feather-edit me-2"></i>{{ $editarTexto }}
+    <a href="{{ $editar }}" class="btn btn-primary px-5 btn-acao-form">
+        <i class="{{ $editarIcone }} me-2"></i>{{ $editarTexto }}
     </a>
     @endif
 </div>

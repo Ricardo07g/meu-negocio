@@ -16,11 +16,13 @@ class PlanoFactory extends Factory
 
     public function definition(): array
     {
+        $slug = fake()->unique()->word();
+
         return [
-            'nome' => fake()->unique()->word(),
-            'preco_mensal' => fake()->randomFloat(2, 0, 199),
+            'slug' => $slug,
+            'nome' => ucfirst($slug),
+            'preco_por_licenca' => fake()->randomFloat(2, 0, 199),
             'descricao' => fake('pt_BR')->optional()->sentence(),
-            'max_empresas' => 1,
             'max_usuarios' => 2,
             'tem_estoque' => false,
             'tem_financeiro' => false,

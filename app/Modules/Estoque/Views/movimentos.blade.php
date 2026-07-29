@@ -8,19 +8,10 @@
 
 @section('content')
     {{-- Botao Novo Movimento --}}
-    @can('movimento_estoque.criar')
-    <div class="row mb-4">
-        <div class="col-xxl-3 col-md-6">
-            <a href="{{ route('movimentos-estoque.create') }}" class="btn btn-primary w-100">
-                <i class="feather-plus me-2"></i>Novo Movimento
-            </a>
-        </div>
-    </div>
-    @endcan
+    <x-botao-novo :rota="route('movimentos-estoque.create')" label="Novo Movimento" permissao="movimento_estoque.criar" />
 
     {{-- Filtros --}}
-    <x-filtros-listagem :action="route('movimentos-estoque.index')"
-        :ativo="collect(request()->except('page'))->filter(fn ($v) => filled($v))->isNotEmpty()">
+    <x-filtros-listagem :action="route('movimentos-estoque.index')">
         {{-- Linha 1: Empresa (ME-010 v3) + Busca --}}
         @include('partials.filtro-empresa-listagem', ['modo' => 'embed', 'colunaCss' => 'col-12 col-sm-6 col-md-3'])
 
@@ -74,7 +65,7 @@
     <div class="card stretch stretch-full">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover tabela-empilha mb-0">
                     <thead>
                         <tr>
                             <th>Produto</th>
@@ -86,8 +77,8 @@
                     <tbody>
                         @forelse($movimentos as $movimento)
                         <tr>
-                            <td>{{ $movimento->produto->nome ?? '-' }}</td>
-                            <td>
+                            <td data-label="Produto">{{ $movimento->produto->nome ?? '-' }}</td>
+                            <td data-label="Tipo">
                                 @switch($movimento->tipo->value)
                                     @case('entrada')
                                         <span class="badge bg-success">Entrada</span>
@@ -102,20 +93,16 @@
                                         <span class="badge bg-secondary">{{ ucfirst($movimento->tipo->value) }}</span>
                                 @endswitch
                             </td>
-                            <td>{{ $movimento->quantidade }}</td>
-                            <td>{{ $movimento->created_at->format('d/m/Y H:i') }}</td>
+                            <td data-label="Quantidade">{{ $movimento->quantidade }}</td>
+                            <td data-label="Data">{{ $movimento->created_at->format('d/m/Y H:i') }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
+                        <tr class="sem-registros"><td colspan="4" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
-        @if($movimentos->hasPages())
-            <div class="card-footer">
-                {{ $movimentos->onEachSide(1)->links() }}
-            </div>
-        @endif
+        <x-paginacao :paginator="$movimentos" />
     </div>
 @endsection
