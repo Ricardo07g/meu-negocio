@@ -2,17 +2,17 @@
     'voltar' => null,
     'salvarTexto' => 'Salvar',
     'salvarIcone' => 'feather-save',
-    'fixa' => true,
 ])
 
 {{--
     Barra de acoes de formulario (Voltar / Salvar).
 
     Desktop (>= sm): dois botoes de 300px nas pontas, como sempre foi.
-    Mobile  (<  sm): empilhado e full-width, com o Salvar por cima (a acao
-                     primaria fica sob o polegar). No DOM o Voltar vem primeiro
-                     — a ordem de leitura e de tabulacao continua Voltar ->
-                     Salvar; quem inverte e o flex-direction: column-reverse.
+    Mobile  (<  sm): empilhados e full-width, soltos no fim da pagina, com o
+                     Salvar por cima (a acao primaria fica sob o polegar). No
+                     DOM o Voltar vem primeiro — a ordem de leitura e de
+                     tabulacao continua Voltar -> Salvar; quem inverte e o
+                     flex-direction: column-reverse.
 
     Props:
       - voltar (string|null): URL do "Voltar" (pede confirmacao antes de sair).
@@ -20,16 +20,11 @@
                               (ex.: abas de Meu Perfil) — fica so o submit.
       - salvarTexto (string): rotulo do submit. Ex.: "Registrar Baixa".
       - salvarIcone (string): classe do icone Feather do submit.
-      - fixa (bool):          no mobile, gruda no rodape da viewport. Ligado por
-                              padrao (forms longos). Desligue quando a barra
-                              estiver dentro de um card ou aba — ancestral com
-                              overflow quebra position: sticky.
 
     O $slot entra entre os dois botoes, para acoes extras.
 --}}
 <div @class([
     'barra-acoes-form',
-    'barra-acoes-form--fixa' => $fixa,
     'barra-acoes-form--direita' => ! $voltar,
 ])>
     @if($voltar)

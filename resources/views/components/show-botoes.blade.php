@@ -8,10 +8,9 @@
 {{--
     Barra de acoes de tela de detalhe (Voltar / Editar).
 
-    Mesma mecanica responsiva do <x-form-botoes>, mas sem o modificador --fixa:
-    numa tela de leitura nao ha nada a perder ao rolar, entao a barra nao
-    precisa ocupar o rodape permanentemente. No mobile os botoes empilham e
-    ficam full-width; no desktop voltam aos 300px nas pontas.
+    Mesma mecanica responsiva do <x-form-botoes>: no mobile os botoes empilham
+    e ficam full-width, soltos no fim da pagina; no desktop voltam aos 300px
+    nas pontas.
 
     O $slot entra entre os dois botoes, para acoes extras (imprimir, estornar...).
 --}}

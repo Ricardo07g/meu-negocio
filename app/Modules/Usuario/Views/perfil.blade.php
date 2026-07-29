@@ -116,9 +116,7 @@
                                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
                             </div>
-                            {{-- :fixa="false" — a barra vive dentro de um card/aba, e ancestral
-                                 com overflow quebraria o position: sticky. --}}
-                            <x-form-botoes :fixa="false" />
+                            <x-form-botoes />
                         </form>
                     </div>
 
@@ -145,8 +143,7 @@
                                     <input type="password" name="password_confirmation" class="form-control" minlength="8" required>
                                 </div>
                             </div>
-                            <x-form-botoes :fixa="false"
-                                           salvarTexto="Alterar senha"
+                            <x-form-botoes salvarTexto="Alterar senha"
                                            salvarIcone="feather-lock" />
                         </form>
                     </div>
