@@ -185,14 +185,9 @@
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between mb-5 pb-4 pt-4">
-                    <a href="{{ route('despesas.index') }}" class="btn btn-light px-5" style="min-width: 300px;">
-                        <i class="feather-arrow-left me-2"></i>Voltar
-                    </a>
-                    <button type="submit" class="btn btn-primary px-5" style="min-width: 300px;">
-                        <i class="feather-dollar-sign me-2"></i>Registrar Pagamento
-                    </button>
-                </div>
+                <x-form-botoes :voltar="route('despesas.index')"
+                               salvarTexto="Registrar Pagamento"
+                               salvarIcone="feather-dollar-sign" />
             </form>
         </div>
     </div>
