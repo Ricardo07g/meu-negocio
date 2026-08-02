@@ -121,6 +121,10 @@ class DesenvolvimentoSeeder extends Seeder
         $this->command->info('     Recepção ..... recepcao@teste.com      (clientes + agenda)');
         $this->command->info('     Profissional . profissional@teste.com  (agenda + consultas)');
         $this->command->info('     Financeiro ... financeiro@teste.com    (pagamentos + despesas + caixa)');
+
+        // A Rede Demo nasce com as unidades ja pagas (criadas direto, sem CriarEmpresaAction),
+        // entao ela nao serve para testar o teste gratuito — quem cobre isso e o TrialSeeder.
+        $this->call(TrialSeeder::class);
     }
 
     private function criarRedeEEmpresa(): void

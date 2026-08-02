@@ -117,6 +117,21 @@ html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
     white-space: nowrap;
 }
 
+/* ── Menu do usuario no header ──────────────────────────────────────────── */
+/* O tema monta o gatilho como um <a> colado no avatar de 30px — alvo pequeno
+   demais para mouse tambem, nao so para o dedo. A area clicavel vai a 44px em
+   QUALQUER largura (cabe de sobra no header de 80px); o avatar continua 30px,
+   so a area ao redor cresce. As acoes de linha (`.avatar-text[data-bs-toggle]`)
+   ficam de fora: 44px no desktop engordaria as tabelas densas — ver o bloco
+   mobile abaixo. */
+.nxl-header .nxl-h-item > a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE
    O tema Duralux e desktop-first e nao traz nenhuma media query de largura
@@ -135,10 +150,9 @@ html.minimenu .nxl-navigation:hover .navbar-wrapper { width: 280px !important; }
     .form-check-input { width: 1.25em; height: 1.25em; }
     .dropdown-item { padding-top: .6rem; padding-bottom: .6rem; }
 
-    /* Gatilhos que o tema monta como .avatar-text (30px) em vez de .btn:
-       o avatar do usuario no header e o "..." de acoes de cada linha. Sao os
-       alvos mais tocados da tela e ficavam abaixo do minimo. */
-    .nxl-header .nxl-h-item > a,
+    /* O "..." de acoes de cada linha: o tema o monta como .avatar-text (30px)
+       em vez de .btn. E um dos alvos mais tocados e ficava abaixo do minimo.
+       (O gatilho do header ja e 44px em qualquer largura, mais acima.) */
     .avatar-text[data-bs-toggle="dropdown"] {
         display: inline-flex;
         align-items: center;

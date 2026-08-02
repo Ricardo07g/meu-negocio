@@ -279,7 +279,14 @@
                     </div>
                     --}}
                     @php $fotoTopo = auth()->user()->imagem_thumb_url; @endphp
-                    <div class="dropdown nxl-h-item">
+                    {{-- Sem a classe `dropdown`: o common-init.min.js do Duralux varre
+                         `.nxl-header .header-wrapper .dropdown` no DOMContentLoaded (so acima de
+                         992px) e liga mouseover/mouseleave que abrem o menu no hover e o fecham ao
+                         sair — e, como mexem na classe `show` por fora da API, dessincronizam o
+                         Bootstrap e fazem o CLIQUE fechar o menu. Sem casar com o seletor, os
+                         listeners nunca sao registrados e sobra o dropdown padrao do Bootstrap,
+                         igual ao que ja acontece no mobile. Nao devolva a classe `dropdown` aqui. --}}
+                    <div class="nxl-h-item nxl-user-menu">
                         <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
                             @if($fotoTopo)
                                 <img src="{{ $fotoTopo }}" alt="{{ auth()->user()->nome }}" class="avatar-md rounded-circle" style="object-fit:cover;">
