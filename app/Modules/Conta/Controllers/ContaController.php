@@ -108,7 +108,7 @@ class ContaController extends Controller
                 ? collect()
                 : BaixaPagamento::where('conta_id', $conta->id)
                     ->whereBetween('data', [$inicio->copy()->startOfDay(), $fim->copy()->endOfDay()])
-                    ->with('parcela.pagamento.cliente')
+                    ->comOrigem()
                     ->orderByDesc('data')->orderByDesc('id')
                     ->get();
             $recebidoLiquido = round((float) $recebimentos->sum(fn (BaixaPagamento $b): float => $b->estornado_em ? 0.0 : $b->valorTotal()), 2);

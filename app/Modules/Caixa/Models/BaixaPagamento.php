@@ -9,7 +9,7 @@ use App\Modules\Conta\Models\Conta;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Traits\EmpresaTrait;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\{Builder, Collection};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Support\Carbon;
 
@@ -76,6 +76,31 @@ class BaixaPagamento extends BaseModel
     public function valorTotal(): float
     {
         return (float) ($this->valor + $this->multa + $this->juros - $this->desconto);
+    }
+
+    // ███████╗ ██████╗ ██████╗ ██████╗ ███████╗███████╗
+    // ██╔════╝██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝
+    // ███████╗██║     ██║   ██║██████╔╝█████╗  ███████╗
+    // ╚════██║██║     ██║   ██║██╔═══╝ ██╔══╝  ╚════██║
+    // ███████║╚██████╗╚██████╔╝██║     ███████╗███████║
+    // ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝
+
+    /**
+     * Eager loading da origem do recebimento (parcela -> titulo -> cliente).
+     *
+     * O `withTrashed()` na espinha NAO e opcional: `Pagamento` e `ParcelaPagamento`
+     * usam SoftDeletes e a Baixa NAO. Cancelar uma venda apaga o titulo e deixa a
+     * baixa orfa da relacao — a linha aparece sem cliente ("—") mesmo com o
+     * recebimento tendo existido. Quem lista baixas deve usar este scope em vez de
+     * repetir (e esquecer) o `withTrashed`.
+     */
+    public function scopeComOrigem(Builder $query): Builder
+    {
+        return $query->with([
+            'parcela' => fn ($q) => $q->withTrashed(),
+            'parcela.pagamento' => fn ($q) => $q->withTrashed(),
+            'parcela.pagamento.cliente',
+        ]);
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗

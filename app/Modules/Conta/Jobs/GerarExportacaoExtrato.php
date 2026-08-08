@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Conta\Jobs;
 
 use App\Enums\StatusExportacao;
+use App\Modules\Caixa\Models\BaixaPagamento;
 use App\Modules\Conta\Exports\EscritorExtrato;
-use App\Modules\Conta\Models\{Exportacao, Lancamento};
+use App\Modules\Conta\Models\{Conta, Exportacao, Lancamento};
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\{InteractsWithQueue, SerializesModels};
 use Illuminate\Support\Facades\Storage;
@@ -40,15 +42,12 @@ class GerarExportacaoExtrato implements ShouldQueue
             return;
         }
 
-        $query = Lancamento::query()
-            ->withoutGlobalScopes()
-            ->where('rede_id', $exportacao->rede_id)
-            ->where('empresa_id', $exportacao->empresa_id)
-            ->where('conta_id', $exportacao->conta_id)
-            ->whereBetween('data', [
-                $exportacao->periodo_inicio->toDateString(),
-                $exportacao->periodo_fim->toDateString(),
-            ]);
+        // A conta decide O QUE e o extrato dela (mesma ramificacao da tela):
+        // a gaveta tem razao (Lancamento); banco/carteira nao acumulam lancamento
+        // nenhum (ADR-0011) e o extrato delas sao os recebimentos que cairam ali.
+        // Sem isso, exportar uma conta bancaria devolvia so o cabecalho.
+        $conta = Conta::withoutGlobalScopes()->find($exportacao->conta_id);
+        $ehGaveta = $conta?->ehProtegida() ?? true;
 
         $disco = (string) config('arquivos.disco', 'r2');
         $ext = $exportacao->formato->extensao();
@@ -69,7 +68,11 @@ class GerarExportacaoExtrato implements ShouldQueue
         $tmp = sys_get_temp_dir().'/'.Str::uuid()->toString().'.'.$ext;
 
         try {
-            (new EscritorExtrato($exportacao->formato))->escrever($query, $tmp);
+            $escritor = new EscritorExtrato($exportacao->formato);
+
+            $ehGaveta
+                ? $escritor->escrever($this->lancamentosDoPeriodo($exportacao), $tmp)
+                : $escritor->escreverRecebimentos($this->recebimentosDoPeriodo($exportacao), $tmp);
 
             Storage::disk($disco)->put($caminho, (string) file_get_contents($tmp));
 
@@ -85,6 +88,45 @@ class GerarExportacaoExtrato implements ShouldQueue
                 @unlink($tmp);
             }
         }
+    }
+
+    /**
+     * Razao da conta-caixa. `data` e DATE: o periodo entra como string de data.
+     *
+     * @return Builder<Lancamento>
+     */
+    private function lancamentosDoPeriodo(Exportacao $exportacao): Builder
+    {
+        return Lancamento::query()
+            ->withoutGlobalScopes()
+            ->where('rede_id', $exportacao->rede_id)
+            ->where('empresa_id', $exportacao->empresa_id)
+            ->where('conta_id', $exportacao->conta_id)
+            ->whereBetween('data', [
+                $exportacao->periodo_inicio->toDateString(),
+                $exportacao->periodo_fim->toDateString(),
+            ]);
+    }
+
+    /**
+     * Recebimentos que cairam na conta. `baixas_pagamento.data` e DATETIME —
+     * por isso o intervalo fecha no fim do dia, senao o ultimo dia do periodo
+     * sairia de fora.
+     *
+     * @return Builder<BaixaPagamento>
+     */
+    private function recebimentosDoPeriodo(Exportacao $exportacao): Builder
+    {
+        return BaixaPagamento::query()
+            ->withoutGlobalScopes()
+            ->where('rede_id', $exportacao->rede_id)
+            ->where('empresa_id', $exportacao->empresa_id)
+            ->where('conta_id', $exportacao->conta_id)
+            ->whereBetween('data', [
+                $exportacao->periodo_inicio->copy()->startOfDay(),
+                $exportacao->periodo_fim->copy()->endOfDay(),
+            ])
+            ->comOrigem();
     }
 
     public function failed(\Throwable $e): void
