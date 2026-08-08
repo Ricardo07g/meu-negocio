@@ -164,99 +164,117 @@
         </div>
     </div>
 
-    {{-- Panorama do dia por forma de pagamento: pauta-se em QUANDO O CLIENTE PAGOU
-         (a baixa), nao na liquidacao. Independe de haver caixa aberto e e um eixo
-         disjunto do saldo da gaveta (a tabela "Movimentos" abaixo). --}}
+    {{-- O dia do NEGOCIO, nao da gaveta: tudo que entrou e saiu, em qualquer forma.
+         Antes esta faixa era so a gaveta — dai "recebi R$ 30 no cartao" conviver com
+         "Entradas R$ 0,00" e parecer erro. Ver ADR-0014. --}}
+    <div class="row mb-4">
+        <div class="col-xxl-4 col-md-4 mb-3">
+            <div class="card stretch stretch-full">
+                <div class="card-body text-center">
+                    <p class="text-muted mb-1">Entradas do dia</p>
+                    <h4 class="mb-0 text-success">R$ {{ number_format($movimentacoes['totalEntradas'], 2, ',', '.') }}</h4>
+                    <span class="fs-11 text-muted">
+                        {{ $movimentacoes['qtdRecebimentos'] }} {{ $movimentacoes['qtdRecebimentos'] === 1 ? 'recebimento' : 'recebimentos' }}, em todas as formas
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-md-4 mb-3">
+            <div class="card stretch stretch-full">
+                <div class="card-body text-center">
+                    <p class="text-muted mb-1">Saídas do dia</p>
+                    <h4 class="mb-0 text-danger">R$ {{ number_format($movimentacoes['totalSaidas'], 2, ',', '.') }}</h4>
+                    <span class="fs-11 text-muted">
+                        {{ $movimentacoes['qtdDespesas'] }} {{ $movimentacoes['qtdDespesas'] === 1 ? 'despesa paga' : 'despesas pagas' }} e estornos
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xxl-4 col-md-4 mb-3">
+            <div class="card stretch stretch-full">
+                <div class="card-body text-center">
+                    <p class="text-muted mb-1">Resultado do dia</p>
+                    <h4 class="mb-0 {{ $movimentacoes['resultado'] >= 0 ? 'text-primary' : 'text-danger' }}">
+                        R$ {{ number_format($movimentacoes['resultado'], 2, ',', '.') }}
+                    </h4>
+                    <span class="fs-11 text-muted">entrou − saiu</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Timeline unica do dia (vendas, recebimentos a prazo, despesas pagas, estornos,
+         sangrias e reforcos). Fica FORA do @if($caixa): cartao/pix nao exigem gaveta, e
+         antes um dia sem caixa aberto escondia as vendas do dia inteiro. --}}
     <div class="card stretch stretch-full mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">Recebimentos do dia por forma</h5>
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-soft-primary text-primary">Líquido: R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</span>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="card-title mb-0">Movimentações do dia</h5>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <ul class="nav nav-pills gap-1" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active py-1 px-3 fs-12" data-bs-toggle="tab"
+                                data-bs-target="#mov-lista" type="button" role="tab">Lista</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link py-1 px-3 fs-12" data-bs-toggle="tab"
+                                data-bs-target="#mov-forma" type="button" role="tab">Por forma</button>
+                    </li>
+                </ul>
                 <a href="{{ route('caixas.recebimentos') }}" class="btn btn-sm btn-light">
                     <i class="feather-calendar me-1"></i>Ver por período
                 </a>
             </div>
         </div>
-        <div class="card-body">
-            <p class="text-muted fs-12 mb-3">
-                <i class="feather-info me-1"></i>Tudo que o cliente pagou neste dia, por forma (pela data do pagamento — não pela liquidação do banco). A tabela "Movimentos" abaixo é só a gaveta de dinheiro.
-            </p>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Forma</th>
-                            <th class="text-center">Qtd</th>
-                            <th class="text-end">Recebido</th>
-                            <th class="text-end">Estornado</th>
-                            <th class="text-end">Líquido</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($resumo['linhas'] as $linha)
-                        <tr>
-                            <td>{{ $linha['forma'] }}</td>
-                            <td class="text-center text-muted">{{ $linha['qtd'] }}</td>
-                            <td class="text-end text-success">R$ {{ number_format($linha['recebido'], 2, ',', '.') }}</td>
-                            <td class="text-end {{ $linha['estornado'] > 0 ? 'text-danger' : 'text-muted' }}">
-                                @if($linha['estornado'] > 0)− R$ {{ number_format($linha['estornado'], 2, ',', '.') }}@else—@endif
-                            </td>
-                            <td class="text-end fw-semibold">R$ {{ number_format($linha['liquido'], 2, ',', '.') }}</td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="5" class="text-center text-muted py-4">Nenhum recebimento registrado neste dia.</td></tr>
-                        @endforelse
-                    </tbody>
-                    @if(count($resumo['linhas']) > 0)
-                    <tfoot>
-                        <tr class="fw-bold border-top">
-                            <td>Total</td>
-                            <td></td>
-                            <td class="text-end text-success">R$ {{ number_format($resumo['totalRecebido'], 2, ',', '.') }}</td>
-                            <td class="text-end {{ $resumo['totalEstornado'] > 0 ? 'text-danger' : 'text-muted' }}">
-                                @if($resumo['totalEstornado'] > 0)− R$ {{ number_format($resumo['totalEstornado'], 2, ',', '.') }}@else—@endif
-                            </td>
-                            <td class="text-end">R$ {{ number_format($resumo['liquido'], 2, ',', '.') }}</td>
-                        </tr>
-                    </tfoot>
-                    @endif
-                </table>
+        <div class="card-body p-0">
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="mov-lista" role="tabpanel">
+                    @include('caixa::_movimentacoes_dia')
+                </div>
+                <div class="tab-pane fade" id="mov-forma" role="tabpanel">
+                    @include('caixa::_resumo_forma')
+                </div>
             </div>
         </div>
     </div>
 
     @if($caixa)
-        {{-- Summary cards --}}
-        <div class="row mb-4">
-            <div class="col-xxl-3 col-md-6 mb-3">
-                <div class="card stretch stretch-full">
-                    <div class="card-body text-center">
-                        <p class="text-muted mb-1">Saldo Abertura</p>
-                        <h4 class="mb-0">R$ {{ number_format($caixa->saldo_abertura, 2, ',', '.') }}</h4>
-                    </div>
+        {{-- Reconciliacao da gaveta: o ritual do dinheiro fisico. So as linhas marcadas
+             com a gaveta na timeline acima alimentam este saldo. --}}
+        <div class="card stretch stretch-full mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="card-title mb-0">
+                    <i class="feather-archive me-1"></i>Fechamento da gaveta
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-{{ $caixa->status->value === 'aberto' ? 'success' : 'secondary' }}">
+                        {{ ucfirst($caixa->status->value) }}
+                    </span>
+                    @if($caixa->conta_id)
+                        {{-- O razao da gaveta mora aqui, nao mais nesta tela (era a mesma
+                             tabela duas vezes no sistema). --}}
+                        <a href="{{ route('contas.extrato', $caixa->conta_id) }}" class="btn btn-sm btn-light">
+                            <i class="feather-list me-1"></i>Extrato da conta Caixa
+                        </a>
+                    @endif
                 </div>
             </div>
-            <div class="col-xxl-3 col-md-6 mb-3">
-                <div class="card stretch stretch-full">
-                    <div class="card-body text-center">
-                        <p class="text-muted mb-1">Total Entradas</p>
-                        <h4 class="mb-0 text-success">R$ {{ number_format($totalEntradas + $totalReforcos, 2, ',', '.') }}</h4>
+            <div class="card-body">
+                <div class="row text-center g-3">
+                    <div class="col-6 col-md-3">
+                        <p class="text-muted fs-12 mb-1">Abertura</p>
+                        <h5 class="mb-0">R$ {{ number_format($caixa->saldo_abertura, 2, ',', '.') }}</h5>
                     </div>
-                </div>
-            </div>
-            <div class="col-xxl-3 col-md-6 mb-3">
-                <div class="card stretch stretch-full">
-                    <div class="card-body text-center">
-                        <p class="text-muted mb-1">Total Saídas</p>
-                        <h4 class="mb-0 text-danger">R$ {{ number_format($totalSaidas, 2, ',', '.') }}</h4>
+                    <div class="col-6 col-md-3">
+                        <p class="text-muted fs-12 mb-1">+ Entradas em dinheiro</p>
+                        <h5 class="mb-0 text-success">R$ {{ number_format($totalEntradas + $totalReforcos, 2, ',', '.') }}</h5>
                     </div>
-                </div>
-            </div>
-            <div class="col-xxl-3 col-md-6 mb-3">
-                <div class="card stretch stretch-full">
-                    <div class="card-body text-center">
-                        <p class="text-muted mb-1">Saldo Atual</p>
-                        <h4 class="mb-0 text-primary">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</h4>
+                    <div class="col-6 col-md-3">
+                        <p class="text-muted fs-12 mb-1">− Saídas em dinheiro</p>
+                        <h5 class="mb-0 text-danger">R$ {{ number_format($totalSaidas, 2, ',', '.') }}</h5>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <p class="text-muted fs-12 mb-1">= Deve estar na gaveta</p>
+                        <h5 class="mb-0 text-primary">R$ {{ number_format($saldoAtual, 2, ',', '.') }}</h5>
                     </div>
                 </div>
             </div>
@@ -323,7 +341,7 @@
 
         <div class="card stretch stretch-full mb-4">
             <div class="card-header">
-                <h5 class="card-title">Informações do Fechamento</h5>
+                <h5 class="card-title">Contagem do fechamento</h5>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -357,68 +375,20 @@
         </div>
         @endif
 
-        {{-- Movimentos table --}}
-        <div class="card stretch stretch-full">
-            <div class="card-header">
-                <h5 class="card-title">Movimentos</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Horário</th>
-                                <th>Tipo</th>
-                                <th>Descrição</th>
-                                <th>Forma Pagamento</th>
-                                <th class="text-end">Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($caixa->lancamentos->sortByDesc('created_at') as $lancamento)
-                            <tr>
-                                <td>{{ \Carbon\Carbon::parse($lancamento->created_at)->format('H:i') }}</td>
-                                <td>
-                                    @switch($lancamento->categoria)
-                                        @case('movimento')
-                                            @if($lancamento->tipo === \App\Enums\TipoLancamento::Credito)
-                                                <span class="badge bg-success">Entrada</span>
-                                            @else
-                                                <span class="badge bg-danger">Saída</span>
-                                            @endif
-                                            @break
-                                        @case('sangria')
-                                            <span class="badge bg-warning">Sangria</span>
-                                            @break
-                                        @case('reforco')
-                                            <span class="badge bg-info">Reforço</span>
-                                            @break
-                                        @case('estorno')
-                                            <span class="badge bg-secondary">Estorno</span>
-                                            @break
-                                        @default
-                                            <span class="badge bg-secondary">{{ ucfirst($lancamento->categoria) }}</span>
-                                    @endswitch
-                                </td>
-                                <td>{{ $lancamento->descricao }}</td>
-                                <td>{{ $lancamento->forma_pagamento_nome ?? '-' }}</td>
-                                <td class="text-end">R$ {{ number_format($lancamento->valor, 2, ',', '.') }}</td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="5" class="text-center text-muted py-4">Nenhum movimento registrado.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     @else
-        {{-- Sem caixa neste dia --}}
-        <div class="card stretch stretch-full">
-            <div class="card-body text-center py-5">
-                <i class="feather-inbox text-muted" style="font-size: 48px;"></i>
-                <p class="text-muted mt-3 mb-0">Nenhum caixa registrado neste dia.</p>
+        {{-- Sem caixa neste dia. Aviso enxuto de proposito: as movimentacoes do dia ja
+             aparecem acima (cartao/pix nao exigem gaveta), entao a ausencia de caixa nao
+             e mais um beco sem saida — so significa que o dinheiro fisico nao foi conferido. --}}
+        <div class="card stretch stretch-full mb-4">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <i class="feather-archive text-muted" style="font-size: 24px;"></i>
+                <div>
+                    <p class="mb-0 fw-semibold">Nenhum caixa aberto neste dia</p>
+                    <span class="fs-12 text-muted">
+                        O dinheiro em espécie não foi conferido. Recebimentos em cartão e pix não
+                        dependem da gaveta e continuam listados acima.
+                    </span>
+                </div>
             </div>
         </div>
     @endif

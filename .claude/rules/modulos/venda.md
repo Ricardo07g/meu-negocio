@@ -29,18 +29,19 @@ Frente de venda transacional (com `empresa_id`). **Tres tipos**: servico unico, 
 ## Camadas-chave
 - **`VendaController`**: `store` -> `processarVenda` roteia por `tipo_venda`/`servico->isEtapas()`.
   Escrita envolta em `comEmpresaDeCriacao($empresaId, fn ...)` (trait `DefineEmpresaDeCriacao`).
-  Edit/update e cancelar por tipo: `*Unico` / `*Etapas` / `*Produto`; `recibo($tipo,$id)` gera PDF.
+  Cancelar e excluir por tipo: `*Unico` / `*Etapas` / `*Produto`; `recibo($tipo,$id)` gera PDF;
+  `show($tipo,$id)` = detalhes. **Nao existe edicao de venda** (sem rota/metodo edit|update).
 - **`VendaService`**: `criarUnico`, `criarEtapas`, `criarVendaProduto` (cada um em `DB::transaction`);
-  `cancelar*` (estorno); `atualizar*` (bloqueia se ja ha parcela paga / status nao editavel);
-  `listar` (merge dos 3 tipos + paginacao manual com filtros pesados). `podeEditar(?Pagamento)` =
-  `valorPago() <= 0`.
+  `cancelar*` (estorno); `excluir*`; `detalhar($tipo,$id)`;
+  `listar` (merge dos 3 tipos + paginacao manual com filtros pesados). O `listar` faz eager de
+  `pagamento.parcelas.baixas` — a forma/parcelamento mora na BAIXA, e o card da listagem os exibe.
 - **Actions**: `VenderEtapasAction` (cria VendaEtapas + N Agendamentos, **detecta conflito por
-  sessao** e acumula em `ConflitoAgendamentoException` com lista de datas), `CriarVendaProdutoAction`
-  (cria venda + itens, baixa estoque, cria Pagamento), `SincronizarItensVendaProdutoAction` (diff de
-  itens na edicao: ajusta estoque pela diferenca, devolve removidos).
+  sessao** e acumula em `ConflitoAgendamentoException` com lista de datas) e
+  `CriarVendaProdutoAction` (cria venda + itens, baixa estoque, cria Pagamento).
 - **DTOs/Requests**: `VenderEtapasData` (cliente/servico/atendente, `valor_total`, `horario`,
-  `datas[]`, `horarios[]?`). `CriarVendaRequest` (unico, ramifica por `tipo_venda` produto/servico e
-  por `isEtapas`). Atualizacao: `AtualizarVenda{Etapas,Produto,Unico}Request`.
+  `datas[]`, `horarios[]?`). `CriarVendaRequest` — **o unico Request do modulo** (ramifica por
+  `tipo_venda` produto/servico e por `isEtapas`). `RecebimentoData` = 1 linha do split de formas
+  (`forma`, `valor`, `parcelas_cartao`).
 - **`VendaEtapasPolicy`**: usa permissoes do **agendamento** (`agendamento.ver|criar|cancelar`), nao
   `venda.*`. Metodos `viewAny/view/create/cancel`.
 
@@ -49,13 +50,17 @@ Frente de venda transacional (com `empresa_id`). **Tres tipos**: servico unico, 
   ANTES da transacao (so quando a forma e imediata e a conta destino e do tipo caixa — dinheiro sim;
   pix-direto/cartao nao). A baixa automatica e `VendaService::baixarAVistaSeAplicavel` ->
   `CaixaService::darBaixaParcelaPagamento` (so quando `AVista` E forma informada).
+- **Split de formas**: a venda aceita N `recebimentos` (formas distintas), cuja soma tem de bater com
+  o total. Cada linha vira uma Baixa na parcela unica. `parcelas_cartao` (2x, 3x...) so vale em forma
+  com `permite_parcelas` (derivado do tipo = so cartao de credito) e e gravado na Baixa —
+  informativo, sem derivar datas/valores (ADR-0011). Rotulo via `BaixaPagamento::rotuloForma()`.
 - **Estorno ao cancelar** (etapas/produto): `estornarPagamentoSeExistir` ->
-  `CaixaService::estornarPagamento` (parcelas Pendente->Cancelado, Pagamento->Estornado;
-  contra-lancamento por-baixa: cancela `Recebivel` se houver, senao `Lancamento` de debito
-  `categoria=estorno` na conta de origem). Etapas: cancela tambem agendamentos `agendado|confirmado`.
+  `CaixaService::estornarPagamento` (parcelas Pendente->Cancelado, Pagamento->Estornado; toda baixa
+  recebe `estornado_em`; contra-lancamento por-baixa **so quando ha `Lancamento` de origem** — a
+  gaveta: `Lancamento` de debito `categoria=estorno` na conta de origem. Cartao/pix nao tem
+  lancamento, so a marca). Etapas: cancela tambem agendamentos `agendado|confirmado`.
   Produto: devolve estoque (`increment` + MovimentoEstoque entrada). `cancelarUnico` cancela o
   Agendamento (Action) + estorna. (Contraste: cancelar pela tela de Agenda NAO estorna no caixa.)
-- Edicao bloqueada se `podeEditar` falso (parcela ja paga) ou status fora de Ativo/agendado etc.
 - `qtd_etapas` da venda = `count($data->datas)` (nao vem do servico).
 
 ## Veja tambem

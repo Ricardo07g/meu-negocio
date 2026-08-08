@@ -13,7 +13,9 @@ use Spatie\LaravelData\Data;
  * A venda pode ter N recebimentos de formas distintas (parte pix, parte dinheiro,
  * parte cartao), desde que a soma dos valores bata com o total da venda. Cada
  * recebimento vira uma Baixa na parcela unica (venda a vista), roteada pela sua
- * forma. `parcelas_cartao` so faz sentido em cartao parcelavel (informativo).
+ * forma. `parcelas_cartao` so faz sentido em cartao parcelavel: e gravado em
+ * `baixas_pagamento.parcelas_cartao` como dado informativo (rende o rotulo
+ * "Cartao de Credito 2x"), sem derivar datas nem valores — ADR-0011.
  */
 class RecebimentoData extends Data
 {

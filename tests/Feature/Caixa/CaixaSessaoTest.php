@@ -46,7 +46,7 @@ class CaixaSessaoTest extends TestCase
         $this->assertSame(120.00, $caixa->fresh()->saldoCalculado());
     }
 
-    public function test_tela_do_caixa_lista_os_lancamentos_do_dia(): void
+    public function test_tela_do_caixa_lista_os_movimentos_da_sessao_e_o_saldo_esperado(): void
     {
         $this->criarRedeAutenticada();
         $service = app(CaixaService::class);
@@ -57,7 +57,18 @@ class CaixaSessaoTest extends TestCase
         $this->get(route('caixas.index', ['data' => today()->toDateString()]))
             ->assertOk()
             ->assertViewIs('caixa::index')
+            // O reforco agora aparece na timeline do dia, junto de vendas e despesas.
             ->assertSee('Troco do dia')
-            ->assertSee('Reforço');
+            ->assertSee('Reforço')
+            ->assertSee('Movimentações do dia')
+            // A gaveta encolheu para o que ela e: reconciliacao do dinheiro fisico. Os
+            // rotulos ganharam escopo — "Total Entradas" lia como entradas DA EMPRESA,
+            // quando era so a gaveta (origem da confusao "cartao recebido, entrada zero").
+            ->assertSee('Fechamento da gaveta')
+            ->assertSee('Entradas em dinheiro')
+            ->assertSee('Deve estar na gaveta')
+            // O razao da conta-caixa saiu daqui: era a mesma tabela do extrato da Conta
+            // (ADR-0014), e escondia cartao/pix, que nao geram lancamento.
+            ->assertDontSee('Movimentos da gaveta');
     }
 }

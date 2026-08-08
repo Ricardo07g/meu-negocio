@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Caixa;
 
-use App\Enums\{CondicaoPagamento, StatusPagamento, TipoFormaPagamento};
-use App\Modules\Caixa\Models\{BaixaPagamento, Recebivel};
+use App\Enums\{CondicaoPagamento, StatusCaixa, StatusPagamento, TipoFormaPagamento};
+use App\Modules\Caixa\Models\{BaixaPagamento, Caixa, Recebivel};
 use App\Modules\Conta\Models\Lancamento;
 use App\Modules\Produto\Models\Produto;
 use App\Modules\Venda\DTOs\RecebimentoData;
@@ -24,6 +24,19 @@ use Tests\TestCase;
 class VendaCartaoTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** Dinheiro exige caixa aberto (conta destino = gaveta); cartao/pix nao. */
+    private function abrirCaixa(array $contexto): void
+    {
+        Caixa::create([
+            'rede_id' => $contexto['rede']->id,
+            'empresa_id' => $contexto['empresa']->id,
+            'usuario_id' => $contexto['usuario']->id,
+            'data' => today()->toDateString(),
+            'saldo_abertura' => 0,
+            'status' => StatusCaixa::Aberto,
+        ]);
+    }
 
     private function venderNoCartao(array $contexto, float $valor, TipoFormaPagamento $tipo, ?int $parcelasCartao = null): VendaProduto
     {
@@ -72,6 +85,70 @@ class VendaCartaoTest extends TestCase
         // Fluxo, nao saldo: nada na gaveta, nada de recebivel.
         $this->assertSame(0, Lancamento::count(), 'Cartão não toca a gaveta (sem lançamento).');
         $this->assertSame(0, Recebivel::count(), 'Cartão não gera mais recebível (ADR-0011).');
+    }
+
+    /**
+     * Regressao: o "2x/3x" escolhido na venda atravessava JS -> Request -> Controller
+     * -> DTO -> Service e era DESCARTADO no motor de baixa (o antigo lar era
+     * `recebiveis.parcela_total`, aposentado pelo ADR-0011 sem substituto). O lojista
+     * escolhia o parcelamento e nunca mais o via em tela nenhuma.
+     */
+    public function test_venda_cartao_credito_grava_o_parcelamento_na_baixa(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $this->venderNoCartao($contexto, 300.00, TipoFormaPagamento::CartaoCredito, 3);
+
+        $baixa = BaixaPagamento::firstOrFail();
+        $this->assertSame(3, $baixa->parcelas_cartao, 'O parcelamento do cartão é persistido na baixa.');
+        $this->assertStringContainsString('3x', $baixa->rotuloForma());
+    }
+
+    public function test_forma_sem_parcelamento_nao_grava_parcelas_cartao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $this->abrirCaixa($contexto);
+
+        // Dinheiro nao tem permite_parcelas: nao deve inventar "1x" nem herdar valor.
+        $this->venderNoCartao($contexto, 80.00, TipoFormaPagamento::Dinheiro, 3);
+
+        $baixa = BaixaPagamento::firstOrFail();
+        $this->assertNull($baixa->parcelas_cartao, 'Forma sem parcelamento não grava parcelas_cartao.');
+        $this->assertSame('Dinheiro', $baixa->rotuloForma());
+    }
+
+    public function test_cartao_a_vista_nao_poluí_o_rotulo_com_1x(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $this->venderNoCartao($contexto, 50.00, TipoFormaPagamento::CartaoCredito, 1);
+
+        $baixa = BaixaPagamento::firstOrFail();
+        $this->assertNull($baixa->parcelas_cartao, '1x é à vista: não é parcelamento.');
+        $this->assertSame('Cartão de Crédito', $baixa->rotuloForma());
+    }
+
+    /**
+     * Regressao: `totalRecebidoLiquido()` somava TODAS as baixas, inclusive as
+     * estornadas — o detalhe da venda cancelada exibia "Recebido R$ 300,00" ao lado
+     * da mesma baixa riscada como "Estornado".
+     */
+    public function test_baixa_estornada_nao_conta_como_recebido(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $venda = $this->venderNoCartao($contexto, 300.00, TipoFormaPagamento::CartaoCredito, 2);
+        $pagamento = $venda->pagamento;
+
+        $this->assertSame(300.00, $pagamento->load('parcelas.baixas')->totalRecebidoLiquido());
+
+        app(VendaService::class)->cancelarVendaProduto($venda);
+
+        $this->assertSame(
+            0.0,
+            $pagamento->fresh()->load('parcelas.baixas')->totalRecebidoLiquido(),
+            'Venda cancelada não tem valor recebido.'
+        );
     }
 
     public function test_venda_cartao_debito_nao_exige_caixa(): void

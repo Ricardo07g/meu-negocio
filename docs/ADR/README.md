@@ -21,6 +21,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0011](0011-fluxo-nao-saldo-recebimentos-por-forma.md) | Fluxo, não saldo: recebimentos por forma no caixa do dia | Aceito |
 | [0012](0012-exportacoes-assincronas-fila-download-autenticado.md) | Exportações assíncronas via fila + download autenticado | Aceito |
 | [0013](0013-licenca-por-empresa.md) | Licença por empresa: o plano é da unidade, não da rede | Aceito |
+| [0014](0014-caixa-do-dia-mostra-o-fluxo-nao-o-razao.md) | O caixa do dia mostra o fluxo da loja, não o razão da gaveta | Aceito |
 
 ## Como ler
 

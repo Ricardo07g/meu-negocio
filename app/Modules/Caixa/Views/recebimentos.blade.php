@@ -105,7 +105,7 @@
                         <tr class="{{ $baixa->estornado_em ? 'text-muted' : '' }}">
                             <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
                             <td>
-                                {{ $baixa->forma_pagamento_nome ?? '—' }}
+                                {{ $baixa->rotuloForma() }}
                                 @if($baixa->estornado_em)<span class="badge bg-soft-secondary text-secondary ms-1">Estornado</span>@endif
                             </td>
                             <td>{{ $baixa->parcela?->pagamento?->cliente?->nome ?? '—' }}</td>

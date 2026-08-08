@@ -320,6 +320,30 @@ class VendaSplitRecebimentosTest extends TestCase
         $resp->assertSee('Cartão de Crédito');
     }
 
+    /**
+     * A LISTAGEM de vendas nao mostrava forma de pagamento nenhuma (so cliente,
+     * servico, valor e status) — a forma so aparecia ao expandir o card. E o
+     * parcelamento do cartao nao existia em tela alguma.
+     */
+    public function test_listagem_de_vendas_mostra_a_forma_e_o_parcelamento_do_cartao(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $produtoId = $this->criarProduto($contexto['rede']->id, 90.00);
+
+        // Só cartão: nao exige caixa aberto (ADR-0011).
+        $this->post(route('vendas.store'), $this->payloadProduto($produtoId, 90.00, [
+            [
+                'forma_pagamento_id' => $this->formaId(TipoFormaPagamento::CartaoCredito),
+                'valor' => 90.00,
+                'parcelas_cartao' => 3,
+            ],
+        ]))->assertSessionHas('sucesso');
+
+        $this->get(route('vendas.index'))
+            ->assertOk()
+            ->assertSee('Cartão de Crédito 3x');
+    }
+
     public function test_split_em_servico_unico(): void
     {
         $contexto = $this->criarRedeAutenticada();

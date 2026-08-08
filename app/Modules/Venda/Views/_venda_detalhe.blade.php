@@ -256,7 +256,7 @@
                                         <tr class="{{ $baixa->estornado_em ? 'text-muted' : '' }}">
                                             <td>{{ \Carbon\Carbon::parse($baixa->data)->format('d/m/Y H:i') }}</td>
                                             <td>
-                                                {{ $baixa->forma_pagamento_nome ?? '—' }}
+                                                {{ $baixa->rotuloForma() }}
                                                 @if($baixa->estornado_em)
                                                     <span class="badge bg-soft-secondary text-secondary ms-1">Estornado</span>
                                                 @endif
@@ -287,7 +287,7 @@
                             @foreach($pagamento->parcelas as $parcela)
                                 @php
                                     $statusEfetivoP = $parcela->statusEfetivo();
-                                    $formasParcela = $parcela->baixas->pluck('forma_pagamento_nome')->filter()->unique()->implode(', ');
+                                    $formasParcela = $parcela->baixas->map->rotuloForma()->filter(fn ($r) => $r !== '—')->unique()->implode(', ');
                                 @endphp
                                 <tr>
                                     <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
