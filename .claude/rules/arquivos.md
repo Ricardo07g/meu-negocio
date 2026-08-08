@@ -26,7 +26,8 @@ Base generica para anexar arquivos a qualquer model, via tabela polimorfica `arq
   `arquivosDaColecao()`, accessors `imagem_url`/`imagem_thumb_url`, e `diretorioBaseArquivos()`.
   O model declara coleções em `colecoesArquivo()`.
 - **`ArquivoService`**: `armazenar`, `sincronizarUnico` (coleção `unica`), `armazenarRascunho` /
-  `removerRascunho` / `anexarRascunhos` (staging), `remover`, `reordenar`, `definirPrincipal`.
+  `removerRascunho` / `anexarRascunhos` / `anexarRascunhoUnico` / `urlsDoRascunho` (staging),
+  `remover`, `reordenar`, `definirPrincipal`.
   Toda a I/O passa por `gravarArquivo()`, que bifurca em `gravarImagemWebp()` (imagem convertivel)
   ou `gravarComoEnviado()` (PDF/GIF/conversao desligada). `intervention/image` com driver GD.
 - **`ProdutoArquivoController`** (modulo Produto): endpoints AJAX da galeria (store/destroy/reordenar/
@@ -63,6 +64,30 @@ Como o produto ainda nao existe no `create`, o gerenciador AJAX sobe para `{past
 final. Endpoints de rascunho exigem `token === session('arquivo_rascunho_token')` (403 caso contrario).
 Limpeza de orfaos: regra de lifecycle no R2 sobre `{pasta_sistema}/tmp/` + comando agendado
 `arquivos:limpar-rascunhos` (diario, reforço).
+
+## Preservacao no erro de validacao
+Arquivo **nao sobrevive ao `withInput()`** (UploadedFile nao e serializavel e o temporario do PHP
+morre no fim do request). Por isso o upload valido e **estacionado** quando a validacao falha:
+- `App\Traits\PreservaImagemRascunho` (nos 4 `SalvarXxxRequest`/`AtualizarPerfilRequest`) sobrescreve
+  `failedValidation()`, grava em `tmp/{token}` e injeta `{campo}_rascunho` no old input. Usa uma
+  **response customizada** na `ValidationException` porque `Request::createFrom()` COPIA o input bag
+  — um `merge()` no FormRequest nao chega ao `Handler::invalid()`.
+- So estaciona se o **proprio campo** passou: imagem grande demais nao vira rascunho.
+- `<x-campo-imagem>` reidrata o preview via `ArquivoService::urlsDoRascunho()` e emite o hidden
+  `{campo}_rascunho`; o JS o descarta quando o usuario troca ou remove a imagem.
+- `App\Traits\SincronizaImagemUnica` (nos 4 controllers) aplica a precedencia
+  **arquivo novo > rascunho > remover** e chama `anexarRascunhoUnico()`.
+
+**Duas chaves de sessao, de proposito:**
+| Chave | Dono | Por que separada |
+|---|---|---|
+| `arquivo_rascunho_token` | galeria do Produto | `anexarRascunhos()` faz `deleteDirectory(tmp/{token})` ao final |
+| `ArquivoService::SESSAO_TOKEN_UNICO` (`arquivo_rascunho_unico`) | avatar | token compartilhado faria o save de um produto apagar o avatar estacionado em outra aba |
+
+`ProdutoController@create` **reaproveita** o token vigente em vez de regenerar: apos o redirect de
+erro, um token novo orfanaria as imagens ja estacionadas (`caminhoPertenceAoToken()` recusaria os
+caminhos do old input). `_galeria.blade.php` semeia `itens` de `old('arquivos_rascunho')` em modo
+criacao. **Os dois juntos** — um sem o outro nao resolve.
 
 ## Exibicao
 - Componentes Blade: `<x-thumb>` (img com fallback icone/iniciais) e `<x-campo-imagem>` (upload unico

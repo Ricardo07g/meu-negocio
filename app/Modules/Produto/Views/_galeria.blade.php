@@ -1,12 +1,23 @@
 @php
     $entidade = $entidade ?? null;
+
+    // Na criacao, as imagens vivem no staging (tmp/{token}) ate o produto existir.
+    // Quando a validacao falha, o redirect traz os caminhos no old input — reidratar
+    // dali e o que impede o usuario de perder o que ja subiu. As URLs sao derivadas
+    // no servidor: o hidden so carrega o caminho, e caminho vindo do cliente nao e
+    // confiavel (urlsDoRascunho valida contra o token da sessao).
     $galeriaItens = $entidade
         ? $entidade->arquivosDaColecao('galeria')->map(fn ($a) => [
             'id' => $a->id,
             'url' => $a->url,
             'thumb_url' => $a->thumb_url,
         ])->values()->all()
-        : [];
+        : collect(old('arquivos_rascunho', []))
+            ->map(fn ($caminho) => app(App\Modules\Arquivo\Services\ArquivoService::class)
+                ->urlsDoRascunho((string) ($tokenRascunho ?? ''), is_string($caminho) ? $caminho : null))
+            ->filter()
+            ->values()
+            ->all();
 
     $galeriaConfig = [
         'modo' => $entidade ? 'edicao' : 'criacao',

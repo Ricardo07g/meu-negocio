@@ -31,6 +31,16 @@ use Throwable;
 class ArquivoService
 {
     /**
+     * Chave de sessao do token de staging de imagem unica (avatar).
+     *
+     * Deliberadamente distinta de `arquivo_rascunho_token` (galeria do Produto):
+     * `anexarRascunhos()` faz `deleteDirectory(tmp/{token})` ao final, entao um
+     * token compartilhado faria o salvamento de um produto apagar o avatar
+     * estacionado em outra aba.
+     */
+    public const SESSAO_TOKEN_UNICO = 'arquivo_rascunho_unico';
+
+    /**
      * Mimes que sabemos reencodar com seguranca em WebP. GIF fica de fora de
      * proposito: o GD achata a animacao no primeiro quadro.
      */
@@ -168,37 +178,60 @@ class ArquivoService
                 continue;
             }
 
-            $novoCaminho = $dirFinal.'/'.basename($caminhoTmp);
-            $disco->move($caminhoTmp, $novoCaminho);
-
-            $novoThumb = null;
-            $thumbTmp = $this->caminhoThumbPorConvencao($caminhoTmp);
-            if ($disco->exists($thumbTmp)) {
-                $novoThumb = $dirFinal.'/'.basename($thumbTmp);
-                $disco->move($thumbTmp, $novoThumb);
-            }
-
-            $dono->arquivos()->create([
-                'rede_id' => $dono->getAttribute('rede_id'),
-                'empresa_id' => $dono->empresaIdParaArquivo(),
-                'colecao' => $colecao,
-                'disco' => $this->disco(),
-                'caminho' => $novoCaminho,
-                'caminho_thumb' => $novoThumb,
-                'nome_original' => basename($novoCaminho),
-                'extensao' => strtolower(pathinfo($novoCaminho, PATHINFO_EXTENSION)),
-                'mime' => (string) ($disco->mimeType($novoCaminho) ?: 'application/octet-stream'),
-                'tamanho' => (int) $disco->size($novoCaminho),
-                'hash' => null,
-                'ordem' => $ordem,
-                'principal' => $ordem === 0,
-            ]);
-
+            $this->moverRascunhoParaDono($dono, $colecao, $caminhoTmp, $ordem);
             $ordem++;
         }
 
         // Limpa quaisquer sobras (uploads abandonados) do token.
         $disco->deleteDirectory($this->diretorioTmp($token));
+    }
+
+    /**
+     * Promove UM arquivo estacionado para uma colecao `unica` (avatar),
+     * substituindo o anterior. Usado quando o form volta com erro de validacao e
+     * o usuario salva sem reenviar a imagem.
+     *
+     * Ignora em silencio caminho que nao pertence ao token ou que ja sumiu: o
+     * caminho vem de um input do cliente e nao pode virar 500. Nao apaga o
+     * diretorio do token — a galeria pode ter rascunhos vivos ali.
+     */
+    public function anexarRascunhoUnico(Model&PossuiArquivos $dono, string $colecao, string $token, string $caminho): void
+    {
+        if (! $this->caminhoPertenceAoToken($caminho, $token) || ! Storage::disk($this->disco())->exists($caminho)) {
+            return;
+        }
+
+        foreach ($dono->arquivos()->where('colecao', $colecao)->get() as $antigo) {
+            /** @var Arquivo $antigo */
+            $this->remover($antigo);
+        }
+
+        $this->moverRascunhoParaDono($dono, $colecao, $caminho, 0);
+    }
+
+    /**
+     * URLs de um arquivo estacionado, para reidratar o preview do formulario.
+     * Devolve null quando o caminho nao pertence ao token vigente ou nao existe
+     * mais — o caminho chega por input do cliente, entao nao se confia nele.
+     *
+     * @return array{caminho: string, url: string, thumb_url: string}|null
+     */
+    public function urlsDoRascunho(string $token, ?string $caminho): ?array
+    {
+        $caminho = trim((string) $caminho);
+        $disco = Storage::disk($this->disco());
+
+        if ($caminho === '' || ! $this->caminhoPertenceAoToken($caminho, $token) || ! $disco->exists($caminho)) {
+            return null;
+        }
+
+        $thumb = $this->caminhoThumbPorConvencao($caminho);
+
+        return [
+            'caminho' => $caminho,
+            'url' => $disco->url($caminho),
+            'thumb_url' => $disco->exists($thumb) ? $disco->url($thumb) : $disco->url($caminho),
+        ];
     }
 
     // ██████╗ ███████╗███████╗████████╗ █████╗ ███╗   ██╗████████╗███████╗
@@ -382,6 +415,45 @@ class ArquivoService
         return (bool) config('arquivos.imagem.converter_para_webp')
             && in_array($mime, self::MIMES_CONVERSIVEIS, true)
             && function_exists('imagewebp');
+    }
+
+    /**
+     * Move um objeto do staging para o path final do dono e cria o registro.
+     * Os metadados sao re-derivados do proprio objeto no bucket — o staging nao
+     * guarda nada no banco e nao se confia em dado vindo do cliente.
+     *
+     * Quem chama ja validou o token e a existencia do caminho.
+     */
+    private function moverRascunhoParaDono(Model&PossuiArquivos $dono, string $colecao, string $caminhoTmp, int $ordem): void
+    {
+        $disco = Storage::disk($this->disco());
+        $dirFinal = $dono->diretorioBaseArquivos($colecao);
+
+        $novoCaminho = $dirFinal.'/'.basename($caminhoTmp);
+        $disco->move($caminhoTmp, $novoCaminho);
+
+        $novoThumb = null;
+        $thumbTmp = $this->caminhoThumbPorConvencao($caminhoTmp);
+        if ($disco->exists($thumbTmp)) {
+            $novoThumb = $dirFinal.'/'.basename($thumbTmp);
+            $disco->move($thumbTmp, $novoThumb);
+        }
+
+        $dono->arquivos()->create([
+            'rede_id' => $dono->getAttribute('rede_id'),
+            'empresa_id' => $dono->empresaIdParaArquivo(),
+            'colecao' => $colecao,
+            'disco' => $this->disco(),
+            'caminho' => $novoCaminho,
+            'caminho_thumb' => $novoThumb,
+            'nome_original' => basename($novoCaminho),
+            'extensao' => strtolower(pathinfo($novoCaminho, PATHINFO_EXTENSION)),
+            'mime' => (string) ($disco->mimeType($novoCaminho) ?: 'application/octet-stream'),
+            'tamanho' => (int) $disco->size($novoCaminho),
+            'hash' => null,
+            'ordem' => $ordem,
+            'principal' => $ordem === 0,
+        ]);
     }
 
     private function validar(Model&PossuiArquivos $dono, UploadedFile $arquivo, string $colecao): void
