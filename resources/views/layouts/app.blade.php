@@ -138,6 +138,14 @@
                             <span class="nxl-mtext">Caixa</span>
                         </a>
                     </li>
+                    {{-- Recebimentos por periodo: a casa unica do "o que entrou, por forma"
+                         (ADR-0011), inclusive cartao/pix que nao passam pela gaveta. --}}
+                    <li class="nxl-item">
+                        <a href="{{ route('caixas.recebimentos') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-download"></i></span>
+                            <span class="nxl-mtext">Recebimentos</span>
+                        </a>
+                    </li>
                     @endcan
                     {{-- Formas de Pagamento --}}
                     @can('forma_pagamento.ver')

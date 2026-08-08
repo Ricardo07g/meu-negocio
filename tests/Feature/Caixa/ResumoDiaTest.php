@@ -94,18 +94,38 @@ class ResumoDiaTest extends TestCase
         $this->assertSame(100.0, $resumo['totalRecebido'], 'Baixa da Filial B (500) nao entra no contexto da empresa A.');
     }
 
-    public function test_tela_do_caixa_renderiza_o_card(): void
+    public function test_tela_do_caixa_renderiza_o_resumo_por_forma(): void
     {
         $ctx = $this->criarRedeAutenticada();
         $this->criarBaixa($ctx['rede'], $ctx['empresa'], 'Dinheiro', 100, today()->toDateString());
 
+        // O panorama por forma virou a aba "Por forma" da timeline do dia (ADR-0014):
+        // e a mesma leitura, agregada, ao lado do detalhe linha-a-linha.
         $this->get(route('caixas.index'))
             ->assertOk()
-            ->assertSee('Recebimentos do dia por forma')
+            ->assertSee('Movimentações do dia')
+            ->assertSee('Por forma')
             ->assertSee('Dinheiro');
     }
 
-    private function criarBaixa(Rede $rede, Empresa $empresa, string $forma, float $valor, string $data): BaixaPagamento
+    /**
+     * O painel do dia agrega por forma, mas o detalhe (expansivel) tem de responder
+     * "que venda foi essa?" — cliente, horario e parcelamento do cartao. E o que o
+     * caixa nao mostrava: cartao aparecia como total, sem origem nem "2x".
+     */
+    public function test_tela_do_caixa_detalha_a_venda_e_o_parcelamento_do_cartao(): void
+    {
+        $ctx = $this->criarRedeAutenticada();
+        $this->criarBaixa($ctx['rede'], $ctx['empresa'], 'Cartão de Crédito', 45, today()->toDateString(), 2);
+
+        // Sem caixa aberto de proposito: e o cenario real do cartao (nao exige gaveta).
+        $this->get(route('caixas.index'))
+            ->assertOk()
+            ->assertSee('Cartão de Crédito')
+            ->assertSee('2x'); // parcelamento no detalhe do recebimento
+    }
+
+    private function criarBaixa(Rede $rede, Empresa $empresa, string $forma, float $valor, string $data, ?int $parcelasCartao = null): BaixaPagamento
     {
         $pagamento = PagamentoFactory::new()->create([
             'rede_id' => $rede->id,
@@ -129,6 +149,7 @@ class ResumoDiaTest extends TestCase
             'juros' => 0,
             'desconto' => 0,
             'forma_pagamento_nome' => $forma,
+            'parcelas_cartao' => $parcelasCartao,
             'data' => $data,
         ]);
     }
