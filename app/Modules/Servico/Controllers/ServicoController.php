@@ -5,23 +5,19 @@ declare(strict_types=1);
 namespace App\Modules\Servico\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Servico\DTOs\ServicoData;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Requests\SalvarServicoRequest;
 use App\Modules\Servico\Services\ServicoService;
-use App\Traits\TratamentoErros;
+use App\Traits\{SincronizaImagemUnica, TratamentoErros};
 use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Illuminate\View\View;
 
 class ServicoController extends Controller
 {
-    use TratamentoErros;
+    use SincronizaImagemUnica, TratamentoErros;
 
-    public function __construct(
-        private ServicoService $service,
-        private ArquivoService $arquivos,
-    ) {}
+    public function __construct(private ServicoService $service) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -51,7 +47,7 @@ class ServicoController extends Controller
     {
         try {
             $servico = $this->service->criar(ServicoData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($servico, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($servico, $request);
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço criado com sucesso.');
         } catch (\Throwable $e) {
@@ -98,7 +94,7 @@ class ServicoController extends Controller
         try {
             $this->authorize('update', $servico);
             $servico = $this->service->atualizar($servico, ServicoData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($servico, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($servico, $request);
 
             return redirect()->route('servicos.index')->with('sucesso', 'Serviço atualizado com sucesso.');
         } catch (\Throwable $e) {

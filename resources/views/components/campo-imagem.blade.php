@@ -8,6 +8,16 @@
 @php
     $raio = $formato === 'circulo' ? 'ci-circ' : 'ci-quad';
     $inputId = $nome.'-'.uniqid();
+
+    // Imagem estacionada por um erro de validacao anterior (App\Traits\PreservaImagemRascunho).
+    // Devolve null se o caminho nao pertence ao token da sessao — ele vem de um input do cliente.
+    $rascunho = app(App\Modules\Arquivo\Services\ArquivoService::class)->urlsDoRascunho(
+        (string) session(App\Modules\Arquivo\Services\ArquivoService::SESSAO_TOKEN_UNICO, ''),
+        old($nome.'_rascunho'),
+    );
+
+    $previewUrl = $rascunho['thumb_url'] ?? $atual;
+    $temImagem = (bool) $previewUrl;
 @endphp
 
 <div class="campo-imagem" data-campo-imagem data-formato="{{ $formato }}">
@@ -18,9 +28,9 @@
              role="button" tabindex="0"
              aria-label="{{ $label }}: escolher imagem"
              data-ci-well>
-            <img data-ci-preview class="ci-img" src="{{ $atual ?: '' }}" alt=""
-                 @unless($atual) hidden @endunless>
-            <span data-ci-placeholder class="ci-placeholder" @if($atual) hidden @endif>
+            <img data-ci-preview class="ci-img" src="{{ $previewUrl ?: '' }}" alt=""
+                 @unless($temImagem) hidden @endunless>
+            <span data-ci-placeholder class="ci-placeholder" @if($temImagem) hidden @endif>
                 <i class="feather-camera"></i>
             </span>
         </div>
@@ -31,10 +41,10 @@
 
             <div class="ci-actions">
                 <button type="button" class="btn btn-sm btn-outline-secondary" data-ci-change>
-                    <i class="feather-edit-2 me-1"></i><span data-ci-change-txt>{{ $atual ? 'Alterar' : 'Enviar' }}</span>
+                    <i class="feather-edit-2 me-1"></i><span data-ci-change-txt>{{ $temImagem ? 'Alterar' : 'Enviar' }}</span>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger" data-ci-remove
-                        @unless($atual) hidden @endunless>
+                        @unless($temImagem) hidden @endunless>
                     <i class="feather-trash-2 me-1"></i>Remover
                 </button>
             </div>
@@ -42,8 +52,12 @@
             <p class="ci-hint mb-0 mt-2">Clique ou arraste uma imagem — você poderá recortá-la.</p>
             <p class="ci-sub mb-0">JPG, PNG ou WEBP · até 2&nbsp;MB.</p>
             @error($nome) <div class="text-danger fs-12 mt-1">{{ $message }}</div> @enderror
-            @if($atual)
-                <input type="hidden" name="remover_{{ $nome }}" value="0" data-ci-remove-flag>
+            @if($temImagem)
+                <input type="hidden" name="remover_{{ $nome }}" value="{{ old('remover_'.$nome, '0') }}" data-ci-remove-flag>
+            @endif
+            @if($rascunho)
+                {{-- Caminho no staging: leva a imagem preservada para o proximo submit. --}}
+                <input type="hidden" name="{{ $nome }}_rascunho" value="{{ $rascunho['caminho'] }}" data-ci-rascunho>
             @endif
         </div>
     </div>

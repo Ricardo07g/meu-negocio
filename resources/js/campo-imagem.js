@@ -198,9 +198,15 @@ function ligarCampo(raiz) {
     const btnAlterar = raiz.querySelector('[data-ci-change]');
     const btnAlterarTxt = raiz.querySelector('[data-ci-change-txt]');
     const flag = raiz.querySelector('[data-ci-remove-flag]');
+    const rascunho = raiz.querySelector('[data-ci-rascunho]'); // imagem preservada de um erro anterior
     const round = raiz.dataset.formato === 'circulo';
 
     let arquivoAplicado = null; // File recortado atualmente no input (para reverter no cancelar)
+
+    /** Arquivo novo ou remocao vencem o rascunho estacionado — ver SincronizaImagemUnica. */
+    function descartarRascunho() {
+        if (rascunho) rascunho.value = '';
+    }
 
     function mostrar(url) {
         preview.src = url;
@@ -220,6 +226,7 @@ function ligarCampo(raiz) {
         if (btnRemover) btnRemover.hidden = true;
         if (btnAlterarTxt) btnAlterarTxt.textContent = 'Enviar';
         if (flag) flag.value = '1'; // remove a imagem existente ao salvar
+        descartarRascunho();
     }
 
     function gravarNoInput(file) {
@@ -227,6 +234,7 @@ function ligarCampo(raiz) {
         dt.items.add(file);
         input.files = dt.files;
         arquivoAplicado = file;
+        descartarRascunho();
     }
 
     /** Restaura o input ao ultimo arquivo aplicado (ou vazio) — usado ao cancelar. */

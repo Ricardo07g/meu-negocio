@@ -5,20 +5,19 @@ declare(strict_types=1);
 namespace App\Modules\Cliente\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Cliente\DTOs\ClienteData;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Cliente\Requests\SalvarClienteRequest;
 use App\Modules\Cliente\Services\ClienteService;
-use App\Traits\TratamentoErros;
+use App\Traits\{SincronizaImagemUnica, TratamentoErros};
 use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
 use Illuminate\View\View;
 
 class ClienteController extends Controller
 {
-    use TratamentoErros;
+    use SincronizaImagemUnica, TratamentoErros;
 
-    public function __construct(private ClienteService $service, private ArquivoService $arquivos) {}
+    public function __construct(private ClienteService $service) {}
 
     public function index(Request $request): View|RedirectResponse
     {
@@ -48,7 +47,7 @@ class ClienteController extends Controller
     {
         try {
             $cliente = $this->service->criar(ClienteData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($cliente, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($cliente, $request);
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente criado com sucesso.');
         } catch (\Throwable $e) {
@@ -91,7 +90,7 @@ class ClienteController extends Controller
         try {
             $this->authorize('update', $cliente);
             $cliente = $this->service->atualizar($cliente, ClienteData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($cliente, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($cliente, $request);
 
             return redirect()->route('clientes.index')->with('sucesso', 'Cliente atualizado com sucesso.');
         } catch (\Throwable $e) {

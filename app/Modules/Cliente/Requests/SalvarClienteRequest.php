@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Cliente\Requests;
 
+use App\Traits\PreservaImagemRascunho;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SalvarClienteRequest extends FormRequest
 {
+    use PreservaImagemRascunho;
+
     public function authorize(): bool
     {
         return $this->isMethod('post')

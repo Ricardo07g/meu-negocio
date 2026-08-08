@@ -5,26 +5,22 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Usuario\DTOs\UsuarioData;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\SalvarUsuarioRequest;
 use App\Modules\Usuario\Services\UsuarioService;
 use App\Support\PlanoVigente;
-use App\Traits\TratamentoErros;
+use App\Traits\{SincronizaImagemUnica, TratamentoErros};
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
 
 class UsuarioController extends Controller
 {
-    use TratamentoErros;
+    use SincronizaImagemUnica, TratamentoErros;
 
-    public function __construct(
-        private UsuarioService $service,
-        private ArquivoService $arquivos,
-    ) {}
+    public function __construct(private UsuarioService $service) {}
 
     public function index(): View|RedirectResponse
     {
@@ -66,7 +62,7 @@ class UsuarioController extends Controller
         try {
             $rede = $request->user()->rede;
             $usuario = $this->service->criar($rede, UsuarioData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($usuario, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($usuario, $request);
 
             return redirect()->route('usuarios.index')->with('sucesso', 'Usuário criado com sucesso.');
         } catch (\Throwable $e) {
@@ -93,7 +89,7 @@ class UsuarioController extends Controller
         try {
             $this->authorize('update', $usuario);
             $usuario = $this->service->atualizar($usuario, UsuarioData::from($request->validated()));
-            $this->arquivos->sincronizarUnico($usuario, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($usuario, $request);
 
             return redirect()->route('usuarios.index')->with('sucesso', 'Usuário atualizado com sucesso.');
         } catch (\Throwable $e) {

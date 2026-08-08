@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Usuario\Requests;
 
+use App\Traits\PreservaImagemRascunho;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class SalvarUsuarioRequest extends FormRequest
 {
+    use PreservaImagemRascunho;
+
     public function authorize(): bool
     {
         return $this->user()->can(

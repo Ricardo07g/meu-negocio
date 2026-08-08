@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Servico\Requests;
 
 use App\Enums\TipoServico;
+use App\Traits\PreservaImagemRascunho;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class SalvarServicoRequest extends FormRequest
 {
+    use PreservaImagemRascunho;
+
     public function authorize(): bool
     {
         return $this->isMethod('post')

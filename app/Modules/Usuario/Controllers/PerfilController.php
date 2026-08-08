@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Arquivo\Services\ArquivoService;
 use App\Modules\Usuario\Requests\{AtualizarPerfilRequest, AtualizarSenhaPerfilRequest};
-use App\Traits\TratamentoErros;
+use App\Traits\{SincronizaImagemUnica, TratamentoErros};
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class PerfilController extends Controller
 {
-    use TratamentoErros;
-
-    public function __construct(private ArquivoService $arquivos) {}
+    use SincronizaImagemUnica, TratamentoErros;
 
     public function index(): View|RedirectResponse
     {
@@ -38,7 +35,7 @@ class PerfilController extends Controller
         try {
             $usuario = $request->user();
             $usuario->update($request->safe()->only(['nome', 'email']));
-            $this->arquivos->sincronizarUnico($usuario, 'avatar', $request->file('foto'), $request->boolean('remover_foto'));
+            $this->sincronizarImagem($usuario, $request);
 
             return redirect()->route('perfil.index')->with('sucesso', 'Perfil atualizado com sucesso.');
         } catch (\Throwable $e) {
