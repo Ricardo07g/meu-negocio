@@ -129,6 +129,7 @@ class MovimentacaoDiaService
     {
         $baixas = BaixaPagamento::query()
             ->whereBetween('estornado_em', [$dia.' 00:00:00', $dia.' 23:59:59'])
+            ->comOrigem()
             ->with($this->relacoesDoRecebimento())
             ->get();
 
@@ -263,6 +264,7 @@ class MovimentacaoDiaService
     {
         return BaixaPagamento::query()
             ->whereBetween('data', [$dia.' 00:00:00', $dia.' 23:59:59'])
+            ->comOrigem()
             ->with($this->relacoesDoRecebimento())
             ->get();
     }
@@ -271,19 +273,17 @@ class MovimentacaoDiaService
      * Eager loading do recebimento. Sem isso é N+1 por linha da timeline: cada linha
      * toca parcela -> pagamento -> cliente e a origem (serviço/pacote).
      *
-     * `withTrashed()` na espinha parcela -> pagamento: os dois usam SoftDeletes, e a
-     * baixa NÃO — então uma venda excluída deixa a baixa órfã de relação e a linha
-     * apareceria sem cliente nem origem (foi o que o smoke em dados reais mostrou).
-     * Trazer o título apagado devolve o rótulo; as folhas seguem nullsafe.
+     * A espinha `parcela -> pagamento -> cliente` com `withTrashed()` vem do scope
+     * `BaixaPagamento::comOrigem()` — ponto único, porque a mesma pegadinha derruba
+     * o extrato da conta e a exportação: os dois usam SoftDeletes e a baixa NÃO,
+     * então uma venda cancelada deixaria a linha sem cliente. Aqui só acrescentamos
+     * o que é específico da timeline (a origem serviço/pacote e a conta).
      *
      * @return array<array-key, \Closure|string>
      */
     private function relacoesDoRecebimento(): array
     {
         return [
-            'parcela' => fn ($q) => $q->withTrashed(),
-            'parcela.pagamento' => fn ($q) => $q->withTrashed(),
-            'parcela.pagamento.cliente',
             'parcela.pagamento.agendamento.servico',
             'parcela.pagamento.vendaEtapas.servico',
             'conta',

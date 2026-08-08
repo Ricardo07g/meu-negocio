@@ -18,7 +18,7 @@ Nao tem model proprio. Le de: `Agendamento` (status `App\Enums\StatusAgendamento
 - `DashboardController::index(): View|RedirectResponse` — metodo unico; passa `DashboardService::indicadores()` para `dashboard::dashboard`. Sem Policy/permissao (qualquer autenticado com rede+empresa via middleware). Rota: `GET dashboard` (`name('dashboard')`), dentro de `verificar.empresa` + `aplicar.contexto.empresa`.
 - `DashboardService::indicadores(): array` — monta todas as chaves consumidas pela view. Metodos:
   - `agendamentosHoje()`, `proximosAgendamentos($limite=5)` (status Agendado/Confirmado, hoje a partir de agora), `agendamentosPorStatusMes()` (donut, todos os `StatusAgendamento::cases()` com label/cor).
-  - `receitaMes()`/`receitaMesAnterior()` (soma `BaixaPagamento.valor` por mes), `despesaMes()`/`despesaMesAnterior()` (`BaixaDespesa.valor`), `fluxoUltimos6Meses()` (receita x despesa por mes, label `MMM/YY` pt_BR).
+  - `receitaMes()`/`receitaMesAnterior()`, `despesaMes()`/`despesaMesAnterior()` e `fluxoUltimos6Meses()` (label `MMM/YY` pt_BR) — todos passam pelo helper privado **`somaLiquida(Builder)`**: soma `valor + multa + juros − desconto` (a conta de `valorTotal()`), **nao** so `valor`. A receita ainda filtra **`whereNull('estornado_em')`**: venda cancelada nao e faturamento. Despesa nao tem estorno (`BaixaDespesa` usa SoftDeletes; o global scope ja tira as apagadas).
   - `contasReceberQuantidade()`/`contasReceberTotal()` (parcelas `Pendente`; total = `SUM(valor - valor_pago)`), `caixaAberto(): ?Caixa`.
   - `saldoPorConta(): Collection<Conta>` (contas ativas com saldo atual, caixa-padrao primeiro — card "Saldo por conta") e `recebiveisACair(): float` (`Recebivel::previstos()->sum('valor_liquido')` — card "Recebiveis a cair", dinheiro a caminho fora do saldo realizado).
   - `totalClientes()`, `servicosAtivos()`.
@@ -26,6 +26,9 @@ Nao tem model proprio. Le de: `Agendamento` (status `App\Enums\StatusAgendamento
 ## Regras de negocio / gotchas
 - **Tenancy e automatica pelos models** — o service NAO filtra `empresa_id`/`rede_id` manualmente; confia nos global scopes (RedeTrait/EmpresaTrait). Cards transacionais (agendamentos, baixas, parcelas, caixa) respeitam `empresa_contexto_atual`/`empresas_atuais` via EmpresaTrait.
 - **`totalClientes()` e `servicosAtivos()` sao por REDE de proposito** — Cliente e Servico sao catalogo de rede (sem `empresa_id`), entao contam toda a rede, nao a empresa em contexto. Comportamento intencional (docblocks no service marcam isso).
+- **Receita e liquida e sem estorno** — o dashboard tem de bater com o caixa do dia e com o extrato
+  da conta. Somar `valor` cru (ou esquecer o `estornado_em`) faz o painel anunciar faturamento de uma
+  venda desfeita enquanto a tela do Caixa mostra resultado zero. Travado por `DashboardReceitaTest`.
 - `parcelasVencendo()` cobre so "a receber" (`ParcelaPagamento`, status Pendente/Vencido, vencimento entre hoje e +7 dias). Despesa fica de fora por decisao de simplicidade visual.
 - `caixaAberto()` retorna 1 unico caixa (o aberto da empresa em contexto) ou null — coerente com 1 caixa por empresa/dia.
 - Mes anterior usa `subMonthNoOverflow()` (evita pular para 2 meses em dias 29-31).

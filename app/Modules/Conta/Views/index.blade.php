@@ -46,7 +46,7 @@
                             @if($multiEmpresa)<th>Empresa</th>@endif
                             <th>Tipo</th>
                             <th>Padrão</th>
-                            <th class="text-end">Saldo atual</th>
+                            <th class="text-end">Saldo</th>
                             <th>Status</th>
                             <th class="text-end">Ações</th>
                         </tr>
@@ -65,7 +65,17 @@
                                     <span class="badge bg-soft-info text-info">Recebíveis</span>
                                 @endif
                             </td>
-                            <td class="text-end" data-label="Saldo atual">R$ {{ number_format($conta->saldo(), 2, ',', '.') }}</td>
+                            {{-- So a gaveta tem saldo vivo (ADR-0011): banco/carteira sao rotulos de
+                                 origem — cartao/pix caem so como Baixa, sem Lancamento. Exibir
+                                 "R$ 0,00" neles se le como "nao entrou nada". Mesmo tratamento do
+                                 card de Contas do dashboard. --}}
+                            <td class="text-end" data-label="Saldo">
+                                @if($conta->ehProtegida())
+                                    R$ {{ number_format($conta->saldo(), 2, ',', '.') }}
+                                @else
+                                    <span class="text-muted" title="Rótulo de recebimento — veja o extrato da conta">—</span>
+                                @endif
+                            </td>
                             <td data-label="Status">
                                 @if($conta->ativo)
                                     <span class="badge bg-soft-success text-success">Ativa</span>

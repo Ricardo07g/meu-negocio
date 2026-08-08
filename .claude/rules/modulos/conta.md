@@ -40,7 +40,12 @@ foi removido (ver ADR-0010 e `.claude/rules/modelo-financeiro.md`).
   cria o pedido (rede/empresa explicitos da conta) e enfileira o Job `GerarExportacaoExtrato` (fila
   `database`). O Job resolve tudo com `withoutGlobalScopes()` (worker sem auth/session), gera a planilha
   via `EscritorExtrato` (openspout, CSV/XLSX em streaming/chunks) e grava num path PRIVADO no R2; o
-  download e **autenticado** (`Storage::download`, nunca URL publica). Tela: card "Exportar periodo" +
+  download e **autenticado** (`Storage::download`, nunca URL publica).
+  **A planilha espelha a tela — o Job ramifica por `conta->ehProtegida()`:** gaveta exporta o razao
+  (`Lancamento`, cabecalho `Data · Tipo · Categoria · Descricao · Forma · Valor`, via `escrever()`);
+  banco/carteira exportam os **recebimentos** (`BaixaPagamento` + scope `comOrigem()`, cabecalho
+  `Data · Forma · Cliente · Valor · Estornado`, via `escreverRecebimentos()`). Sem essa ramificacao a
+  conta bancaria gerava arquivo so com cabecalho, pois ela nao tem `Lancamento` nenhum (ADR-0011). Tela: card "Exportar periodo" +
   lista "Exportacoes recentes". **Worker:** serviço `queue` no docker-compose (`queue:work database`).
   - **Retencao:** `Exportacao::DIAS_RETENCAO` (1 dia) + `expiraEm()`. Comando `exportacoes:limpar`
     (`LimparExportacoes`, agendado **hourly** em `routes/console.php`, `withoutGlobalScopes`) apaga
@@ -67,6 +72,14 @@ foi removido (ver ADR-0010 e `.claude/rules/modelo-financeiro.md`).
   (so o seed marca) — sairam do form. **Excluir** so com 0 movimentacoes **e** sem vinculo (forma/caixa);
   senao **inativar** (mesma trilha de `PerfilAcessoService::excluir`, surfada por `TratamentoErros`).
   Nao se inativa a Caixa nem conta com forma ATIVA vinculada (troque o destino da forma antes).
+- **Banco/carteira nao mostram saldo em tela nenhuma.** `Conta::saldo()` neles devolve so o
+  `saldo_inicial` — exibir isso como "R$ 0,00" se le como "nao entrou nada" num dia em que entraram
+  R$ 75 no cartao. Listagem (`Conta/Views/index.blade.php`), card do dashboard e extrato usam
+  `@if($conta->ehProtegida())` e caem para `—` / "sem saldo controlado".
+- **Quem lista `BaixaPagamento` usa o scope `comOrigem()`** (model `BaixaPagamento`): ele traz
+  `parcela → pagamento → cliente` com **`withTrashed()`** na espinha. Titulo e parcela usam SoftDeletes
+  e a baixa NAO — cancelar a venda apaga o titulo e a linha apareceria sem cliente. Vale para o
+  extrato e para a exportacao.
 - **Regra do lancamento (ADR-0011):** so a baixa da **gaveta** (dinheiro) gera `Lancamento` — cartao/pix/
   boleto/crediario/banco registram so a `BaixaPagamento` (fluxo, nao saldo). `Recebivel` esta dormente
   (nao e mais escrito). O saldo de banco nao e controlado; a gaveta e o unico saldo vivo.
