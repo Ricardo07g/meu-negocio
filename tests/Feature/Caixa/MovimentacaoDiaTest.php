@@ -323,4 +323,32 @@ class MovimentacaoDiaTest extends TestCase
             'Abertura + Σ(linhas da gaveta) tem de bater com o saldo da sessão.'
         );
     }
+
+    /**
+     * REMOVER a venda (nao so cancelar) aplica soft delete no titulo; a baixa NAO
+     * tem SoftDeletes e fica para tras. Sem `withTrashed()` na espinha do eager
+     * loading, `$baixa->parcela->pagamento` volta null e a timeline explode
+     * inteira — a tela do Caixa vira erro 500, nao uma linha sem rotulo.
+     *
+     * Cobre a regressao de dividir esse eager loading em dois `with()`: o segundo
+     * registra `parcela`/`parcela.pagamento` como no-op e sobrescreve os closures
+     * do primeiro, perdendo o `withTrashed` em silencio.
+     */
+    public function test_timeline_sobrevive_a_venda_removida_com_titulo_apagado(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $this->abrirCaixa($contexto);
+
+        $venda = $this->venderProduto($contexto, 30.00, TipoFormaPagamento::CartaoCredito);
+        app(VendaService::class)->removerVendaProduto($venda);
+
+        $timeline = $this->timeline();
+
+        $this->assertNotEmpty($timeline['linhas'], 'A venda removida segue no dia (venda + estorno).');
+
+        $estorno = collect($timeline['linhas'])->firstWhere('tipo', TipoMovimentacaoDia::Estorno);
+        $this->assertNotNull($estorno, 'A remocao aparece como Estorno.');
+        $this->assertSame(30.00, $estorno['valor']);
+        $this->assertSame(0.0, $timeline['resultado'], 'Venda e estorno se anulam no dia.');
+    }
 }

@@ -129,7 +129,6 @@ class MovimentacaoDiaService
     {
         $baixas = BaixaPagamento::query()
             ->whereBetween('estornado_em', [$dia.' 00:00:00', $dia.' 23:59:59'])
-            ->comOrigem()
             ->with($this->relacoesDoRecebimento())
             ->get();
 
@@ -264,7 +263,6 @@ class MovimentacaoDiaService
     {
         return BaixaPagamento::query()
             ->whereBetween('data', [$dia.' 00:00:00', $dia.' 23:59:59'])
-            ->comOrigem()
             ->with($this->relacoesDoRecebimento())
             ->get();
     }
@@ -273,21 +271,24 @@ class MovimentacaoDiaService
      * Eager loading do recebimento. Sem isso é N+1 por linha da timeline: cada linha
      * toca parcela -> pagamento -> cliente e a origem (serviço/pacote).
      *
-     * A espinha `parcela -> pagamento -> cliente` com `withTrashed()` vem do scope
-     * `BaixaPagamento::comOrigem()` — ponto único, porque a mesma pegadinha derruba
-     * o extrato da conta e a exportação: os dois usam SoftDeletes e a baixa NÃO,
-     * então uma venda cancelada deixaria a linha sem cliente. Aqui só acrescentamos
-     * o que é específico da timeline (a origem serviço/pacote e a conta).
+     * A espinha `parcela -> pagamento -> cliente` com `withTrashed()` vem de
+     * `BaixaPagamento::relacoesDaOrigem()` — ponto único, porque a mesma pegadinha
+     * derruba o extrato da conta e a exportação: título e parcela usam SoftDeletes
+     * e a baixa NÃO, então uma venda cancelada deixa a baixa órfã da relação.
+     *
+     * O `array_merge` (em vez de encadear o scope `comOrigem()` com um segundo
+     * `with()`) é obrigatório: tudo tem de sair num único `with()`, com a espinha
+     * primeiro. Ver a nota em `relacoesDaOrigem()`.
      *
      * @return array<array-key, \Closure|string>
      */
     private function relacoesDoRecebimento(): array
     {
-        return [
+        return array_merge(BaixaPagamento::relacoesDaOrigem(), [
             'parcela.pagamento.agendamento.servico',
             'parcela.pagamento.vendaEtapas.servico',
             'conta',
-        ];
+        ]);
     }
 
     /**

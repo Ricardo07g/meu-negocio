@@ -114,11 +114,29 @@ class BaixaPagamento extends BaseModel
      */
     public function scopeComOrigem(Builder $query): Builder
     {
-        return $query->with([
+        return $query->with(self::relacoesDaOrigem());
+    }
+
+    /**
+     * A espinha crua, para quem precisa acrescentar relacoes MAIS FUNDAS a partir
+     * dela (ex.: a timeline do caixa, que desce ate o servico da origem).
+     *
+     * Tem de ir tudo num UNICO `with()`, com estas chaves primeiro: um segundo
+     * `with(['parcela.pagamento.x'])` faz o Laravel registrar `parcela` e
+     * `parcela.pagamento` como no-op e o array_merge sobrescreve os closures acima
+     * — o `withTrashed` se perde em silencio e a linha volta a quebrar no titulo
+     * apagado. Por isso `array_merge(relacoesDaOrigem(), [...])`, nunca
+     * `comOrigem()` encadeado com outro `with()`.
+     *
+     * @return array<array-key, \Closure|string>
+     */
+    public static function relacoesDaOrigem(): array
+    {
+        return [
             'parcela' => fn ($q) => $q->withTrashed(),
             'parcela.pagamento' => fn ($q) => $q->withTrashed(),
             'parcela.pagamento.cliente',
-        ]);
+        ];
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
