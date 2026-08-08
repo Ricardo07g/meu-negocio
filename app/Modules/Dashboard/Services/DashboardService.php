@@ -11,7 +11,8 @@ use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Conta\Models\Conta;
 use App\Modules\Pagamento\Models\ParcelaPagamento;
 use App\Modules\Servico\Models\Servico;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\{Builder, Collection};
+use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
@@ -65,36 +66,67 @@ class DashboardService
         return Cliente::count();
     }
 
+    /**
+     * Receita do mes: o que o cliente efetivamente pagou, liquido.
+     *
+     * Baixa estornada NAO conta — venda cancelada nao e faturamento. Mesma regra
+     * de `Pagamento::totalRecebidoLiquido()`, do `ResumoDiaService` e do extrato
+     * da conta; sem ela o dashboard anunciava receita de uma venda desfeita
+     * enquanto o caixa do mesmo dia mostrava resultado zero.
+     */
     public function receitaMes(): float
     {
-        return (float) BaixaPagamento::whereMonth('data', now()->month)
-            ->whereYear('data', now()->year)
-            ->sum('valor');
+        return $this->somaLiquida(
+            BaixaPagamento::whereNull('estornado_em')
+                ->whereMonth('data', now()->month)
+                ->whereYear('data', now()->year)
+        );
     }
 
     public function receitaMesAnterior(): float
     {
         $ref = now()->copy()->subMonthNoOverflow();
 
-        return (float) BaixaPagamento::whereMonth('data', $ref->month)
-            ->whereYear('data', $ref->year)
-            ->sum('valor');
+        return $this->somaLiquida(
+            BaixaPagamento::whereNull('estornado_em')
+                ->whereMonth('data', $ref->month)
+                ->whereYear('data', $ref->year)
+        );
     }
 
+    /**
+     * Despesa nao tem estorno: `BaixaDespesa` usa SoftDeletes, e o global scope
+     * ja tira as apagadas.
+     */
     public function despesaMes(): float
     {
-        return (float) BaixaDespesa::whereMonth('data', now()->month)
-            ->whereYear('data', now()->year)
-            ->sum('valor');
+        return $this->somaLiquida(
+            BaixaDespesa::whereMonth('data', now()->month)
+                ->whereYear('data', now()->year)
+        );
     }
 
     public function despesaMesAnterior(): float
     {
         $ref = now()->copy()->subMonthNoOverflow();
 
-        return (float) BaixaDespesa::whereMonth('data', $ref->month)
-            ->whereYear('data', $ref->year)
-            ->sum('valor');
+        return $this->somaLiquida(
+            BaixaDespesa::whereMonth('data', $ref->month)
+                ->whereYear('data', $ref->year)
+        );
+    }
+
+    /**
+     * Soma o valor LIQUIDO das baixas da query: principal + multa + juros −
+     * desconto, a mesma conta de `BaixaPagamento::valorTotal()`. Somar so
+     * `valor` fazia o dashboard divergir do caixa e do extrato em toda parcela
+     * recebida com juros, multa ou desconto.
+     *
+     * @param  Builder<BaixaPagamento>|Builder<BaixaDespesa>  $query
+     */
+    private function somaLiquida(Builder $query): float
+    {
+        return round((float) $query->sum(DB::raw('valor + multa + juros - desconto')), 2);
     }
 
     /**
@@ -169,6 +201,9 @@ class DashboardService
      * nos ultimos 6 meses (do mais antigo ao mes atual). Usado pelo
      * grafico de fluxo financeiro.
      *
+     * Mesma conta dos cards do topo (`somaLiquida`): liquido e sem estorno —
+     * senao a curva contradiz o numero exibido logo acima dela.
+     *
      * Respeita EmpresaTrait nos dois modelos.
      */
     public function fluxoUltimos6Meses(): array
@@ -178,17 +213,20 @@ class DashboardService
         $fim = now()->copy()->startOfMonth();
 
         while ($cursor->lte($fim)) {
-            $receita = (float) BaixaPagamento::whereYear('data', $cursor->year)
-                ->whereMonth('data', $cursor->month)
-                ->sum('valor');
-            $despesa = (float) BaixaDespesa::whereYear('data', $cursor->year)
-                ->whereMonth('data', $cursor->month)
-                ->sum('valor');
+            $receita = $this->somaLiquida(
+                BaixaPagamento::whereNull('estornado_em')
+                    ->whereYear('data', $cursor->year)
+                    ->whereMonth('data', $cursor->month)
+            );
+            $despesa = $this->somaLiquida(
+                BaixaDespesa::whereYear('data', $cursor->year)
+                    ->whereMonth('data', $cursor->month)
+            );
 
             $meses->push([
                 'label' => ucfirst($cursor->locale('pt_BR')->isoFormat('MMM/YY')),
-                'receita' => round($receita, 2),
-                'despesa' => round($despesa, 2),
+                'receita' => $receita,
+                'despesa' => $despesa,
             ]);
 
             $cursor->addMonth();

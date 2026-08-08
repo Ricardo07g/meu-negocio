@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use Database\Factories\{AgendamentoFactory, CaixaFactory, CategoriaDespesaFactory, CategoriaProdutoFactory, ClienteFactory, DespesaFactory, LancamentoFactory, MovimentoEstoqueFactory, PagamentoFactory, ParcelaDespesaFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
+use Database\Factories\{AgendamentoFactory, BaixaPagamentoFactory, CaixaFactory, CategoriaDespesaFactory, CategoriaProdutoFactory, ClienteFactory, DespesaFactory, LancamentoFactory, MovimentoEstoqueFactory, PagamentoFactory, ParcelaDespesaFactory, ParcelaPagamentoFactory, ProdutoFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -70,6 +70,11 @@ class _FactoriesSmokeTest extends TestCase
             'empresa_id' => $empresa->id,
             'pagamento_id' => $pagamento->id,
         ]);
+        $baixaPagamento = BaixaPagamentoFactory::new()->create([
+            'rede_id' => $rede->id,
+            'empresa_id' => $empresa->id,
+            'parcela_pagamento_id' => $parcelaPagamento->id,
+        ]);
 
         $categoriaDespesa = CategoriaDespesaFactory::new()->create(['rede_id' => $rede->id]);
         $despesa = DespesaFactory::new()->aPrazo()->create([
@@ -85,6 +90,7 @@ class _FactoriesSmokeTest extends TestCase
 
         $this->assertModelExists($pagamento);
         $this->assertModelExists($parcelaPagamento);
+        $this->assertModelExists($baixaPagamento);
         $this->assertModelExists($despesa);
         $this->assertModelExists($parcelaDespesa);
 
