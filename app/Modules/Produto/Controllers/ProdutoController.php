@@ -47,7 +47,11 @@ class ProdutoController extends Controller
             $categorias = CategoriaProduto::where('ativo', true)->orderBy('descricao')->get();
 
             // Token de rascunho para as imagens enviadas antes de o produto existir.
-            $tokenRascunho = (string) Str::uuid();
+            // Reaproveita o token vigente: quando a validacao falha, o redirect volta
+            // para ca, e regenerar o token orfanaria as imagens ja estacionadas —
+            // `caminhoPertenceAoToken()` passaria a recusar os caminhos do old input.
+            // O `forget()` do store() invalida o token no caminho feliz.
+            $tokenRascunho = (string) session('arquivo_rascunho_token', '') ?: (string) Str::uuid();
             session(['arquivo_rascunho_token' => $tokenRascunho]);
 
             return view('produto::create', compact('categorias', 'tokenRascunho'));
