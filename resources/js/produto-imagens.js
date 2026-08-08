@@ -114,7 +114,9 @@ function initGaleria(raiz) {
         label.innerHTML = '<i class="feather-plus"></i><span>Adicionar</span>';
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = 'image/*';
+        // Espelha o que o backend aceita na colecao 'galeria'; 'image/*' deixava
+        // o usuario escolher um HEIC so para levar 422 depois do upload.
+        input.accept = 'image/jpeg,image/png,image/webp';
         input.multiple = true;
         input.hidden = true;
         input.addEventListener('change', () => {
