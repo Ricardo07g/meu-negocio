@@ -248,7 +248,10 @@ class VendaController extends Controller
             // (um Admin multi-empresa não pode injetar forma de outra empresa numa baixa).
             abort_unless($forma->empresa_id === $empresaId, 422, 'Forma de pagamento inválida para esta empresa.');
 
-            $parcelasCartao = ($forma->gera_recebivel && $forma->permite_parcelas)
+            // `permite_parcelas` e o eixo correto de "esta forma parcela?". Antes a
+            // guarda tambem exigia `gera_recebivel`, que pos-ADR-0011 so roteia a conta
+            // destino — uma maquineta com destino na gaveta perderia o parcelamento.
+            $parcelasCartao = $forma->permite_parcelas
                 ? min(max(1, (int) ($linha['parcelas_cartao'] ?? 1)), $forma->max_parcelas ?? 1)
                 : null;
 

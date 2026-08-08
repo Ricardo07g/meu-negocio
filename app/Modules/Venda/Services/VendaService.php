@@ -43,14 +43,14 @@ class VendaService
         $produtos = collect();
 
         if ($tipo !== 'produto') {
-            $etapasQuery = VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas'])
+            $etapasQuery = VendaEtapas::with(['cliente', 'servico', 'atendente', 'agendamentos', 'pagamento.parcelas.baixas'])
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($etapasQuery, $filtros, $dataInicio, $dataFim, 'etapas');
             $this->aplicarBuscaEtapas($etapasQuery, $filtros['q'] ?? null);
             $this->aplicarStatusEtapas($etapasQuery, $filtros['status_venda'] ?? null);
             $etapas = $etapasQuery->get()->map(fn ($p) => $this->mapearEtapas($p));
 
-            $unicosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas'])
+            $unicosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])
                 ->whereNull('venda_etapas_id')
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($unicosQuery, $filtros, $dataInicio, $dataFim, 'unico');
@@ -61,7 +61,7 @@ class VendaService
         }
 
         if ($tipo !== 'servico') {
-            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto.arquivoPrincipal', 'pagamento.parcelas'])
+            $produtosQuery = VendaProduto::with(['cliente', 'usuario', 'itens.produto.arquivoPrincipal', 'pagamento.parcelas.baixas'])
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($produtosQuery, $filtros, $dataInicio, $dataFim, 'produto');
             $this->aplicarBuscaProduto($produtosQuery, $filtros['q'] ?? null);

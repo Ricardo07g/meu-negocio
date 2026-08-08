@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property float $desconto
  * @property int|null $forma_pagamento_id
  * @property string|null $forma_pagamento_nome
+ * @property int|null $parcelas_cartao
  * @property Carbon $data
  * @property Carbon|null $estornado_em
  * @property string|null $observacao
@@ -55,6 +56,7 @@ class BaixaPagamento extends BaseModel
         'desconto',
         'forma_pagamento_id',
         'forma_pagamento_nome',
+        'parcelas_cartao',
         'data',
         'estornado_em',
         'observacao',
@@ -67,6 +69,7 @@ class BaixaPagamento extends BaseModel
             'multa' => 'decimal:2',
             'juros' => 'decimal:2',
             'desconto' => 'decimal:2',
+            'parcelas_cartao' => 'integer',
             'data' => 'datetime',
             'estornado_em' => 'datetime',
         ];
@@ -76,6 +79,21 @@ class BaixaPagamento extends BaseModel
     public function valorTotal(): float
     {
         return (float) ($this->valor + $this->multa + $this->juros - $this->desconto);
+    }
+
+    /**
+     * Forma do recebimento com o parcelamento do cartão, quando houver:
+     * "Cartão de Crédito 2x" / "Dinheiro". Fonte única do rótulo — as views
+     * (venda, caixa do dia, recebimentos por período, recibo) usam este método
+     * em vez de repetir a concatenação.
+     */
+    public function rotuloForma(): string
+    {
+        $nome = $this->forma_pagamento_nome ?? '—';
+
+        return $this->parcelas_cartao > 1
+            ? "{$nome} {$this->parcelas_cartao}x"
+            : $nome;
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
