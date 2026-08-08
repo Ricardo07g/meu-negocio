@@ -9,7 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Caixa\DTOs\{AbrirCaixaData, FecharCaixaData, MovimentoCaixaData, ReabrirCaixaData};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Requests\{AbrirCaixaRequest, FecharCaixaRequest, MovimentoCaixaRequest, ReabrirCaixaRequest};
-use App\Modules\Caixa\Services\{CaixaService, ResumoDiaService};
+use App\Modules\Caixa\Services\{CaixaService, MovimentacaoDiaService, ResumoDiaService};
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request};
@@ -22,6 +22,7 @@ class CaixaController extends Controller
     public function __construct(
         private CaixaService $service,
         private ResumoDiaService $resumoDia,
+        private MovimentacaoDiaService $movimentacaoDia,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -56,13 +57,18 @@ class CaixaController extends Controller
                 $saldoAtual = $caixa->saldo_abertura + $totalEntradas + $totalReforcos - $totalSaidas;
             }
 
-            // Panorama do dia por forma (recebido/estornado/liquido). Independe de
-            // haver caixa aberto — cartao/pix nao passam pela gaveta. Eixo disjunto
-            // do saldo acima (que vem so dos lancamentos da gaveta).
+            // Timeline do dia da loja: vendas, recebimentos a prazo, despesas pagas,
+            // estornos, sangrias e reforcos numa linha do tempo unica. Independe de
+            // haver caixa aberto (cartao/pix nao passam pela gaveta) — e por isso
+            // fica FORA do @if($caixa) na view. Ver ADR-0014.
+            $movimentacoes = $this->movimentacaoDia->doDia($data);
+
+            // Mesmo dia, visao agregada por forma (aba "Por forma" da timeline).
             $resumo = $this->resumoDia->porForma($data);
 
             return view('caixa::index', compact(
-                'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual', 'resumo'
+                'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual',
+                'resumo', 'movimentacoes'
             ));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar caixa');
@@ -122,7 +128,13 @@ class CaixaController extends Controller
 
     public function show(Caixa $caixa): RedirectResponse
     {
-        return redirect()->route('caixas.index', ['data' => $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data]);
+        try {
+            $this->authorize('view', $caixa);
+
+            return redirect()->route('caixas.index', ['data' => $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data]);
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Erro ao abrir caixa');
+        }
     }
 
     public function fechar(FecharCaixaRequest $request, Caixa $caixa): RedirectResponse
@@ -155,6 +167,7 @@ class CaixaController extends Controller
     public function sangria(MovimentoCaixaRequest $request, Caixa $caixa): RedirectResponse
     {
         try {
+            $this->authorize('update', $caixa);
             $dados = MovimentoCaixaData::from($request->validated());
             $this->service->registrarSangria($caixa, $dados->valor, $dados->descricao);
             $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;
@@ -168,6 +181,7 @@ class CaixaController extends Controller
     public function reforco(MovimentoCaixaRequest $request, Caixa $caixa): RedirectResponse
     {
         try {
+            $this->authorize('update', $caixa);
             $dados = MovimentoCaixaData::from($request->validated());
             $this->service->registrarReforco($caixa, $dados->valor, $dados->descricao);
             $data = $caixa->data instanceof Carbon ? $caixa->data->toDateString() : $caixa->data;

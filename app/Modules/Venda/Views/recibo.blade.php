@@ -193,7 +193,7 @@
                 </thead>
                 <tbody>
                     @foreach($pagamento->parcelas as $parcela)
-                        @php $formasParcela = $parcela->baixas->pluck('forma_pagamento_nome')->filter()->unique()->implode(', '); @endphp
+                        @php $formasParcela = $parcela->baixas->map->rotuloForma()->filter(fn ($r) => $r !== '—')->unique()->implode(', '); @endphp
                         <tr>
                             <td>{{ $parcela->numero }}/{{ $parcela->total }}</td>
                             <td>{{ $parcela->data_vencimento->format('d/m/Y') }}</td>

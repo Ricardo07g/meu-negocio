@@ -20,7 +20,11 @@ NUNCA no titulo. Fiado = `condicao_pagamento = a_prazo`. A forma e um CATALOGO p
 - **Parcela** = `ParcelaPagamento` / `ParcelaDespesa`: `numero`, `data_vencimento`, `valor`,
   `valor_pago`, `status` (`StatusParcela`), `forma_pagamento` (preenchida na baixa).
 - **Baixa** = `BaixaPagamento` / `BaixaDespesa`: vincula parcela + caixa + valor + multa/juros/
-  desconto. Uma parcela pode ter N baixas (pagamento parcial).
+  desconto. Uma parcela pode ter N baixas (pagamento parcial **ou split de formas**: a venda a vista
+  com "R$ 50 dinheiro + R$ 50 pix" gera 2 baixas na MESMA parcela). `BaixaPagamento.parcelas_cartao`
+  guarda o parcelamento do cartao (informativo) — rotulo via `rotuloForma()`.
+  **`estornado_em` exclui a baixa dos totais liquidos** (`Pagamento::totalRecebidoLiquido()`,
+  `ParcelaPagamento::valorPagoLiquido()`, extrato da conta).
 - Geracao de parcelas: `App\Support\Parcelamento\CalculadoraParcelas`.
 
 ## Enums
@@ -68,6 +72,12 @@ devolvido e agendamentos cancelados pelo `VendaService`.
 Navegacao prev/next por dia (`?data=YYYY-MM-DD`), 1 caixa por empresa/dia, permite retroativo.
 Reabertura via `ReabrirCaixaData`/`ReabrirCaixaRequest`. O caixa e a **sessao da conta-caixa**
 (`caixas.conta_id`); sangria/reforco criam um `Lancamento` (`categoria` `sangria`/`reforco`).
+
+**O que a TELA mostra (ADR-0014):** o eixo do **fluxo**, nao o razao da gaveta. `MovimentacaoDiaService`
+monta a timeline "Movimentacoes do dia" (venda, recebimento a prazo, despesa paga, estorno, sangria,
+reforco) somando as BAIXAS + so `sangria`/`reforco` do `Lancamento` — particao disjunta, senao
+recebimento em dinheiro conta em dobro. O razao da conta-caixa mora em `/contas/{conta}/extrato`.
+-> `.claude/rules/modulos/caixa.md`.
 
 ## Tabelas
 pagamentos, parcelas_pagamento, baixas_pagamento · despesas, parcelas_despesa, baixas_despesa,

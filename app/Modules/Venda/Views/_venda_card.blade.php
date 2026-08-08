@@ -25,6 +25,24 @@
     $pagamento = $venda->model->pagamento ?? null;
     $valorPagoAtual = $pagamento ? (float) $pagamento->valorPago() : 0.0;
 
+    // Formas efetivamente recebidas, com o parcelamento do cartao ("Cartao de Credito 2x").
+    // Mora na baixa (nao na parcela, que guarda so a ultima forma do split) — por isso
+    // VendaService::listar faz eager de pagamento.parcelas.baixas.
+    $formasRecebidas = $pagamento
+        ? $pagamento->parcelas->flatMap->baixas
+            ->reject(fn ($b) => $b->estornado_em)
+            ->map->rotuloForma()
+            ->filter(fn ($r) => $r !== '—')
+            ->unique()
+            ->values()
+        : collect();
+
+    // Sem baixa (a prazo/crediario pendente): mostra a condicao, para o lojista nao
+    // achar que a venda perdeu a informacao de pagamento.
+    $rotuloPagamento = $formasRecebidas->isNotEmpty()
+        ? $formasRecebidas->implode(' + ')
+        : ($pagamento?->condicao_pagamento->label());
+
     $podeCancelar = !in_array($venda->status, ['cancelado', 'cancelada', 'finalizado', 'concluido']);
     $podeExcluir = !in_array($venda->status, ['finalizado', 'concluido']);
 
@@ -48,6 +66,9 @@
             </div>
             <div class="fs-12 fw-normal text-muted text-truncate-1-line">
                 <span class="fw-semibold">R$ {{ number_format($venda->valor, 2, ',', '.') }}</span>
+                @if($rotuloPagamento)
+                    <span class="mx-1">·</span><i class="feather-credit-card me-1"></i>{{ $rotuloPagamento }}
+                @endif
             </div>
         </button>
         <div class="d-flex align-items-center gap-2 pe-3">

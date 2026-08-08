@@ -106,12 +106,18 @@ class ParcelaPagamento extends BaseModel
 
     /**
      * Total líquido efetivamente recebido nesta parcela
-     * (soma de valor + multa + juros − desconto de cada baixa).
+     * (soma de valor + multa + juros − desconto de cada baixa NÃO estornada).
+     *
+     * Mesma regra de `Pagamento::totalRecebidoLiquido()`: estorno nao conta como
+     * recebido, senao a tela exibiria valor recebido para uma venda cancelada.
      */
     public function valorPagoLiquido(): float
     {
         $total = 0;
         foreach ($this->baixas as $baixa) {
+            if ($baixa->estornado_em !== null) {
+                continue;
+            }
             $total += $baixa->valorTotal();
         }
 

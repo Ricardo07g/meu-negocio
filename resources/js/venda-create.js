@@ -726,8 +726,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // A forma é de parcelamento no cartão? (cartão de crédito parcelável)
+    // `permite_parcelas` é derivado do tipo e só o crédito o tem — é o eixo único.
+    // Espelha a guarda do VendaController::extrairRecebimentos.
     function formaParcelavel(forma) {
-        return !!(forma && forma.gera_recebivel && forma.permite_parcelas);
+        return !!(forma && forma.permite_parcelas);
     }
 
     // Dropdown de busca de formas da toolbar (filtro client-side, só da empresa).

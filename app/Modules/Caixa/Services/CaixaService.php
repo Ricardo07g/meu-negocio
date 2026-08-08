@@ -212,9 +212,10 @@ class CaixaService
      * forma) e, so quando a forma cai na gaveta (dinheiro), o Lancamento de
      * credito; por fim recalcula o status do titulo pai.
      *
-     * $parcelasCartao (nº de parcelas no cartão do adquirente) e aceito por
-     * compatibilidade, mas ignorado no regime "fluxo, nao saldo" (ADR-0011) —
-     * nao ha mais recebivel/agenda do adquirente. Removido de vez na Fatia 2.
+     * $parcelasCartao (nº de parcelas no cartão do adquirente) e gravado na baixa
+     * como dado INFORMATIVO — e o que permite a UI dizer "Cartao de Credito 2x".
+     * NAO deriva datas, valor liquido nem saldo: repasse/liquidacao segue sendo
+     * dominio do banco/operadora (ADR-0011, decisao 4).
      */
     public function darBaixaParcelaPagamento(
         ParcelaPagamento $parcela,
@@ -234,6 +235,7 @@ class CaixaService
             multa: $multa,
             juros: $juros,
             desconto: $desconto,
+            parcelasCartao: $parcelasCartao,
             baixaClass: BaixaPagamento::class,
             parcelaFk: 'parcela_pagamento_id',
             tipoLancamento: TipoLancamento::Credito,
@@ -316,11 +318,13 @@ class CaixaService
         string $mensagemSemCaixa,
         string $mensagemLiquidoInvalido,
         \Closure $recalcularTitulo,
+        ?int $parcelasCartao = null,
     ) {
         return DB::transaction(function () use (
             $parcela, $valor, $forma, $observacao, $multa, $juros, $desconto,
             $baixaClass, $parcelaFk, $tipoLancamento, $movimentoFk,
             $tituloLabel, $tituloId, $mensagemSemCaixa, $mensagemLiquidoInvalido, $recalcularTitulo,
+            $parcelasCartao,
         ) {
             if ($multa < 0 || $juros < 0 || $desconto < 0) {
                 throw new NegocioException('Multa, juros e desconto não podem ser negativos.');
@@ -350,6 +354,15 @@ class CaixaService
                 }
             }
 
+            // Parcelamento do cartao: so faz sentido em forma parcelavel e acima de 1x
+            // (senao poluiria dinheiro/pix com um "1x" sem significado). Informativo —
+            // nao deriva datas, valor liquido nem saldo (ADR-0011). Despesa nunca passa
+            // este dado, e a coluna nao existe em baixas_despesa: por isso a chave so
+            // entra no payload quando ha parcelamento de fato.
+            $parcelamento = ($forma->permite_parcelas && $parcelasCartao !== null && $parcelasCartao > 1)
+                ? $parcelasCartao
+                : null;
+
             $baixa = $baixaClass::create([
                 $parcelaFk => $parcela->id,
                 'caixa_id' => $caixa?->id,
@@ -362,6 +375,7 @@ class CaixaService
                 'forma_pagamento_nome' => $forma->nome,
                 'data' => now(),
                 'observacao' => $observacao,
+                ...($parcelamento !== null ? ['parcelas_cartao' => $parcelamento] : []),
             ]);
 
             $parcela->update([

@@ -31,6 +31,10 @@ use Illuminate\Support\Carbon;
  * @property int|null $baixa_despesa_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Conta $conta
+ * @property-read Caixa|null $caixa
+ * @property-read BaixaPagamento|null $baixaPagamento
+ * @property-read BaixaDespesa|null $baixaDespesa
  */
 class Lancamento extends BaseModel
 {
