@@ -48,11 +48,13 @@ seguida (`VendaService::baixarAVistaSeAplicavel` -> `CaixaService::darBaixaParce
 ## Cancelamento de venda (estorno)
 `VendaService::cancelar{Unico|Etapas|VendaProduto}` em transacao chama
 `CaixaService::estornarPagamento(Pagamento)`:
-- parcelas `Pendente` -> `Cancelado`; titulo -> `StatusPagamento::Estornado`. Contra-lancamento
-  **por-baixa, discriminado pela existencia de `Recebivel`** (nao mais por `caixa_id`): baixa COM
-  recebivel cancela seus `Recebivel` (`cancelado_em`), sem lancamento; baixa SEM recebivel gera um
-  `Lancamento` de debito (`categoria = estorno`) na conta de ORIGEM (bloqueia se essa conta for
-  caixa e o caixa da data estiver fechado -> `NegocioException`, reabra antes).
+- parcelas `Pendente` -> `Cancelado`; titulo -> `StatusPagamento::Estornado`. Toda baixa recebe
+  **`estornado_em`** (marcador unico que o painel do dia neta). Contra-lancamento **por-baixa,
+  discriminado pela existencia de um `Lancamento` de origem** (ADR-0011 — NAO por `Recebivel`, que
+  nao e mais gerado): baixa da gaveta (dinheiro, tem `Lancamento`) gera um `Lancamento` de debito
+  (`categoria = estorno`) na conta de ORIGEM (bloqueia se essa conta for caixa e o caixa da data
+  estiver fechado -> `NegocioException`, reabra antes); cartao/pix/boleto nao tem lancamento — nada a
+  reverter, so a marca.
 - Etapas: agendamentos `agendado|confirmado` -> `cancelado`; venda -> `Cancelado`.
 - Produto: devolve estoque (`increment` + `MovimentoEstoque` tipo `entrada`) -> venda `Cancelada`.
 - Edicao de venda so e permitida enquanto `podeEditar()` (nenhuma parcela paga: `valorPago()<=0`).
@@ -67,9 +69,11 @@ mexe no caixa). `reagendar` (PATCH AJAX) move `inicio`/`fim` sem revalidar confl
 ## Ciclo do pagamento a prazo (contas a receber)
 A prazo: titulo nasce `Pendente` com N parcelas `Pendente` (sem baixa). Aparecem em Contas a Receber
 (`PagamentoController::contasAReceber`). Baixa por parcela em `parcelas-pagamento/{parcela}/baixa`
--> `CaixaService::darBaixaParcelaPagamento`: cria `BaixaPagamento` e, conforme a forma, um
-`Lancamento` de credito na conta destino (forma imediata; EXIGE caixa aberto so se a conta for caixa)
-OU N `Recebivel` (forma diferida — cartao/pix-maquineta). Soma `valor_pago`, marca parcela `Pago` se
+-> `CaixaService::darBaixaParcelaPagamento`: cria `BaixaPagamento` (com `forma_pagamento_nome` e, em
+cartao parcelavel, `parcelas_cartao` — informativo, rende o rotulo "Cartao de Credito 2x" via
+`BaixaPagamento::rotuloForma()`) e, **so se a conta destino e do tipo caixa**, um `Lancamento` de
+credito (aí EXIGE caixa aberto). Cartao/pix/boleto/crediario: so a Baixa, sem `Recebivel` (ADR-0011).
+Soma `valor_pago`, marca parcela `Pago` se
 quitada, e `Pagamento::recalcularStatus()`. Defesa em profundidade: controller seta
 `session('empresa_criacao_atual', $parcela->empresa_id)` no try e `forget()` no finally.
 
