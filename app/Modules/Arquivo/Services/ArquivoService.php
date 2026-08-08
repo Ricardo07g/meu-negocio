@@ -9,14 +9,19 @@ use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Arquivo\Models\Arquivo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\{Log, Storage};
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
+use Throwable;
 
 /**
  * Camada de I/O de arquivos (imagens, PDFs, etc.) sobre o disco configurado
  * (Cloudflare R2 em producao). Gera miniatura quando o arquivo e imagem.
+ *
+ * Imagens convertiveis (jpeg/png/webp) sao normalizadas em WebP na gravacao —
+ * original e miniatura. Demais tipos (PDF, GIF) sao guardados como enviados.
  *
  * Fluxos:
  *  - Dono ja existe (avatar, edicao de galeria): armazenar()/sincronizarUnico().
@@ -25,6 +30,12 @@ use Intervention\Image\ImageManager;
  */
 class ArquivoService
 {
+    /**
+     * Mimes que sabemos reencodar com seguranca em WebP. GIF fica de fora de
+     * proposito: o GD achata a animacao no primeiro quadro.
+     */
+    private const MIMES_CONVERSIVEIS = ['image/jpeg', 'image/png', 'image/webp'];
+
     private ImageManager $imageManager;
 
     public function __construct()
@@ -249,27 +260,103 @@ class ArquivoService
      */
     private function gravarArquivo(UploadedFile $arquivo, string $dir): array
     {
+        $uuid = (string) Str::uuid();
+        $mime = (string) $arquivo->getMimeType();
+
+        return $this->deveConverterParaWebp($mime)
+            ? $this->gravarImagemWebp($arquivo, $dir, $uuid)
+            : $this->gravarComoEnviado($arquivo, $dir, $uuid, $mime);
+    }
+
+    /**
+     * Reencoda a imagem em WebP: um objeto para exibicao (limitado a
+     * largura_maxima) e a miniatura. Nada e gravado antes do decode dar certo,
+     * entao um upload invalido nao deixa orfao no bucket.
+     *
+     * @return array{disco: string, caminho: string, caminho_thumb: string|null, nome_original: string, extensao: string, mime: string, tamanho: int, largura: int|null, altura: int|null, hash: string|null}
+     */
+    private function gravarImagemWebp(UploadedFile $arquivo, string $dir, string $uuid): array
+    {
+        try {
+            $imagem = $this->imageManager->decode((string) $arquivo->getRealPath());
+        } catch (Throwable $e) {
+            throw new NegocioException('Nao foi possivel ler a imagem enviada. Verifique se o arquivo nao esta corrompido.');
+        }
+
+        $disco = Storage::disk($this->disco());
+        $encoder = new WebpEncoder(quality: (int) config('arquivos.imagem.qualidade'));
+
+        // O original tambem e reduzido: o que vai para o bucket e o que a tela
+        // serve, sem carregar 12 MP de camera de celular.
+        $imagem = $imagem->scaleDown(width: (int) config('arquivos.imagem.largura_maxima'));
+        $largura = $imagem->width();
+        $altura = $imagem->height();
+
+        $conteudo = (string) $imagem->encode($encoder);
+        $caminho = "{$dir}/{$uuid}.webp";
+        $disco->put($caminho, $conteudo);
+
+        // A miniatura sai da imagem ja reduzida — mais barato, mesmo resultado.
+        $caminhoThumb = "{$dir}/{$uuid}".config('arquivos.thumb.sufixo').'.webp';
+        $disco->put(
+            $caminhoThumb,
+            (string) $imagem->scaleDown(width: (int) config('arquivos.thumb.largura'))->encode($encoder),
+        );
+
+        return [
+            'disco' => $this->disco(),
+            'caminho' => $caminho,
+            'caminho_thumb' => $caminhoThumb,
+            'nome_original' => $arquivo->getClientOriginalName(),
+            'extensao' => 'webp',
+            'mime' => 'image/webp',
+            // Tamanho e hash descrevem o objeto gravado, nao o upload original.
+            'tamanho' => strlen($conteudo),
+            'largura' => $largura,
+            'altura' => $altura,
+            'hash' => hash('sha256', $conteudo),
+        ];
+    }
+
+    /**
+     * Guarda o arquivo como veio (PDF, GIF, ou imagem quando a conversao esta
+     * desligada), gerando miniatura no mesmo formato quando for imagem.
+     *
+     * @return array{disco: string, caminho: string, caminho_thumb: string|null, nome_original: string, extensao: string, mime: string, tamanho: int, largura: int|null, altura: int|null, hash: string|null}
+     */
+    private function gravarComoEnviado(UploadedFile $arquivo, string $dir, string $uuid, string $mime): array
+    {
         $disco = Storage::disk($this->disco());
         $ext = strtolower($arquivo->getClientOriginalExtension() ?: ($arquivo->guessExtension() ?? 'bin'));
-        $uuid = (string) Str::uuid();
 
         $caminho = $disco->putFileAs($dir, $arquivo, "{$uuid}.{$ext}");
         if ($caminho === false) {
             throw new NegocioException('Falha ao gravar o arquivo.');
         }
 
-        $mime = (string) $arquivo->getMimeType();
         $largura = $altura = null;
         $caminhoThumb = null;
 
         if (str_starts_with($mime, 'image/')) {
-            $imagem = $this->imageManager->decode((string) $arquivo->getRealPath());
-            $largura = $imagem->width();
-            $altura = $imagem->height();
+            // A miniatura e um extra: formato que o GD desta instalacao nao
+            // sabe ler (webp sem --with-webp, avif) nao pode derrubar o upload.
+            // Sem thumb, o accessor thumb_url cai no proprio original.
+            try {
+                $imagem = $this->imageManager->decode((string) $arquivo->getRealPath());
+                $largura = $imagem->width();
+                $altura = $imagem->height();
 
-            $caminhoThumb = "{$dir}/{$uuid}".config('arquivos.thumb.sufixo').".{$ext}";
-            $conteudo = (string) $imagem->scaleDown(width: (int) config('arquivos.thumb.largura'))->encodeUsingFileExtension($ext);
-            $disco->put($caminhoThumb, $conteudo);
+                $caminhoThumb = "{$dir}/{$uuid}".config('arquivos.thumb.sufixo').".{$ext}";
+                $conteudo = (string) $imagem->scaleDown(width: (int) config('arquivos.thumb.largura'))->encodeUsingFileExtension($ext);
+                $disco->put($caminhoThumb, $conteudo);
+            } catch (Throwable $e) {
+                $caminhoThumb = null;
+                Log::warning('Nao foi possivel gerar a miniatura do arquivo.', [
+                    'caminho' => $caminho,
+                    'mime' => $mime,
+                    'erro' => $e->getMessage(),
+                ]);
+            }
         }
 
         return [
@@ -284,6 +371,17 @@ class ArquivoService
             'altura' => $altura,
             'hash' => hash_file('sha256', (string) $arquivo->getRealPath()) ?: null,
         ];
+    }
+
+    /**
+     * Converter exige um GD compilado com --with-webp; sem isso o upload cai no
+     * caminho "como enviado" em vez de estourar (ver os Dockerfiles do projeto).
+     */
+    private function deveConverterParaWebp(string $mime): bool
+    {
+        return (bool) config('arquivos.imagem.converter_para_webp')
+            && in_array($mime, self::MIMES_CONVERSIVEIS, true)
+            && function_exists('imagewebp');
     }
 
     private function validar(Model&PossuiArquivos $dono, UploadedFile $arquivo, string $colecao): void

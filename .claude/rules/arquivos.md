@@ -13,7 +13,8 @@ paths:
 
 Base generica para anexar arquivos a qualquer model, via tabela polimorfica `arquivos` agrupada por
 `colecao`. Imagem e so "arquivo com mime `image/*`" (ganha miniatura). Storage no Cloudflare R2.
--> decisao completa em `docs/ADR/0008-armazenamento-de-arquivos-r2.md`.
+-> decisao completa em `docs/ADR/0008-armazenamento-de-arquivos-r2.md` e
+`docs/ADR/0015-normalizacao-de-imagens-em-webp.md`.
 
 ## Entidades & camadas
 - **Model `Arquivo`** (`app/Modules/Arquivo/Models/Arquivo.php`): `BaseModel` (escopo so `rede_id`,
@@ -26,7 +27,8 @@ Base generica para anexar arquivos a qualquer model, via tabela polimorfica `arq
   O model declara coleções em `colecoesArquivo()`.
 - **`ArquivoService`**: `armazenar`, `sincronizarUnico` (coleção `unica`), `armazenarRascunho` /
   `removerRascunho` / `anexarRascunhos` (staging), `remover`, `reordenar`, `definirPrincipal`.
-  Miniatura via `intervention/image` (GD) **so quando imagem**; `encodeUsingFileExtension()`.
+  Toda a I/O passa por `gravarArquivo()`, que bifurca em `gravarImagemWebp()` (imagem convertivel)
+  ou `gravarComoEnviado()` (PDF/GIF/conversao desligada). `intervention/image` com driver GD.
 - **`ProdutoArquivoController`** (modulo Produto): endpoints AJAX da galeria (store/destroy/reordenar/
   principal + rascunho store/destroy), autorizados via `ProdutoPolicy`.
 
@@ -34,6 +36,20 @@ Base generica para anexar arquivos a qualquer model, via tabela polimorfica `arq
 - Produto -> `galeria` (multipla, max 8, gera thumb).
 - Cliente / Servico / Usuario -> `avatar` (`unica => true`, gera thumb).
 - Coleção nao declarada usa limites globais de `config/arquivos.php` (mimes incluem pdf).
+
+## Normalizacao em WebP (ADR-0015)
+Imagem `image/jpeg|png|webp` e **reencodada em WebP na gravacao** — original (limitado a
+`arquivos.imagem.largura_maxima`, 1600px) e miniatura. GIF fica de fora (o GD achataria a animacao)
+e PDF segue o caminho "como enviado". Config em `config/arquivos.php` -> `imagem`
+(`ARQUIVOS_CONVERTER_WEBP`, `ARQUIVOS_WEBP_QUALIDADE`, `ARQUIVOS_LARGURA_MAXIMA`).
+- `extensao`/`mime` gravados sao sempre `webp`/`image/webp`; `tamanho` e `hash` descrevem **o objeto
+  no bucket**, nao o upload (o `hash_file` do original nao corresponderia a nada la).
+- **Nada e gravado antes do `decode()` dar certo** — upload corrompido vira `NegocioException`, sem
+  orfao. No caminho nao-convertido a miniatura e best-effort (falhou -> `Log::warning` +
+  `caminho_thumb = null`, e `thumb_url` cai no original).
+- Acervo antigo em jpg/png **nao e migrado**; convive, porque cada registro tem seu proprio caminho.
+- O front nao propaga mais o formato de entrada: o cropper emite WebP (fallback JPEG) e o `accept`
+  da galeria espelha o que o backend aceita.
 
 ## Convenção de path (bucket R2 compartilhado)
 `{pasta_sistema}/redes/{rede_id}/[empresas/{empresa_id}/]{tabela}/{id}/{colecao}/{uuid}.{ext}`
@@ -57,9 +73,15 @@ Limpeza de orfaos: regra de lifecycle no R2 sobre `{pasta_sistema}/tmp/` + coman
   `_galeria.blade.php`; usa `fetch` + `<meta csrf-token>` (o layout admin nao carrega `app.js`).
 
 ## Gotchas
+- **GD precisa de `--with-webp`** — os dois Dockerfiles (`docker/php/Dockerfile` e o `Dockerfile` de
+  producao/Railway) instalam `libwebp-dev` e configuram a extensao com a flag. Sem isso
+  `imagewebp()` nao existe: `deveConverterParaWebp()` devolve false e o upload degrada para "como
+  enviado" em vez de estourar. Confira com
+  `docker exec meu-negocio-app php -r "var_dump(gd_info()['WebP Support']);"`.
 - R2 nao recebe ACL por objeto — disco `r2` sem `visibility`; publico via `R2_PUBLIC_BASE_URL`.
-- Testes: `Storage::fake('r2')` + `UploadedFile::fake()->image()` (GD no container). Binding de token
-  por request via `withSession(['arquivo_rascunho_token' => ...])`.
+- Testes: `Storage::fake('r2')` + `UploadedFile::fake()->image()` (GD no container — `image('a.webp')`
+  so funciona com a flag acima). Binding de token por request via
+  `withSession(['arquivo_rascunho_token' => ...])`.
 - Verbos de rota localizados: create = `produtos/novo`, edit = `produtos/{produto}/editar` — sempre
   use o helper `route('produtos.create')`, nao o literal.
 

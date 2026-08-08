@@ -17,6 +17,19 @@ const MIMES_OK = ['image/jpeg', 'image/png', 'image/webp'];
 const EXT_POR_TIPO = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 const SAIDA = { largura: 512, altura: 512, qualidade: 0.9 };
 
+/**
+ * Formato do recorte, independente do que o usuario escolheu: WebP quando o
+ * browser sabe encodar (todos os atuais sabem), JPEG como rede de seguranca.
+ * O backend normaliza tudo para WebP de qualquer forma — isto so evita subir
+ * um PNG gigante para ser convertido do outro lado.
+ */
+const TIPO_SAIDA = (() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    return canvas.toDataURL('image/webp').startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+})();
+
 /** Troca a extensao do nome do arquivo para casar com o tipo de saida. */
 function renomear(nome, tipo) {
     const ext = EXT_POR_TIPO[tipo] || 'jpg';
@@ -36,7 +49,6 @@ const modal = (() => {
 
     let cbConfirmar = null;
     let cbCancelar = null;
-    let tipoSaida = 'image/jpeg';
     let arredondado = false;
     let confirmou = false;
 
@@ -122,11 +134,10 @@ const modal = (() => {
         cbCancelar = null;
     }
 
-    function abrir({ url, round, tipo, onConfirmar, onCancelar }) {
+    function abrir({ url, round, onConfirmar, onCancelar }) {
         if (!el) construir();
         confirmou = false;
         arredondado = !!round;
-        tipoSaida = tipo;
         cbConfirmar = onConfirmar;
         cbCancelar = onCancelar;
         img.src = url;
@@ -167,7 +178,7 @@ const modal = (() => {
                 if (blob && cbConfirmar) cbConfirmar(blob);
                 esconder();
             },
-            tipoSaida,
+            TIPO_SAIDA,
             SAIDA.qualidade,
         );
     }
@@ -247,20 +258,18 @@ function ligarCampo(raiz) {
         }
 
         const url = URL.createObjectURL(f);
-        const tipo = f.type;
-        const nome = renomear(f.name, tipo);
+        const nome = renomear(f.name, TIPO_SAIDA);
 
         modal.abrir({
             url,
             round,
-            tipo,
             onCancelar: () => {
                 URL.revokeObjectURL(url);
                 reverterInput();
             },
             onConfirmar: (blob) => {
                 URL.revokeObjectURL(url);
-                const file = new File([blob], nome, { type: tipo });
+                const file = new File([blob], nome, { type: TIPO_SAIDA });
                 gravarNoInput(file);
                 mostrar(URL.createObjectURL(file));
             },

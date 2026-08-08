@@ -63,7 +63,7 @@ Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, C
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (licenca por empresa + trial de 14 dias, sem gateway — ADR-0013), Arquivo (uploads genericos —
-imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008).
+imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008; imagens normalizadas em WebP — ADR-0015).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
 ## Banco de Dados — tabelas
@@ -97,8 +97,9 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
   Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
   `_FactoriesSmokeTest`.
-- **292 testes** (1127 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa e trial.
+- **301 testes** (1157 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial e uploads
+  (normalizacao de imagens em WebP).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -111,7 +112,7 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (14 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (15 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

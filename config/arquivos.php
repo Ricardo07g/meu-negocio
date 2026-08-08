@@ -64,6 +64,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Normalizacao de imagens (WebP)
+    |--------------------------------------------------------------------------
+    |
+    | Toda imagem convertivel (jpeg/png/webp) e reencodada em WebP na gravacao —
+    | original e miniatura. Reduz ~25-35% do peso no bucket e deixa um formato
+    | so para manter. GIF fica de fora (converter perderia a animacao) e o
+    | acervo antigo em jpg/png continua servido normalmente (cada registro
+    | guarda seu proprio caminho/extensao/mime).
+    |
+    | A conversao exige GD compilado com --with-webp (ver os Dockerfiles).
+    | 'largura_maxima' evita que uma foto de 12 MP entre inteira no bucket.
+    |
+    */
+
+    'imagem' => [
+        'converter_para_webp' => (bool) env('ARQUIVOS_CONVERTER_WEBP', true),
+        'qualidade' => (int) env('ARQUIVOS_WEBP_QUALIDADE', 82),
+        'largura_maxima' => (int) env('ARQUIVOS_LARGURA_MAXIMA', 1600),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Limites globais (fallback)
     |--------------------------------------------------------------------------
     |
