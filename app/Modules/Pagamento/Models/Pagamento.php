@@ -133,14 +133,21 @@ class Pagamento extends BaseModel
     }
 
     /**
-     * Total líquido que efetivamente entrou no caixa considerando todas as baixas:
-     * valor principal + multa + juros − desconto.
+     * Total líquido que efetivamente entrou no caixa: valor principal + multa +
+     * juros − desconto, somado das baixas NÃO estornadas.
+     *
+     * Baixa estornada nao conta: senao o detalhe da venda cancelada exibiria
+     * "Recebido R$ 30,00" ao lado da mesma baixa riscada como "Estornado".
+     * Mesma regra do extrato da conta (ContaController::extrato).
      */
     public function totalRecebidoLiquido(): float
     {
         $total = 0;
         foreach ($this->parcelas as $parcela) {
             foreach ($parcela->baixas as $baixa) {
+                if ($baixa->estornado_em !== null) {
+                    continue;
+                }
                 $total += $baixa->valorTotal();
             }
         }
