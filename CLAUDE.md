@@ -97,9 +97,9 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
   Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
   `_FactoriesSmokeTest`.
-- **301 testes** (1157 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **307 testes** (1194 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial e uploads
-  (normalizacao de imagens em WebP).
+  (normalizacao em WebP e staging preservado no erro de validacao).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
