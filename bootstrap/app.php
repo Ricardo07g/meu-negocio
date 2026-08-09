@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
-use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, VerificarEmpresa, VerificarPlano, VerificarRede};
+use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, VerificarEmpresa, VerificarPlano, VerificarRede, VerificarTurnstile};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
 use App\Modules\Conta\Console\LimparExportacoes;
 use App\Modules\Tenant\Console\ExpirarTrial;
@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'cron.auth' => AutenticarCron::class,
+            'turnstile' => VerificarTurnstile::class,
             'verificar.rede' => VerificarRede::class,
             'verificar.empresa' => VerificarEmpresa::class,
             'aplicar.contexto.empresa' => AplicarContextoEmpresa::class,

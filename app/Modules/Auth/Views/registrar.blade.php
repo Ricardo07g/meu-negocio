@@ -42,6 +42,7 @@
                    placeholder="Confirmar senha" required>
         </div>
         <div class="mt-5">
+            <x-turnstile />
             <button type="submit" class="btn btn-lg btn-primary w-100">Criar Conta</button>
         </div>
     </form>

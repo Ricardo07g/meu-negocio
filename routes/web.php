@@ -26,14 +26,14 @@ Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view
 // Autenticacao (guest)
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login'])->middleware('throttle:5,1');
+    Route::post('login', [LoginController::class, 'login'])->middleware(['throttle:5,1', 'turnstile']);
     Route::get('registrar', [RegistrarController::class, 'showRegistrationForm'])->name('registrar');
-    Route::post('registrar', [RegistrarController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('registrar', [RegistrarController::class, 'register'])->middleware(['throttle:5,1', 'turnstile']);
 
     // Recuperacao de senha
     Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
     Route::post('esqueci-senha', [EsqueciSenhaController::class, 'sendResetLinkEmail'])
-        ->middleware('throttle:5,1')
+        ->middleware(['throttle:5,1', 'turnstile'])
         ->name('senha.solicitar.enviar');
     Route::get('redefinir-senha/{token}', [RedefinirSenhaController::class, 'showResetForm'])->name('senha.redefinir.form');
     Route::post('redefinir-senha', [RedefinirSenhaController::class, 'reset'])->name('senha.redefinir');
