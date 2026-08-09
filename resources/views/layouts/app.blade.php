@@ -405,6 +405,9 @@
     <script src="{{ asset('assets/vendors/js/vendors.min.js') }}"></script>
     <script src="{{ asset('assets/js/common-init.min.js') }}"></script>
     <script src="{{ asset('assets/vendors/js/sweetalert2.min.js') }}"></script>
+    {{-- JS proprio do sistema (loading padronizado de submit). Espelha o
+         public/css/mn-admin.css: asset() + ?v=filemtime, fora do Vite. --}}
+    <script src="{{ asset('js/mn-admin.js') }}?v={{ filemtime(public_path('js/mn-admin.js')) }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Sidebar minimenu: empurra conteúdo ao hover

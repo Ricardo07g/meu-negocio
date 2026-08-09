@@ -27,6 +27,7 @@
             <a href="{{ route('senha.solicitar') }}" class="fs-12">Esqueci minha senha</a>
         </div>
         <div class="mt-4">
+            <x-turnstile />
             <button type="submit" class="btn btn-lg btn-primary w-100">Entrar</button>
         </div>
     </form>

@@ -36,6 +36,7 @@
     <script src="{{ asset('assets/vendors/js/vendors.min.js') }}"></script>
     <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
     <script src="{{ asset('assets/js/common-init.min.js') }}"></script>
+    <script src="{{ asset('js/mn-admin.js') }}?v={{ filemtime(public_path('js/mn-admin.js')) }}"></script>
 </body>
 
 </html>

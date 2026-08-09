@@ -23,6 +23,7 @@
             @enderror
         </div>
         <div class="mt-5">
+            <x-turnstile />
             <button type="submit" class="btn btn-lg btn-primary w-100">Enviar link de recuperação</button>
         </div>
     </form>
