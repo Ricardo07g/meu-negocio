@@ -16,6 +16,9 @@ Projeto de portfolio, preparado para open source.
   `config/cron.php`** (comando => expressao cron) e tem dois consumidores: `routes/console.php`
   (`schedule:work`) e o endpoint `POST /cron/executar` — o caminho de producao, acionado por um Cron
   Trigger do Cloudflare Workers, onde nao ha processo de scheduler (ADR-0016).
+- **Producao** (Railway) roda o `Dockerfile` da raiz: **FrankenPHP** (Caddy + PHP embarcado) servindo
+  `public/`, com a politica de cache dos estaticos em `docker/railway/Caddyfile` — ADR-0017. Nao e o
+  mesmo runtime do dev (nginx + php-fpm no compose); ao mexer em servidor/estaticos, lembre dos dois.
 - Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3 (Node so no host).
 - Template UI: Duralux Admin 1.0.0 (template comercial; mantenha uma copia local para referencia
   visual — ver `NOTICE.md`).
@@ -114,7 +117,7 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (16 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (17 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

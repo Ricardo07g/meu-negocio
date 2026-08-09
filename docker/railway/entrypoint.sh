@@ -26,7 +26,7 @@ fi
 # ---------------------------------------------------------------------------
 # web (padrao)
 # ---------------------------------------------------------------------------
-PORT="${PORT:-8080}"
+export PORT="${PORT:-8080}"
 
 echo "==> Limpando caches de config/rotas..."
 php artisan config:clear || true
@@ -42,5 +42,6 @@ php artisan db:seed --force || echo "!! seed falhou (veja o log acima)"
 echo "==> Criando link de storage..."
 php artisan storage:link || true
 
-echo "==> Servindo em 0.0.0.0:${PORT}"
-exec php artisan serve --host 0.0.0.0 --port "${PORT}"
+echo "==> Servindo em 0.0.0.0:${PORT} (FrankenPHP)"
+# O Caddyfile le a porta de ${PORT} e serve /app/public com cache nos estaticos.
+exec frankenphp run --config /etc/frankenphp/Caddyfile

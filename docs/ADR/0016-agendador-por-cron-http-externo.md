@@ -93,9 +93,11 @@ As alternativas consideradas:
 ### Negativas / limites
 - **Dependência de um terceiro para o relógio.** Se o Worker parar, nada avisa a aplicação; a
   detecção é pelo `wrangler tail` / métricas do Worker.
-- **As tarefas rodam dentro de um request.** Com `php artisan serve` (um request por vez), o app fica
-  bloqueado durante a varredura — daí os horários de baixo uso. Se incomodar, o caminho é
-  `PHP_CLI_SERVER_WORKERS` ou trocar o `artisan serve` por FrankenPHP/php-fpm.
+- ~~**As tarefas rodam dentro de um request.** Com `php artisan serve` (um request por vez), o app
+  fica bloqueado durante a varredura — daí os horários de baixo uso.~~ **Resolvido pelo
+  [ADR-0017](0017-frankenphp-no-lugar-do-artisan-serve.md)**: o runtime de produção passou a ser o
+  FrankenPHP, que atende requisições em paralelo. A varredura continua rodando dentro de um request,
+  mas não bloqueia mais o resto da aplicação.
 - **Superfície pública nova**, ainda que fechada por token, 404 mudo e throttle.
 - Tarefas com granularidade menor que o intervalo entre pings executam **uma vez** no catch-up, não
   N vezes. Adequado para varreduras idempotentes; **não** para tarefas que precisem rodar a cada

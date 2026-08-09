@@ -229,6 +229,15 @@ Próximas evoluções planejadas, em ordem de prioridade. A base modular (Servic
 
 > **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, `MAIL_MAILER` SMTP, backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
 
+### Runtime de produção
+
+O `Dockerfile` da raiz sobe a aplicação com **FrankenPHP** (Caddy + PHP embarcado), não com
+`php artisan serve`. A política de cache dos estáticos fica em
+[`docker/railway/Caddyfile`](docker/railway/Caddyfile): `immutable` de um ano para `/build/*` (Vite
+gera nomes com hash) e uma semana com revalidação por `ETag` para os assets do template. Antes disso,
+sem nenhum cabeçalho de cache, cada navegação rebaixava ~285 KB de CSS/JS —
+ver [ADR-0017](docs/ADR/0017-frankenphp-no-lugar-do-artisan-serve.md).
+
 ### Tarefas agendadas
 
 As rotinas de limpeza (`config/cron.php`) rodam pelo serviço `scheduler` do Docker Compose

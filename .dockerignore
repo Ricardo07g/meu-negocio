@@ -17,6 +17,18 @@ public/build
 public/hot
 public/storage
 
+# Peso morto do template Duralux: ~27 MB que NUNCA chegam a um navegador.
+# Continuam no git (a copia do template segue integra p/ referencia e p/ o
+# NOTICE.md) — so nao vao para a imagem de producao.
+#   .map   source maps, so o devtools pede
+#   .scss  fontes do template, nao sao servidos
+#   flags  bandeiras do flagicon; nenhuma view usa classe de bandeira
+public/assets/**/*.map
+public/assets/**/*.scss
+public/assets/**/*.zip
+public/assets/images/general/video_bg_1.mp4
+public/assets/vendors/img/flags
+
 # Ambiente de desenvolvimento / docker-compose
 docker-compose.yml
 

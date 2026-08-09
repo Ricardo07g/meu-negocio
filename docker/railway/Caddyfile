@@ -1,0 +1,43 @@
+# Configuracao do FrankenPHP (Caddy) para o papel `web` em producao.
+#
+# Substitui o `php artisan serve`, que era o servidor embutido do PHP: ele atende
+# UM request por vez e serve arquivos estaticos sem passar pelo Laravel — logo,
+# sem forma de emitir Cache-Control (nem middleware alcanca). O resultado media
+# ~285 KB de CSS/JS baixados de novo a CADA navegacao.
+{
+	# O TLS termina na borda do Railway e chega aqui como HTTP puro.
+	auto_https off
+	# Sem endpoint de administracao: nada de painel do Caddy exposto no container.
+	admin off
+	skip_install_trust
+
+	frankenphp
+}
+
+# Railway injeta PORT; 8080 e o mesmo default do entrypoint anterior.
+:{$PORT:8080} {
+	root /app/public
+	encode zstd br gzip
+
+	# /build/* — o Vite gera nomes com hash de conteudo, entao o mesmo nome nunca
+	# muda de conteudo. Cache de um ano sem revalidar.
+	@build path /build/*
+	header @build Cache-Control "public, max-age=31536000, immutable"
+
+	# Assets do template e CSS proprio: mudam num deploy, mas sob o MESMO nome.
+	# Por isso NAO levam `immutable` — uma semana de cache e depois revalidacao,
+	# que o Caddy resolve com ETag em 304 (resposta sem corpo).
+	@estaticos path /assets/* /css/* /favicon.svg /favicon.ico /robots.txt
+	header @estaticos Cache-Control "public, max-age=604800"
+
+	# Todo o resto e pagina autenticada de um SaaS multi-tenant: cachear seria
+	# risco de vazar dado de uma rede para outra em qualquer proxy no caminho.
+	# O prefixo `?` define o valor apenas se a resposta ainda nao trouxer um:
+	# onde o Laravel ja emite o seu (`no-cache, private`, nas rotas com sessao)
+	# ele continua mandando, e aqui fica so a rede de seguranca para o resto.
+	# Sem o `?`, a resposta sai com o cabecalho duplicado.
+	@dinamico not path /build/* /assets/* /css/* /favicon.svg /favicon.ico /robots.txt
+	header @dinamico ?Cache-Control "no-store, private"
+
+	php_server
+}
