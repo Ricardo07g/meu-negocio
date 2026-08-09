@@ -1,0 +1,23 @@
+name = "meu-negocio-agendador"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Relogio externo da aplicacao. Roda no plano Workers Free: 2 invocacoes por dia
+# contra um teto de 100.000 requisicoes/dia, e o limite de 10 ms de CPU nao pesa
+# porque o tempo esperando o `fetch` nao conta como CPU.
+#
+# 03:00 e 15:00 UTC (00:00 e 12:00 em Brasilia). Poucas vezes ao dia de proposito:
+# o servico do Railway tem App Sleeping ligado e cada ping acorda o container —
+# pingar de minuto em minuto manteria o container de pe 24/7. A aplicacao faz
+# catch-up (roda o que ficou devido desde o ultimo tick), entao a frequencia
+# daqui nao precisa acompanhar a frequencia declarada em config/cron.php.
+[triggers]
+crons = ["0 3,15 * * *"]
+
+[vars]
+# URL publica do deploy (nao e segredo). O segredo e o CRON_TOKEN, definido com
+# `wrangler secret put CRON_TOKEN` — nunca neste arquivo.
+APP_URL = "https://meu-negocio-production.up.railway.app"
+
+[observability]
+enabled = true

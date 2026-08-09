@@ -202,11 +202,12 @@ meu-negocio/
 │   ├── Models/BaseModel    # Eloquent base com RedeTrait
 │   ├── Support/            # CalculadoraParcelas e helpers do domínio
 │   └── Traits/             # RedeTrait, EmpresaTrait, RegistraAtividade, TratamentoErros
+├── cloudflare/agendador/   # Worker (Cron Trigger) que aciona o agendador HTTP em produção
 ├── database/seeders/       # PlanoSeeder, PermissaoSeeder (+ Admin master), DesenvolvimentoSeeder (demo)
 ├── docker/, docker-compose.yml
 ├── docs/                   # ADR/, AUTOMACAO.md, FECHAMENTO_PORTFOLIO.md, screenshots/
 ├── resources/              # views/layouts/ (Duralux), js/calendar.js (Toast UI)
-└── routes/web.php
+└── routes/                 # web.php, console.php, cron.php
 ```
 
 ---
@@ -227,6 +228,16 @@ Próximas evoluções planejadas, em ordem de prioridade. A base modular (Servic
 | 8 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |
 
 > **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, `MAIL_MAILER` SMTP, backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
+
+### Tarefas agendadas
+
+As rotinas de limpeza (`config/cron.php`) rodam pelo serviço `scheduler` do Docker Compose
+(`schedule:work`). Onde não há como manter um processo de pé — o deploy de demonstração é um único
+container que dorme quando ocioso —, existe um caminho alternativo: `POST /cron/executar`, protegido
+por token e acionado por um Cron Trigger do Cloudflare Workers
+([`cloudflare/agendador/`](cloudflare/agendador/)). A aplicação roda o que ficou devido desde o último
+acionamento, então a frequência do gatilho não precisa acompanhar a das tarefas —
+ver [ADR-0016](docs/ADR/0016-agendador-por-cron-http-externo.md).
 
 ---
 

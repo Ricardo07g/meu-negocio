@@ -12,8 +12,10 @@ Projeto de portfolio, preparado para open source.
 - Docker Compose (app, nginx:8080, mysql:3306, redis:6379, **queue** = worker `queue:work`,
   **scheduler** = `schedule:work`) — **nao ha PHP no host**; rode tudo via `docker exec meu-negocio-app
   <cmd>`. Fila em driver `database`: jobs assincronos (ex.: exportacao de extrato — ADR-0012) precisam do
-  `queue` no ar; tarefas agendadas (`routes/console.php`, ex.: `exportacoes:limpar` horario) precisam do
-  `scheduler`.
+  `queue` no ar; tarefas agendadas precisam do `scheduler`. **A lista de tarefas mora em
+  `config/cron.php`** (comando => expressao cron) e tem dois consumidores: `routes/console.php`
+  (`schedule:work`) e o endpoint `POST /cron/executar` — o caminho de producao, acionado por um Cron
+  Trigger do Cloudflare Workers, onde nao ha processo de scheduler (ADR-0016).
 - Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3 (Node so no host).
 - Template UI: Duralux Admin 1.0.0 (template comercial; mantenha uma copia local para referencia
   visual — ver `NOTICE.md`).
@@ -97,9 +99,9 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
   Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
   `_FactoriesSmokeTest`.
-- **307 testes** (1194 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial e uploads
-  (normalizacao em WebP e staging preservado no erro de validacao).
+- **317 testes** (1217 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial, uploads
+  (normalizacao em WebP e staging preservado no erro de validacao) e o agendador HTTP.
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -112,7 +114,7 @@ vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis.
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (15 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (16 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

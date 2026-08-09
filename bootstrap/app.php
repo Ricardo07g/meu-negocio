@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
-use App\Http\Middleware\{AplicarContextoEmpresa, VerificarEmpresa, VerificarPlano, VerificarRede};
+use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, VerificarEmpresa, VerificarPlano, VerificarRede};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
 use App\Modules\Conta\Console\LimparExportacoes;
 use App\Modules\Tenant\Console\ExpirarTrial;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
+use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\{PermissionMiddleware, RoleMiddleware};
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -16,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        // Fora de qualquer grupo: o agendador HTTP nao usa sessao/CSRF/tenant.
+        then: function (): void {
+            Route::group([], __DIR__.'/../routes/cron.php');
+        },
     )
     ->withCommands([
         LimparRascunhosArquivo::class,
@@ -28,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->alias([
+            'cron.auth' => AutenticarCron::class,
             'verificar.rede' => VerificarRede::class,
             'verificar.empresa' => VerificarEmpresa::class,
             'aplicar.contexto.empresa' => AplicarContextoEmpresa::class,
