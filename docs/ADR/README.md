@@ -24,6 +24,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0014](0014-caixa-do-dia-mostra-o-fluxo-nao-o-razao.md) | O caixa do dia mostra o fluxo da loja, não o razão da gaveta | Aceito |
 | [0015](0015-normalizacao-de-imagens-em-webp.md) | Normalização de imagens em WebP na gravação | Aceito |
 | [0016](0016-agendador-por-cron-http-externo.md) | Agendador por cron HTTP externo (Cloudflare Workers) | Aceito |
+| [0017](0017-frankenphp-no-lugar-do-artisan-serve.md) | FrankenPHP no lugar do `php artisan serve` em produção | Aceito |
 
 ## Como ler
 
