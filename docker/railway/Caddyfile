@@ -27,7 +27,9 @@
 	# Assets do template e CSS proprio: mudam num deploy, mas sob o MESMO nome.
 	# Por isso NAO levam `immutable` — uma semana de cache e depois revalidacao,
 	# que o Caddy resolve com ETag em 304 (resposta sem corpo).
-	@estaticos path /assets/* /css/* /favicon.svg /favicon.ico /robots.txt
+	# /css/* e /js/* sao os arquivos proprios do sistema; os layouts os servem com
+	# `?v=filemtime`, entao a troca no deploy ja invalida o cache do navegador.
+	@estaticos path /assets/* /css/* /js/* /favicon.svg /favicon.ico /robots.txt
 	header @estaticos Cache-Control "public, max-age=604800"
 
 	# Todo o resto e pagina autenticada de um SaaS multi-tenant: cachear seria
@@ -36,7 +38,7 @@
 	# onde o Laravel ja emite o seu (`no-cache, private`, nas rotas com sessao)
 	# ele continua mandando, e aqui fica so a rede de seguranca para o resto.
 	# Sem o `?`, a resposta sai com o cabecalho duplicado.
-	@dinamico not path /build/* /assets/* /css/* /favicon.svg /favicon.ico /robots.txt
+	@dinamico not path /build/* /assets/* /css/* /js/* /favicon.svg /favicon.ico /robots.txt
 	header @dinamico ?Cache-Control "no-store, private"
 
 	php_server
