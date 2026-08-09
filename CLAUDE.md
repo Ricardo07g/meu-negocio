@@ -89,6 +89,15 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
 | DefineEmpresaDeCriacao | Helper `comEmpresaDeCriacao` (contexto ME-010 em escrita) |
 | TemArquivos | Anexos polimorficos (imagens/PDFs) via tabela `arquivos` + colecoes |
 
+## UI — comportamentos globais
+- **Loading de submit**: `public/js/mn-admin.js` (asset() + `?v=filemtime` nos dois layouts, fora do
+  Vite). Um listener delegado troca o rotulo do botao por spinner e trava contra duplo clique. Opt-out
+  por `<form data-sem-loading>`; texto por `<button data-texto-carregando="...">`. Nao acende quando o
+  submit foi cancelado (respeita o `data-confirm` do SweetAlert).
+- **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
+  POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
+  widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.
+
 ## Seeds (ao registrar)
 Conta nova nasce **enxuta**: 1 categoria `Geral`, 1 `Produto exemplo`, 1 `Servico exemplo`,
 1 `Cliente exemplo` — catalogo ficticio so gera faxina para quem acabou de entrar. Contas (Caixa +
