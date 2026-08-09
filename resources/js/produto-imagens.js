@@ -49,6 +49,11 @@ function initGaleria(raiz) {
     let seq = 0;
     const itens = (cfg.itens || []).map((i) => ({ chave: `s${seq++}`, ...i }));
 
+    // Quantas imagens ainda estao subindo. Cada uma vira um tile com spinner ate
+    // a resposta chegar: o upload passa por reencode em WebP e DUAS viagens ao
+    // R2 (original + miniatura), entao sem indicador o usuario acha que travou.
+    let enviando = 0;
+
     function erro(msg) {
         boxErro.textContent = msg || '';
         boxErro.classList.toggle('d-none', !msg);
@@ -70,10 +75,32 @@ function initGaleria(raiz) {
         grid.innerHTML = '';
         itens.forEach((it, idx) => grid.appendChild(tile(it, idx)));
 
-        if (itens.length < cfg.max) {
+        for (let i = 0; i < enviando; i++) {
+            grid.appendChild(tileEnviando());
+        }
+
+        // Enquanto sobe, nao oferece "Adicionar": a contagem contra cfg.max ainda
+        // nao fechou e o usuario poderia estourar o limite escolhendo mais.
+        if (enviando === 0 && itens.length < cfg.max) {
             grid.appendChild(tileAdd());
         }
         sincronizarHidden();
+    }
+
+    function tileEnviando() {
+        const el = document.createElement('div');
+        el.className = 'galeria-item galeria-item-enviando';
+
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm';
+        spinner.setAttribute('role', 'status');
+
+        const rotulo = document.createElement('span');
+        rotulo.className = 'galeria-enviando-texto';
+        rotulo.textContent = 'Enviando...';
+
+        el.append(spinner, rotulo);
+        return el;
     }
 
     function tile(it, idx) {
@@ -129,6 +156,12 @@ function initGaleria(raiz) {
 
     async function enviarArquivos(arquivos) {
         erro('');
+
+        // Mostra um tile por arquivo da fila ANTES de comecar: o feedback tem de
+        // aparecer no clique, nao quando a primeira resposta voltar.
+        enviando = Math.min(arquivos.length, Math.max(cfg.max - itens.length, 0));
+        render();
+
         for (const arquivo of arquivos) {
             if (itens.length >= cfg.max) {
                 erro(`Máximo de ${cfg.max} imagens.`);
@@ -139,7 +172,12 @@ function initGaleria(raiz) {
             } catch (e) {
                 erro(e.message);
             }
+            // Um tile de spinner some a cada resposta — sucesso ou erro.
+            enviando = Math.max(enviando - 1, 0);
+            render();
         }
+
+        enviando = 0;
         render();
     }
 

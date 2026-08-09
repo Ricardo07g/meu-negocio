@@ -84,6 +84,14 @@
         }
         .galeria-add:hover { color: #3454d1; border-color: #3454d1; }
         .galeria-add i { font-size: 22px; }
+        /* Tile mostrado enquanto a imagem sobe: reencode em WebP + duas viagens
+           ao R2 (original e miniatura) demoram o bastante para parecer travado. */
+        .galeria-item-enviando {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 6px; cursor: default; border-style: dashed;
+            color: var(--bs-secondary-color, #6b7280);
+        }
+        .galeria-enviando-texto { font-size: 11px; }
         .galeria-item.carregando::after {
             content: ''; position: absolute; inset: 0; background: rgba(255,255,255,.6);
         }
