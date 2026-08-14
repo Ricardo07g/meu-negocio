@@ -67,7 +67,7 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
 Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
-Assinatura (licenca por empresa + trial de 14 dias renovavel, so Admin ve — ADR-0013), Arquivo (uploads genericos —
+Assinatura (licenca por empresa + trial de 15 dias renovavel, so Admin ve — ADR-0013), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008; imagens normalizadas em WebP — ADR-0015).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
@@ -102,10 +102,10 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
 Conta nova nasce **enxuta**: 1 categoria `Geral`, 1 `Produto exemplo`, 1 `Servico exemplo`,
 1 `Cliente exemplo` — catalogo ficticio so gera faxina para quem acabou de entrar. Contas (Caixa +
 Banco) e formas de pagamento continuam vindo do `CriarEmpresaAction`: sao infraestrutura da unidade.
-A primeira empresa nasce no plano Pro com **14 dias de teste** (`empresas.trial_expira_em`); ao
-vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis **sem apagar a data** — dali o
-Admin escolhe entre contratar o Pro ou **renovar o teste por mais 15 dias** (ilimitadamente,
-enquanto nao houver gateway). Toda a assinatura (menu, aviso de teste no layout e tela) e
+A primeira empresa nasce no plano Pro com **15 dias de teste** (`empresas.trial_expira_em`,
+`Empresa::DIAS_DE_TRIAL`); ao vencer, o comando `assinaturas:expirar-trial` a rebaixa para o Gratis
+**sem apagar a data** — dali o Admin escolhe entre contratar o Pro ou **renovar o teste por mais 15
+dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a assinatura (menu, aviso de teste no layout e tela) e
 **exclusiva do Admin** via `FaturaPolicy` — ADR-0013.
 
 ---

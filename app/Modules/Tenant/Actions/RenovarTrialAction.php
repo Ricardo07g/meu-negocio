@@ -8,7 +8,7 @@ use App\Exceptions\NegocioException;
 use App\Modules\Tenant\Models\{Empresa, Plano};
 
 /**
- * Reabre o teste gratuito de UMA unidade por mais `Empresa::DIAS_DE_RENOVACAO_TRIAL` dias.
+ * Reabre o teste gratuito de UMA unidade por mais `Empresa::DIAS_DE_TRIAL` dias.
  *
  * Enquanto nao ha gateway de pagamento, o fim do teste nao pode ser um beco sem saida: a
  * unidade cai no Gratis e, dali, o Admin escolhe entre contratar o Pro
@@ -26,7 +26,7 @@ class RenovarTrialAction
 
         $empresa->update([
             'plano_id' => Plano::where('slug', Plano::PRO)->firstOrFail()->id,
-            'trial_expira_em' => now()->addDays(Empresa::DIAS_DE_RENOVACAO_TRIAL),
+            'trial_expira_em' => now()->addDays(Empresa::DIAS_DE_TRIAL),
         ]);
 
         return $empresa;

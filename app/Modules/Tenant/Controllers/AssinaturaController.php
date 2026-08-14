@@ -106,7 +106,7 @@ class AssinaturaController extends Controller
             return redirect()->route('assinatura.index')->with(
                 'sucesso',
                 "O teste da unidade \"{$empresa->nome}\" foi renovado por mais "
-                .Empresa::DIAS_DE_RENOVACAO_TRIAL.' dias, até '
+                .Empresa::DIAS_DE_TRIAL.' dias, até '
                 .$empresa->trial_expira_em->format('d/m/Y').'.'
             );
         } catch (\Throwable $e) {

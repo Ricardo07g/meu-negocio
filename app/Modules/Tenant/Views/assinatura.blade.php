@@ -141,14 +141,14 @@
                 <strong>O teste de {{ $empresaVigente->nome }} terminou em
                     {{ $empresaVigente->trial_expira_em->format('d/m/Y') }}.</strong>
                 A unidade voltou para o plano Grátis. Você pode contratar o Pro ou renovar o teste
-                por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_RENOVACAO_TRIAL }} dias.
+                por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias.
             </div>
             @if ($podeRenovarTeste)
                 <button type="button" class="btn btn-warning btn-renovar-teste"
                     data-empresa-id="{{ $empresaVigente->id }}"
                     data-empresa-nome="{{ $empresaVigente->nome }}">
                     <i class="feather-refresh-cw me-1"></i>
-                    Renovar por {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_RENOVACAO_TRIAL }} dias
+                    Renovar por {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias
                 </button>
             @endif
         </div>
@@ -575,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Swal.fire({
                 icon: 'question',
                 title: 'Renovar o teste desta unidade?',
-                html: '<strong>' + nome + '</strong> volta ao plano Pro por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_RENOVACAO_TRIAL }} dias, sem cobranca.'
+                html: '<strong>' + nome + '</strong> volta ao plano Pro por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias, sem cobranca.'
                     + '<br><small class="text-muted">Ao fim do periodo ela retorna ao plano Gratis.</small>',
                 showCancelButton: true,
                 confirmButtonColor: '#3454d1',

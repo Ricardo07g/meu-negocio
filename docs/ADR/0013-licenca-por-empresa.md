@@ -68,7 +68,7 @@ bastaria abrir N unidades gratuitas para ter a rede inteira de graça.
 
 ### Trial é estado da licença, não um terceiro plano
 
-`empresas.trial_expira_em` (date, nullable). A primeira unidade da rede nasce **no Pro** com 14 dias
+`empresas.trial_expira_em` (date, nullable). A primeira unidade da rede nasce **no Pro** com 15 dias
 (`Empresa::DIAS_DE_TRIAL`); unidades contratadas depois já nascem pagas — trial é aquisição, não
 brinde por unidade. Como durante o teste a unidade *está* no Pro de verdade, nada muda em
 `ValidarPlanoAction`, `VerificarPlano` ou nos gates de menu.
@@ -83,7 +83,11 @@ durante o teste: nada é apagado, apenas para de ser possível criar mais.
 *Adendo — agosto/2026.* Sem gateway de pagamento, o fim do teste era um beco sem saída: a unidade
 caía no Grátis, perdia estoque e financeiro, e a única saída era um upgrade que ninguém consegue
 pagar de verdade. `RenovarTrialAction` dá a segunda porta: o Admin reabre o teste por
-`Empresa::DIAS_DE_RENOVACAO_TRIAL` (15) dias, quantas vezes quiser.
+`Empresa::DIAS_DE_TRIAL` dias, quantas vezes quiser.
+
+O período do registro passou de 14 para **15 dias** na mesma mudança, e a renovação reusa a mesma
+constante em vez de ganhar uma própria: dois números para "quanto dura um teste" só criariam a
+pergunta de qual vale onde.
 
 Duas consequências no modelo de dados:
 

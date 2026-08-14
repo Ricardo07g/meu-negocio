@@ -132,11 +132,8 @@ class Empresa extends BaseModel
     // ███████╗██║╚██████╗███████╗██║ ╚████║╚██████╗██║  ██║
     // ╚══════╝╚═╝ ╚═════╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
 
-    /** Duracao do teste gratuito, em dias, da unidade criada no registro. */
-    public const DIAS_DE_TRIAL = 14;
-
-    /** Duracao de cada renovacao do teste pedida pelo proprio Admin na tela de assinatura. */
-    public const DIAS_DE_RENOVACAO_TRIAL = 15;
+    /** Duracao do teste gratuito, em dias — vale tanto no registro quanto em cada renovacao. */
+    public const DIAS_DE_TRIAL = 15;
 
     /** Esta unidade esta em periodo de teste (no Pro, sem cobranca)? */
     public function emTrial(): bool

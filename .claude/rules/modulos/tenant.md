@@ -19,7 +19,7 @@ Assinatura", `Fatura`s mensais internas). Sem gateway de pagamento — cobranca 
   - `trialVencido()` — ja teve teste e ele acabou. **`trial_expira_em` nulo = nunca teve teste**; data no passado = ja testou. O rebaixamento NAO apaga mais a data (e o que habilita a renovacao).
   - `podeRenovarTrial()` — `trialVencido()` **e** plano atual e o Gratis. Renovar a partir de uma licenca paga seria deixar de cobrar quem contratou.
   - `contarUsuarios()` — assentos ocupados = pivot ∪ `usuariosDefault` (o Admin do registro so entra pelo segundo caminho; contar so o pivot o deixaria de fora do limite).
-  - `Empresa::DIAS_DE_TRIAL` = 14 (teste do registro) · `Empresa::DIAS_DE_RENOVACAO_TRIAL` = 15 (cada renovacao pedida pelo Admin).
+  - `Empresa::DIAS_DE_TRIAL` = 15 — **uma constante so**, vale no registro e em cada renovacao pedida pelo Admin.
 - **Plano** (`planos`): `Model` direto (sem RedeTrait — e global). Fillable `slug, nome, preco_por_licenca, descricao, max_usuarios, tem_estoque, tem_financeiro`. Casts `preco_por_licenca => decimal:2`, flags boolean. Constantes `Plano::GRATIS` / `Plano::PRO` — **busque sempre por `slug`**, `nome` e so rotulo. `empresas()` (hasMany). **Nao existe `max_empresas` nem `0 = ilimitado`**: todo limite e finito.
 - **Fatura** (`faturas`): BaseModel + SoftDeletes (filtra por `rede_id`). Fillable `rede_id, plano_id, referencia, valor, vencimento, pago_em, status`. `status` e **string** (`em_aberto`, `paga`, `vencida`, `cancelada`) — NAO ha enum `StatusFatura` ainda. `referencia` = `YYYY-MM`. Unique `(rede_id, referencia)` => no maximo 1 fatura por mes por rede.
 
@@ -53,12 +53,12 @@ O Gratis vale para **uma unica unidade por rede** (guarda em `CriarEmpresaAction
   `assinaturas:expirar-trial` (agendado `daily()`) e, defensivamente, por `VerificarEmpresa`
   (1x por sessao por dia).
 - `RenovarTrialAction::executar(Empresa): Empresa` — reabre o teste por
-  `Empresa::DIAS_DE_RENOVACAO_TRIAL` dias (volta ao Pro). Exige `podeRenovarTrial()`; recusa com
+  `Empresa::DIAS_DE_TRIAL` dias (volta ao Pro). Exige `podeRenovarTrial()`; recusa com
   `NegocioException` quem nunca testou, quem esta em teste vigente e quem esta em licenca paga.
   **Nao mexe na fatura** — Gratis e teste custam R$ 0. Renovacoes sao ilimitadas de proposito
   (cortesia enquanto nao ha gateway).
 - `RedeService::criar(CriarRedeData, UsuarioData): Rede` — registro: cria rede, primeira empresa
-  (Pro em trial de 14 dias, via Action), usuario Admin e o seed **enxuto**: 1 categoria `Geral`,
+  (Pro em trial de 15 dias, via Action), usuario Admin e o seed **enxuto**: 1 categoria `Geral`,
   1 `Produto exemplo`, 1 `Servico exemplo`, 1 `Cliente exemplo`. Tudo em transacao.
 - `EmpresaService` — `listar` (eager-load `plano`) / `buscar` / `criar` / `atualizar` / `excluir`.
   `criar` e `excluir` nao tem rota: existem para o painel de superusuario.

@@ -250,7 +250,7 @@ class AssinaturaTest extends TestCase
         $empresa->refresh();
         $this->assertSame($pro->id, $empresa->plano_id);
         $this->assertTrue($empresa->emTrial());
-        $this->assertSame(Empresa::DIAS_DE_RENOVACAO_TRIAL, $empresa->diasRestantesTrial());
+        $this->assertSame(Empresa::DIAS_DE_TRIAL, $empresa->diasRestantesTrial());
     }
 
     public function test_renovar_nao_gera_cobranca_na_fatura_do_mes(): void
