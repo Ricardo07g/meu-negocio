@@ -7,6 +7,7 @@ namespace Tests\Feature\Tenant;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Tenant\Actions\EncerrarTrialAction;
 use App\Modules\Tenant\Models\{Empresa, Plano};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CriaTenant;
@@ -72,13 +73,30 @@ class LicencaPorEmpresaTest extends TestCase
     {
         $contexto = $this->criarRede();
         $empresa = $contexto['empresa'];
-        $empresa->update(['trial_expira_em' => now()->subDay()]);
+        $venceuOntem = now()->subDay();
+        $empresa->update(['trial_expira_em' => $venceuOntem]);
 
         $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
 
         $empresa->refresh();
         $this->assertSame(Plano::GRATIS, $empresa->plano->slug);
-        $this->assertNull($empresa->trial_expira_em);
+
+        // A data vencida sobrevive: e o registro de que a unidade ja testou, e e o que
+        // habilita o Admin a renovar o teste em vez de ficar num beco sem saida.
+        $this->assertSame($venceuOntem->toDateString(), $empresa->trial_expira_em->toDateString());
+        $this->assertTrue($empresa->trialVencido());
+    }
+
+    public function test_expirar_trial_e_idempotente_e_nao_reprocessa_unidade_ja_rebaixada(): void
+    {
+        $contexto = $this->criarRede();
+        $empresa = $contexto['empresa'];
+        $empresa->update(['trial_expira_em' => now()->subDay()]);
+
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+        // Segunda passada: a unidade ja esta no Gratis, entao nao entra mais na query.
+        $this->assertSame(0, app(EncerrarTrialAction::class)->executar());
     }
 
     public function test_trial_do_ultimo_dia_ainda_vale(): void
