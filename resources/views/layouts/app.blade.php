@@ -238,8 +238,8 @@
                         </a>
                     </li>
                     @endcan
-                    {{-- Minha Assinatura --}}
-                    @can('plano.ver')
+                    {{-- Minha Assinatura (so o Admin: preco e fatura sao assunto do dono) --}}
+                    @can('viewAny', \App\Modules\Tenant\Models\Fatura::class)
                     <li class="nxl-item">
                         <a href="{{ route('assinatura.index') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-credit-card"></i></span>
@@ -353,7 +353,9 @@
                 </div>
             </div>
             <div class="main-content">
-                {{-- Teste gratuito da unidade: ao vencer, a licenca cai para o Gratis. --}}
+                {{-- Teste gratuito da unidade: ao vencer, a licenca cai para o Gratis.
+                     So o Admin ve — assinatura e assunto do dono da conta. --}}
+                @can('viewAny', \App\Modules\Tenant\Models\Fatura::class)
                 @if($empresaVigente?->emTrial())
                 @php $diasDeTeste = $empresaVigente->diasRestantesTrial(); @endphp
                 <div class="alert alert-info d-flex align-items-center" role="alert">
@@ -369,7 +371,18 @@
                     </div>
                     <a href="{{ route('assinatura.index') }}" class="btn btn-sm btn-primary ms-2">Ver assinatura</a>
                 </div>
+                @elseif($empresaVigente?->podeRenovarTrial())
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <i class="feather-alert-circle me-2"></i>
+                    <div class="flex-grow-1">
+                        <strong>Seu teste do plano Pro terminou.</strong>
+                        Esta unidade está no plano Grátis — renove o teste ou mude de plano para
+                        voltar a usar estoque e financeiro.
+                    </div>
+                    <a href="{{ route('assinatura.index') }}" class="btn btn-sm btn-warning ms-2">Ver opções</a>
+                </div>
                 @endif
+                @endcan
 
                 {{-- Flash messages --}}
                 @if(session('sucesso'))

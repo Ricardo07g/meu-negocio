@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Tenant\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Tenant\Actions\TransicionarPlanoAction;
+use App\Modules\Tenant\Actions\{RenovarTrialAction, TransicionarPlanoAction};
 use App\Modules\Tenant\Models\{Empresa, Fatura, Plano};
-use App\Modules\Tenant\Requests\TransicionarPlanoRequest;
+use App\Modules\Tenant\Requests\{RenovarTrialRequest, TransicionarPlanoRequest};
 use App\Support\PlanoVigente;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
@@ -64,11 +64,12 @@ class AssinaturaController extends Controller
 
         $todosPlanos = Plano::orderBy('preco_por_licenca')->get();
         $podeTrocar = $usuario->can('transicionar', Fatura::class);
+        $podeRenovarTeste = $usuario->can('renovarTrial', Fatura::class);
 
         return view('tenant::assinatura', compact(
             'rede', 'plano', 'empresaVigente', 'licencas', 'valorMensal',
             'faturaAtual', 'faturas', 'anoSelecionado', 'anosDisponiveis', 'totalPagoNoAno',
-            'todosPlanos', 'podeTrocar'
+            'todosPlanos', 'podeTrocar', 'podeRenovarTeste'
         ));
     }
 
@@ -87,6 +88,29 @@ class AssinaturaController extends Controller
             );
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Falha ao transicionar plano de assinatura');
+        }
+    }
+
+    /**
+     * Reabre o teste gratuito da unidade por mais um periodo — a saida que o Admin tem,
+     * junto com a troca de plano, quando o teste vence (ADR-0013).
+     */
+    public function renovarTeste(RenovarTrialRequest $request, RenovarTrialAction $action): RedirectResponse
+    {
+        try {
+            // O global scope de rede impede alcançar unidade de outra rede.
+            $empresa = Empresa::findOrFail($request->integer('empresa_id'));
+
+            $action->executar($empresa);
+
+            return redirect()->route('assinatura.index')->with(
+                'sucesso',
+                "O teste da unidade \"{$empresa->nome}\" foi renovado por mais "
+                .Empresa::DIAS_DE_RENOVACAO_TRIAL.' dias, até '
+                .$empresa->trial_expira_em->format('d/m/Y').'.'
+            );
+        } catch (\Throwable $e) {
+            return $this->tratarErro($e, 'Falha ao renovar o teste gratuito');
         }
     }
 }

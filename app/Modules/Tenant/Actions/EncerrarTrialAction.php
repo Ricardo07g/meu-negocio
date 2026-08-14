@@ -15,6 +15,10 @@ use App\Modules\Tenant\Models\{Empresa, Plano};
  *
  * O rebaixamento acontece mesmo que a unidade tenha excedido os limites do Gratis
  * durante o teste: nada e apagado, apenas para de ser possivel criar mais.
+ *
+ * A data vencida NAO e apagada: ela e o registro de que a unidade ja teve teste, e e o
+ * que habilita o Admin a renova-lo (`RenovarTrialAction`). Quem para a reexecucao e o
+ * proprio plano de destino — uma unidade ja no Gratis sai da query.
  */
 class EncerrarTrialAction
 {
@@ -34,15 +38,13 @@ class EncerrarTrialAction
         // entao so vence quando a data ja ficou para tras.
         $query = Empresa::query()
             ->whereNotNull('trial_expira_em')
-            ->whereDate('trial_expira_em', '<', now()->toDateString());
+            ->whereDate('trial_expira_em', '<', now()->toDateString())
+            ->where('plano_id', '!=', $planoGratis->id);
 
         if ($empresa !== null) {
             $query->whereKey($empresa->getKey());
         }
 
-        return $query->update([
-            'plano_id' => $planoGratis->id,
-            'trial_expira_em' => null,
-        ]);
+        return $query->update(['plano_id' => $planoGratis->id]);
     }
 }
