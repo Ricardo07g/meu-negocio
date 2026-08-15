@@ -132,14 +132,37 @@ class Empresa extends BaseModel
     // ███████╗██║╚██████╗███████╗██║ ╚████║╚██████╗██║  ██║
     // ╚══════╝╚═╝ ╚═════╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
 
-    /** Duracao do teste gratuito, em dias, da unidade criada no registro. */
-    public const DIAS_DE_TRIAL = 14;
+    /** Duracao do teste gratuito, em dias — vale tanto no registro quanto em cada renovacao. */
+    public const DIAS_DE_TRIAL = 15;
 
     /** Esta unidade esta em periodo de teste (no Pro, sem cobranca)? */
     public function emTrial(): bool
     {
         return $this->trial_expira_em !== null
             && $this->trial_expira_em->endOfDay()->isFuture();
+    }
+
+    /**
+     * Ja teve teste e ele acabou.
+     *
+     * A data sobrevive ao rebaixamento justamente para responder isto: `trial_expira_em`
+     * nulo significa "nunca teve teste", nao "o teste acabou".
+     */
+    public function trialVencido(): bool
+    {
+        return $this->trial_expira_em !== null && ! $this->emTrial();
+    }
+
+    /**
+     * O Admin pode reabrir o teste desta unidade?
+     *
+     * Enquanto nao ha gateway de pagamento, o teste vencido e renovavel em vez de ser um
+     * beco sem saida (ADR-0013). So vale para quem caiu no Gratis: numa licenca paga
+     * "renovar o teste" seria deixar de cobrar quem ja contratou.
+     */
+    public function podeRenovarTrial(): bool
+    {
+        return $this->trialVencido() && $this->plano->slug === Plano::GRATIS;
     }
 
     /** Dias que faltam para o teste acabar (0 quando nao ha trial vigente). */

@@ -68,7 +68,7 @@ bastaria abrir N unidades gratuitas para ter a rede inteira de graça.
 
 ### Trial é estado da licença, não um terceiro plano
 
-`empresas.trial_expira_em` (date, nullable). A primeira unidade da rede nasce **no Pro** com 14 dias
+`empresas.trial_expira_em` (date, nullable). A primeira unidade da rede nasce **no Pro** com 15 dias
 (`Empresa::DIAS_DE_TRIAL`); unidades contratadas depois já nascem pagas — trial é aquisição, não
 brinde por unidade. Como durante o teste a unidade *está* no Pro de verdade, nada muda em
 `ValidarPlanoAction`, `VerificarPlano` ou nos gates de menu.
@@ -77,6 +77,39 @@ O encerramento é do comando `assinaturas:expirar-trial`, agendado `daily()`, co
 segurança em `VerificarEmpresa` (uma vez por sessão por dia) para a conta não ficar presa no Pro
 se o scheduler cair. O rebaixamento acontece mesmo se a unidade excedeu os limites do Grátis
 durante o teste: nada é apagado, apenas para de ser possível criar mais.
+
+### O teste vencido é renovável enquanto não houver gateway
+
+*Adendo — agosto/2026.* Sem gateway de pagamento, o fim do teste era um beco sem saída: a unidade
+caía no Grátis, perdia estoque e financeiro, e a única saída era um upgrade que ninguém consegue
+pagar de verdade. `RenovarTrialAction` dá a segunda porta: o Admin reabre o teste por
+`Empresa::DIAS_DE_TRIAL` dias, quantas vezes quiser.
+
+O período do registro passou de 14 para **15 dias** na mesma mudança, e a renovação reusa a mesma
+constante em vez de ganhar uma própria: dois números para "quanto dura um teste" só criariam a
+pergunta de qual vale onde.
+
+Duas consequências no modelo de dados:
+
+- **`trial_expira_em` deixa de ser apagada no rebaixamento.** Nulo passa a significar apenas "nunca
+  teve teste"; uma data no passado significa "já testou, e acabou" (`Empresa::trialVencido()`). A
+  idempotência do comando, que antes vinha de zerar a data, agora vem do plano de destino — uma
+  unidade já no Grátis sai da query. Contratar o Pro continua zerando a data (`TransicionarPlanoAction`):
+  quem virou cliente pagante não volta para a fila do teste.
+- **Renovar só vale a partir do Grátis.** Reabrir o teste de uma licença paga seria deixar de cobrar
+  quem já contratou, então a Action recusa (`Empresa::podeRenovarTrial()`). Não há ajuste de fatura:
+  Grátis e teste custam R$ 0, e nenhum dos dois entra no valor do mês.
+
+Renovações são ilimitadas de propósito — é uma cortesia temporária, que sai quando a cobrança de
+verdade entrar. Não há contador porque contar sem cobrar não decide nada.
+
+### Assinatura é assunto do dono da conta
+
+`FaturaPolicy::viewAny` passou de `true` (qualquer autenticado) para `hasRole('Admin')`. Preço,
+fatura e prazo de teste são informação comercial da rede: uma recepcionista não precisa saber
+quanto o dono paga, nem que faltam três dias para o plano cair. A Policy é a fonte única — o item
+de menu, o aviso de teste no layout e a própria tela consultam `@can('viewAny', Fatura::class)`,
+em vez da permissão `plano.ver`, que deixa de governar essa visibilidade.
 
 ### Contratar unidade sai da UI do tenant
 

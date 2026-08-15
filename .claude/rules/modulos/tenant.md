@@ -16,8 +16,10 @@ Assinatura", `Fatura`s mensais internas). Sem gateway de pagamento — cobranca 
 - **Rede** (`redes`): tenant raiz, so agrupa licencas. `Model` direto (NAO BaseModel) + SoftDeletes. Fillable `nome, status`. Cast `status => App\Enums\StatusRede` (`Ativa`, `Inativa`, `Suspensa`, `Cancelada`). Relacoes: `empresas`/`usuarios` (hasMany). **Sem relacao `plano`.**
 - **Empresa** (`empresas`): a licenca. BaseModel + SoftDeletes. Fillable `rede_id, plano_id, trial_expira_em, nome, documento, telefone, email`. Cast `trial_expira_em => date`. **Sem `empresa_id`/EmpresaTrait** (a propria empresa). `plano()` (belongsTo), `usuarios()` = pivot `empresa_usuario` (N:N, fonte de verdade de acesso), `usuariosDefault()` = `usuarios.empresa_id` (compat). Tambem hasMany clientes, servicos, agendamentos, pagamentos, despesas, produtos.
   - `emTrial()` / `diasRestantesTrial()` — o trial vale ate o **fim** do dia `trial_expira_em`.
+  - `trialVencido()` — ja teve teste e ele acabou. **`trial_expira_em` nulo = nunca teve teste**; data no passado = ja testou. O rebaixamento NAO apaga mais a data (e o que habilita a renovacao).
+  - `podeRenovarTrial()` — `trialVencido()` **e** plano atual e o Gratis. Renovar a partir de uma licenca paga seria deixar de cobrar quem contratou.
   - `contarUsuarios()` — assentos ocupados = pivot ∪ `usuariosDefault` (o Admin do registro so entra pelo segundo caminho; contar so o pivot o deixaria de fora do limite).
-  - `Empresa::DIAS_DE_TRIAL` = 14.
+  - `Empresa::DIAS_DE_TRIAL` = 15 — **uma constante so**, vale no registro e em cada renovacao pedida pelo Admin.
 - **Plano** (`planos`): `Model` direto (sem RedeTrait — e global). Fillable `slug, nome, preco_por_licenca, descricao, max_usuarios, tem_estoque, tem_financeiro`. Casts `preco_por_licenca => decimal:2`, flags boolean. Constantes `Plano::GRATIS` / `Plano::PRO` — **busque sempre por `slug`**, `nome` e so rotulo. `empresas()` (hasMany). **Nao existe `max_empresas` nem `0 = ilimitado`**: todo limite e finito.
 - **Fatura** (`faturas`): BaseModel + SoftDeletes (filtra por `rede_id`). Fillable `rede_id, plano_id, referencia, valor, vencimento, pago_em, status`. `status` e **string** (`em_aberto`, `paga`, `vencida`, `cancelada`) — NAO ha enum `StatusFatura` ainda. `referencia` = `YYYY-MM`. Unique `(rede_id, referencia)` => no maximo 1 fatura por mes por rede.
 
@@ -45,28 +47,45 @@ O Gratis vale para **uma unica unidade por rede** (guarda em `CriarEmpresaAction
 - `TransicionarPlanoAction::executar(Empresa, Plano): Fatura` — troca a licenca de UMA unidade,
   encerra o trial, valida assentos e Gratis-unico, e ajusta a fatura do mes (soma as demais licencas
   cobraveis + rateia por dias so a que mudou). Tudo em `DB::transaction`.
-- `EncerrarTrialAction::executar(?Empresa): int` — rebaixa para o Gratis as licencas vencidas.
-  Idempotente. Chamada pelo comando `assinaturas:expirar-trial` (agendado `daily()`) e,
-  defensivamente, por `VerificarEmpresa` (1x por sessao por dia).
+- `EncerrarTrialAction::executar(?Empresa): int` — rebaixa para o Gratis as licencas vencidas,
+  **preservando `trial_expira_em`** (a data e o registro de que a unidade ja testou). Idempotente
+  pelo plano de destino: quem ja esta no Gratis sai da query. Chamada pelo comando
+  `assinaturas:expirar-trial` (agendado `daily()`) e, defensivamente, por `VerificarEmpresa`
+  (1x por sessao por dia).
+- `RenovarTrialAction::executar(Empresa): Empresa` — reabre o teste por
+  `Empresa::DIAS_DE_TRIAL` dias (volta ao Pro). Exige `podeRenovarTrial()`; recusa com
+  `NegocioException` quem nunca testou, quem esta em teste vigente e quem esta em licenca paga.
+  **Nao mexe na fatura** — Gratis e teste custam R$ 0. Renovacoes sao ilimitadas de proposito
+  (cortesia enquanto nao ha gateway).
 - `RedeService::criar(CriarRedeData, UsuarioData): Rede` — registro: cria rede, primeira empresa
-  (Pro em trial de 14 dias, via Action), usuario Admin e o seed **enxuto**: 1 categoria `Geral`,
+  (Pro em trial de 15 dias, via Action), usuario Admin e o seed **enxuto**: 1 categoria `Geral`,
   1 `Produto exemplo`, 1 `Servico exemplo`, 1 `Cliente exemplo`. Tudo em transacao.
 - `EmpresaService` — `listar` (eager-load `plano`) / `buscar` / `criar` / `atualizar` / `excluir`.
   `criar` e `excluir` nao tem rota: existem para o painel de superusuario.
-- `AssinaturaController` — `index()` (licencas da rede + fatura consolidada + historico) e
-  `transicionar()` (POST, exige `empresa_id` + `plano_id`).
+- `AssinaturaController` — `index()` (licencas da rede + fatura consolidada + historico),
+  `transicionar()` (POST, exige `empresa_id` + `plano_id`) e `renovarTeste()` (POST, exige
+  `empresa_id`).
 - `EmpresaController` — resource **`only(['index','edit','update'])`**. Contratar e cancelar
   unidade sao atos do operador, nao do tenant.
-- `FaturaPolicy`: `viewAny` (true — qualquer autenticado ve a propria rede via RedeTrait),
-  `transicionar` (somente `hasRole('Admin')`). `EmpresaPolicy`: permissoes
-  `empresa.ver/criar/editar/excluir` + checa `rede_id` e `podeAcessarEmpresa` em update/delete.
-- Requests: `TransicionarPlanoRequest` (`empresa_id` + `plano_id`), `SalvarEmpresaRequest`
-  (unificado post/put). DTOs: `EmpresaData`, `CriarRedeData` (so `nome`).
+- `FaturaPolicy`: `viewAny`, `transicionar` e `renovarTrial` — **todas `hasRole('Admin')`**.
+  Assinatura e assunto do dono: preco, fatura e prazo de teste nao aparecem para os demais perfis.
+  A Policy e a fonte unica — o item de menu e o aviso de teste no layout usam
+  `@can('viewAny', Fatura::class)`, **nao** a permissao `plano.ver` (que deixou de governar isso).
+  `EmpresaPolicy`: permissoes `empresa.ver/criar/editar/excluir` + checa `rede_id` e
+  `podeAcessarEmpresa` em update/delete.
+- Requests: `TransicionarPlanoRequest` (`empresa_id` + `plano_id`), `RenovarTrialRequest`
+  (`empresa_id`), `SalvarEmpresaRequest` (unificado post/put). DTOs: `EmpresaData`, `CriarRedeData`
+  (so `nome`).
 
 ## Regras de negocio / gotchas
 - **Trial e estado da licenca, nao um terceiro plano.** Durante o teste a unidade ESTA no Pro de
   verdade — por isso nada muda em feature flags, middleware ou gates de menu. So a primeira unidade
   da rede ganha trial; unidade contratada depois nasce paga.
+- **Teste vencido nao e beco sem saida.** Sem gateway, o Admin tem duas portas na tela de
+  assinatura: contratar o Pro ou renovar o teste por mais 15 dias (ilimitadamente). Gotcha ao
+  montar cenario de teste: "Pro com trial vencido" nao e estado estavel por HTTP — o middleware
+  `VerificarEmpresa` rebaixa a unidade antes do controller. Para exercitar a guarda de licenca
+  paga, chame a `RenovarTrialAction` direto.
 - **O rebaixamento acontece mesmo com a unidade acima dos limites do Gratis.** Nada e apagado:
   `ValidarPlanoAction` so impede criar mais.
 - **Upgrade Gratis -> Pro e self-service do Admin.** Downgrade e contratacao de unidade nova sao do

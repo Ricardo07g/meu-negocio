@@ -277,7 +277,6 @@ class DesenvolvimentoSeeder extends Seeder
                     'despesa.ver', 'despesa.criar', 'despesa.editar',
                     'categoria_despesa.ver', 'categoria_despesa.criar', 'categoria_despesa.editar',
                     'cliente.ver',
-                    'plano.ver',
                 ],
             ],
         ];

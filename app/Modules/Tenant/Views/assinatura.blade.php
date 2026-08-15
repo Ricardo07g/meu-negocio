@@ -133,6 +133,27 @@
         </div>
     </div>
 
+    {{-- Teste vencido: as duas saidas (renovar ou trocar de plano) ficam lado a lado. --}}
+    @if ($empresaVigente?->podeRenovarTrial())
+        <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 mb-3" role="alert">
+            <i class="feather-alert-circle me-1"></i>
+            <div class="flex-grow-1">
+                <strong>O teste de {{ $empresaVigente->nome }} terminou em
+                    {{ $empresaVigente->trial_expira_em->format('d/m/Y') }}.</strong>
+                A unidade voltou para o plano Grátis. Você pode contratar o Pro ou renovar o teste
+                por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias.
+            </div>
+            @if ($podeRenovarTeste)
+                <button type="button" class="btn btn-warning btn-renovar-teste"
+                    data-empresa-id="{{ $empresaVigente->id }}"
+                    data-empresa-nome="{{ $empresaVigente->nome }}">
+                    <i class="feather-refresh-cw me-1"></i>
+                    Renovar por {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias
+                </button>
+            @endif
+        </div>
+    @endif
+
     {{-- Top action: comparar planos --}}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="text-muted fs-13">
@@ -251,6 +272,9 @@
                                     <th>Contratada em</th>
                                     <th>Situação</th>
                                     <th class="text-end">Valor/mês</th>
+                                    @if ($podeRenovarTeste)
+                                        <th class="text-end">Ações</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -262,6 +286,8 @@
                                         <td>
                                             @if ($licenca->emTrial())
                                                 <span class="badge bg-info">Teste · {{ $licenca->diasRestantesTrial() }}d</span>
+                                            @elseif ($licenca->trialVencido())
+                                                <span class="badge bg-warning">Teste encerrado</span>
                                             @else
                                                 <span class="badge bg-success">Ativa</span>
                                             @endif
@@ -273,6 +299,19 @@
                                                 R$ {{ number_format($licenca->plano->preco_por_licenca, 2, ',', '.') }}
                                             @endif
                                         </td>
+                                        @if ($podeRenovarTeste)
+                                            <td class="text-end">
+                                                @if ($licenca->podeRenovarTrial())
+                                                    <button type="button" class="btn btn-sm btn-outline-warning btn-renovar-teste"
+                                                        data-empresa-id="{{ $licenca->id }}"
+                                                        data-empresa-nome="{{ $licenca->nome }}">
+                                                        <i class="feather-refresh-cw me-1"></i> Renovar teste
+                                                    </button>
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -490,6 +529,14 @@
             <input type="hidden" name="plano_id" id="input-plano-id">
         </form>
     @endif
+
+    {{-- Form (oculto) da renovacao do teste — a unidade vem do botao clicado (apenas Admin) --}}
+    @if ($podeRenovarTeste)
+        <form id="form-renovar-teste" method="POST" action="{{ route('assinatura.renovar-teste') }}" class="d-none">
+            @csrf
+            <input type="hidden" name="empresa_id" id="input-renovar-empresa-id">
+        </form>
+    @endif
 @endsection
 
 @push('js')
@@ -515,6 +562,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (resultado.isConfirmed) {
                     document.getElementById('input-plano-id').value = id;
                     document.getElementById('form-transicionar-plano').submit();
+                }
+            });
+        });
+    });
+
+    // Renovar o teste: mesma unidade do botao clicado (alerta do topo ou linha da tabela).
+    document.querySelectorAll('.btn-renovar-teste').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id = this.dataset.empresaId;
+            const nome = this.dataset.empresaNome;
+            Swal.fire({
+                icon: 'question',
+                title: 'Renovar o teste desta unidade?',
+                html: '<strong>' + nome + '</strong> volta ao plano Pro por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias, sem cobranca.'
+                    + '<br><small class="text-muted">Ao fim do periodo ela retorna ao plano Gratis.</small>',
+                showCancelButton: true,
+                confirmButtonColor: '#3454d1',
+                confirmButtonText: 'Sim, renovar o teste',
+                cancelButtonText: 'Cancelar',
+            }).then(function (resultado) {
+                if (resultado.isConfirmed) {
+                    document.getElementById('input-renovar-empresa-id').value = id;
+                    document.getElementById('form-renovar-teste').submit();
                 }
             });
         });

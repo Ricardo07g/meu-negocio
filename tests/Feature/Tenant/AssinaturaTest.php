@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tenant;
 
-use App\Modules\Tenant\Models\{Fatura, Plano};
+use App\Exceptions\NegocioException;
+use App\Modules\Tenant\Actions\RenovarTrialAction;
+use App\Modules\Tenant\Models\{Empresa, Fatura, Plano};
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
@@ -34,7 +36,7 @@ class AssinaturaTest extends TestCase
         $this->assertDatabaseCount('faturas', 0);
     }
 
-    public function test_usuario_comum_ve_a_pagina_mas_sem_poder_trocar(): void
+    public function test_usuario_comum_nao_ve_a_pagina_de_assinatura(): void
     {
         $contexto = $this->criarRede();
         $comum = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Recepcao');
@@ -43,10 +45,28 @@ class AssinaturaTest extends TestCase
         $this->actingAs($comum);
         session(['empresas_atuais' => [$contexto['empresa']->id]]);
 
-        $resp = $this->get(route('assinatura.index'));
+        // Preco, fatura e teste gratuito sao assunto do dono da conta: so o Admin ve.
+        $this->get(route('assinatura.index'))->assertForbidden();
+    }
 
-        $resp->assertOk();
-        $resp->assertViewHas('podeTrocar', false);
+    public function test_aviso_de_teste_no_layout_so_aparece_para_o_admin(): void
+    {
+        $contexto = $this->criarRede();
+        $contexto['empresa']->update(['trial_expira_em' => now()->addDays(5)]);
+
+        $comum = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Recepcao');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->actingAs($comum);
+        session(['empresas_atuais' => [$contexto['empresa']->id]]);
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee('Teste grátis do plano Pro', escape: false);
+
+        $this->actingAs($contexto['usuario']);
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Teste grátis do plano Pro', escape: false);
     }
 
     public function test_admin_faz_upgrade_da_unidade_e_ajusta_fatura_pro_rata(): void
@@ -189,6 +209,159 @@ class AssinaturaTest extends TestCase
 
         $resp->assertRedirect();
         $resp->assertSessionHas('erro');
+    }
+
+    public function test_tela_oferece_a_renovacao_quando_o_teste_venceu(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+
+        // Antes de vencer, a tela nao oferece renovacao.
+        $empresa->update(['trial_expira_em' => now()->addDays(3)]);
+        $this->get(route('assinatura.index'))
+            ->assertOk()
+            ->assertDontSee('Renovar teste');
+
+        $empresa->update(['trial_expira_em' => now()->subDay()]);
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+        $this->get(route('assinatura.index'))
+            ->assertOk()
+            ->assertSee('Renovar teste')
+            ->assertSee('Teste encerrado');
+    }
+
+    public function test_admin_renova_o_teste_vencido_e_a_unidade_volta_ao_pro(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
+
+        // Estado de quem teve o teste encerrado pelo comando agendado.
+        $empresa->update(['trial_expira_em' => now()->subDay()]);
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+        $this->assertTrue($empresa->refresh()->podeRenovarTrial());
+
+        $resp = $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id]);
+
+        $resp->assertRedirect(route('assinatura.index'));
+        $resp->assertSessionHas('sucesso');
+
+        $empresa->refresh();
+        $this->assertSame($pro->id, $empresa->plano_id);
+        $this->assertTrue($empresa->emTrial());
+        $this->assertSame(Empresa::DIAS_DE_TRIAL, $empresa->diasRestantesTrial());
+    }
+
+    public function test_renovar_nao_gera_cobranca_na_fatura_do_mes(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+
+        $empresa->update(['trial_expira_em' => now()->subDay()]);
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+        $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id])->assertRedirect();
+
+        // Unidade em teste nao e cobravel: a renovacao nao pode fabricar fatura.
+        $this->assertDatabaseCount('faturas', 0);
+    }
+
+    public function test_renovar_e_repetivel_enquanto_nao_ha_gateway(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+
+        foreach (range(1, 2) as $rodada) {
+            $empresa->update(['trial_expira_em' => now()->subDay()]);
+            $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+            $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id])
+                ->assertSessionHas('sucesso', fn (string $msg) => str_contains($msg, 'renovado'));
+
+            $this->assertTrue($empresa->refresh()->emTrial(), "Rodada {$rodada} deveria reabrir o teste.");
+        }
+    }
+
+    public function test_renovar_e_rejeitado_com_teste_ainda_ativo(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+        $expiraEm = now()->addDays(5);
+        $empresa->update(['trial_expira_em' => $expiraEm]);
+
+        $resp = $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id]);
+
+        $resp->assertRedirect();
+        $resp->assertSessionHas('erro');
+        $this->assertSame($expiraEm->toDateString(), $empresa->fresh()->trial_expira_em->toDateString());
+    }
+
+    public function test_renovar_e_rejeitado_em_unidade_que_nunca_teve_teste(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $outra = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial Centro');
+        session(['empresas_atuais' => [$contexto['empresa']->id, $outra->id]]);
+
+        $resp = $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $outra->id]);
+
+        $resp->assertRedirect();
+        $resp->assertSessionHas('erro');
+        $this->assertNull($outra->fresh()->trial_expira_em);
+    }
+
+    public function test_renovar_e_rejeitado_em_licenca_paga(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+        $pro = Plano::where('slug', Plano::PRO)->firstOrFail();
+
+        // Guarda da Action, testada sem HTTP de proposito: por via web o middleware
+        // rebaixaria a unidade antes, e "Pro com teste vencido" nunca chegaria aqui.
+        $empresa->update(['trial_expira_em' => now()->subDay(), 'plano_id' => $pro->id]);
+
+        $this->expectException(NegocioException::class);
+
+        try {
+            app(RenovarTrialAction::class)->executar($empresa);
+        } finally {
+            $this->assertFalse($empresa->fresh()->emTrial(), 'A licenca paga nao pode voltar ao teste.');
+        }
+    }
+
+    public function test_usuario_sem_permissao_recebe_403_ao_renovar_o_teste(): void
+    {
+        $contexto = $this->criarRede();
+        $empresa = $contexto['empresa'];
+        $empresa->update(['trial_expira_em' => now()->subDay()]);
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+        $comum = $this->criarUsuarioComum($contexto['rede'], $empresa, 'Recepcao');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->actingAs($comum);
+        session(['empresas_atuais' => [$empresa->id]]);
+
+        $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id])
+            ->assertForbidden();
+        $this->assertFalse($empresa->fresh()->emTrial());
+    }
+
+    public function test_renovar_nao_alcanca_unidade_de_outra_rede(): void
+    {
+        $vizinha = $this->criarRede('Vizinha');
+        $alvo = $vizinha['empresa'];
+        $alvo->update(['trial_expira_em' => now()->subDay()]);
+        $this->artisan('assinaturas:expirar-trial')->assertSuccessful();
+
+        // Admin de OUTRA rede tenta renovar a licenca da vizinha.
+        $this->criarRedeAutenticada();
+
+        $resp = $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $alvo->id]);
+
+        $resp->assertRedirect();
+        $resp->assertSessionHas('erro');
+        $this->assertFalse($alvo->fresh()->emTrial());
     }
 
     public function test_usuario_sem_permissao_recebe_403_ao_transicionar(): void
