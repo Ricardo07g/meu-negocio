@@ -307,7 +307,9 @@
                             icon: 'warning', title: 'Confirmar', text: form.dataset.confirm,
                             showCancelButton: true, confirmButtonColor: '#d33',
                             cancelButtonText: 'Cancelar', confirmButtonText: 'Sim, confirmar'
-                        }).then(function (r) { if (r.isConfirmed) { form.dataset.confirmed = 'true'; form.submit(); } });
+                        // `value` e nao so `isConfirmed`: o SweetAlert2 do Duralux e anterior a
+                        // essa propriedade, e ler so ela faz o botao nunca submeter.
+                        }).then(function (r) { if (r && (r.value === true || r.isConfirmed === true)) { form.dataset.confirmed = 'true'; form.submit(); } });
                     });
                 });
             }
