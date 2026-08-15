@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Agenda\Services;
 
-use App\Enums\StatusAgendamento;
+use App\Enums\{MotivoSemCobranca, StatusAgendamento};
 use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction, FinalizarAgendamentoAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
@@ -24,9 +24,11 @@ class AgendamentoService
         return Agendamento::with(['cliente', 'servico', 'atendente'])->get();
     }
 
+    /** @return Collection<int, Agendamento> */
     public function listarPorPeriodo(Carbon $inicio, Carbon $fim): Collection
     {
-        return Agendamento::with(['cliente', 'servico', 'atendente'])
+        // `pagamento` alimenta a situacao financeira exibida no calendario.
+        return Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento'])
             ->where('inicio', '>=', $inicio)
             ->where('inicio', '<=', $fim)
             ->orderBy('inicio')
@@ -63,9 +65,9 @@ class AgendamentoService
         return $agendamento->fresh();
     }
 
-    public function finalizar(Agendamento $agendamento): Agendamento
+    public function finalizar(Agendamento $agendamento, ?MotivoSemCobranca $motivoSemCobranca = null): Agendamento
     {
-        return $this->finalizarAgendamento->executar($agendamento);
+        return $this->finalizarAgendamento->executar($agendamento, $motivoSemCobranca);
     }
 
     public function listarPorData(Carbon $data): Collection

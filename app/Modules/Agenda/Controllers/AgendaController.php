@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Agenda\Controllers;
 
-use App\Enums\StatusAgendamento;
+use App\Enums\{MotivoSemCobranca, StatusAgendamento};
+use App\Exceptions\NegocioException;
 use App\Http\Controllers\Controller;
 use App\Modules\Agenda\Actions\CriarAgendamentoAction;
 use App\Modules\Agenda\DTOs\AgendamentoData;
@@ -14,12 +15,13 @@ use App\Modules\Agenda\Services\AgendamentoService;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Usuario\Models\Usuario;
+use App\Support\Agenda\RegrasDeVinculo;
 use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\{JsonResponse, RedirectResponse, Request};
-use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\{Rule, ValidationException};
 use Illuminate\View\View;
 
 class AgendaController extends Controller
@@ -55,9 +57,10 @@ class AgendaController extends Controller
                 'borderColor' => $this->coresAtendente[$i % count($this->coresAtendente)],
             ]);
 
-            $eventos = $agendamentos->map(function ($ag) {
+            $eventos = $agendamentos->map(function (Agendamento $ag) {
                 $cancelado = $ag->status === StatusAgendamento::Cancelado;
                 $finalizado = $ag->status === StatusAgendamento::Finalizado;
+                $situacao = $ag->situacaoFinanceira();
 
                 return [
                     'id' => (string) $ag->id,
@@ -75,8 +78,15 @@ class AgendaController extends Controller
                         'atendente' => $ag->atendente->nome ?? '-',
                         'atendente_id' => $ag->atendente_id,
                         'observacoes' => $ag->observacoes,
+                        // O que a recepcao precisa ver antes de liberar o cliente.
+                        'situacao' => $situacao->value,
+                        'situacao_label' => $situacao->label(),
+                        'situacao_cor' => $situacao->cor(),
+                        'motivo_sem_cobranca' => $ag->motivo_sem_cobranca?->label(),
+                        'valor' => (float) ($ag->servico->valor ?? 0),
                         'confirmar_url' => route('agenda.confirmar', $ag),
                         'finalizar_url' => route('agenda.finalizar', $ag),
+                        'cobrar_url' => route('vendas.create', ['agendamento' => $ag->id]),
                         'cancelar_url' => route('agenda.cancelar', $ag),
                         'edit_url' => route('agenda.edit', $ag),
                     ],
@@ -107,12 +117,12 @@ class AgendaController extends Controller
                     'integer',
                     $empresasAtuais !== [] ? 'in:'.implode(',', $empresasAtuais) : null,
                 ]),
-                'cliente_id' => 'required|exists:clientes,id',
-                'servico_id' => 'required|exists:servicos,id',
-                'atendente_id' => 'required|exists:usuarios,id',
                 'inicio' => 'required|date',
                 'fim' => 'nullable|date|after:inicio',
-            ]);
+            ] + RegrasDeVinculo::paraAgendamento(
+                (int) $request->user()->rede_id,
+                ContextoEmpresa::resolver(),
+            ));
 
             $agendamento = $action->executar(AgendamentoData::from([
                 'empresa_id' => isset($dados['empresa_id']) ? (int) $dados['empresa_id'] : null,
@@ -170,7 +180,13 @@ class AgendaController extends Controller
                 ->orderBy('nome')->get();
             $cores = $this->coresAtendente;
 
-            return view('agenda::index', compact('atendentes', 'cores'));
+            // Desfechos possiveis de "finalizar sem cobrar" — o calendario monta
+            // o modal com eles em vez de repetir a lista no JS.
+            $motivosSemCobranca = collect(MotivoSemCobranca::cases())
+                ->map(fn (MotivoSemCobranca $m) => ['valor' => $m->value, 'label' => $m->label()])
+                ->values();
+
+            return view('agenda::index', compact('atendentes', 'cores', 'motivosSemCobranca'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar agenda');
         }
@@ -240,28 +256,42 @@ class AgendaController extends Controller
             $this->authorize('update', $agendamento);
             $this->service->confirmar($agendamento);
 
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['ok' => true]);
             }
 
             return redirect()->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento confirmado.');
         } catch (\Throwable $e) {
-            if ($request->ajax()) {
-                return response()->json(['message' => $e->getMessage()], 500);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], $this->statusDoErro($e));
             }
 
             return $this->tratarErro($e, 'Erro ao confirmar agendamento');
         }
     }
 
+    /**
+     * Encerra o atendimento. Sem titulo, exige o motivo de nao cobrar — o
+     * desfecho financeiro e declarado, nunca implicito (a Action recusa).
+     */
     public function finalizar(Request $request, Agendamento $agendamento): RedirectResponse|JsonResponse
     {
         try {
             $this->authorize('update', $agendamento);
-            $this->service->finalizar($agendamento);
 
-            if ($request->ajax()) {
+            $dados = $request->validate([
+                'motivo_sem_cobranca' => ['nullable', Rule::enum(MotivoSemCobranca::class)],
+            ]);
+
+            $this->service->finalizar(
+                $agendamento,
+                ! empty($dados['motivo_sem_cobranca'])
+                    ? MotivoSemCobranca::from($dados['motivo_sem_cobranca'])
+                    : null,
+            );
+
+            if ($request->expectsJson()) {
                 return response()->json(['ok' => true]);
             }
 
@@ -269,12 +299,25 @@ class AgendaController extends Controller
                 ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento finalizado.');
         } catch (\Throwable $e) {
-            if ($request->ajax()) {
-                return response()->json(['message' => $e->getMessage()], 500);
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], $this->statusDoErro($e));
             }
 
             return $this->tratarErro($e, 'Erro ao finalizar agendamento');
         }
+    }
+
+    /**
+     * Regra de negocio recusada e 422, nao 500: o cliente AJAX precisa saber a
+     * diferenca entre "voce nao pode fazer isso" e "o servidor quebrou".
+     */
+    private function statusDoErro(\Throwable $e): int
+    {
+        return match (true) {
+            $e instanceof AuthorizationException => 403,
+            $e instanceof ValidationException, $e instanceof NegocioException => 422,
+            default => 500,
+        };
     }
 
     public function cancelar(Request $request, Agendamento $agendamento): RedirectResponse|JsonResponse
@@ -283,7 +326,7 @@ class AgendaController extends Controller
             $this->authorize('cancel', $agendamento);
             $this->service->cancelar($agendamento);
 
-            if ($request->ajax()) {
+            if ($request->expectsJson()) {
                 return response()->json(['ok' => true]);
             }
 
@@ -291,8 +334,10 @@ class AgendaController extends Controller
                 ->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
                 ->with('sucesso', 'Agendamento cancelado.');
         } catch (\Throwable $e) {
-            if ($request->ajax()) {
-                return response()->json(['message' => $e->getMessage()], 500);
+            // Cancelar agora estorna: caixa fechado na data do recebimento vira
+            // uma recusa com instrucao ("reabra o caixa"), nao um 500 mudo.
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], $this->statusDoErro($e));
             }
 
             return $this->tratarErro($e, 'Erro ao cancelar agendamento');

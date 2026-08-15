@@ -35,7 +35,8 @@ seguida (`VendaService::baixarAVistaSeAplicavel` -> `CaixaService::darBaixaParce
 
 - **Servico unico** (servico NAO `isEtapas()`): `criarUnico` -> `CriarAgendamentoAction` (calcula
   `fim` por `servico.duracao`, detecta conflito, cria `Agendado`) + `Pagamento` (FK `agendamento_id`,
-  valor = `servico.valor`).
+  valor = `servico.valor`). E a porta do **pre-pago**: vende antes, atende depois. Quem atende
+  primeiro e cobra no fim usa `cobrarAtendimento` (ver "Ciclo do agendamento").
 - **Servico em etapas** (`servico->isEtapas()`): `criarEtapas` -> `VenderEtapasAction` cria 1
   `VendaEtapas` (`StatusVendaEtapas::Ativo`, `qtd_etapas = count(datas)`) + N `Agendamento` (1 por
   data; se QUALQUER data conflita -> `ConflitoAgendamentoException` listando as datas, rollback) +
@@ -59,12 +60,27 @@ seguida (`VendaService::baixarAVistaSeAplicavel` -> `CaixaService::darBaixaParce
 - Produto: devolve estoque (`increment` + `MovimentoEstoque` tipo `entrada`) -> venda `Cancelada`.
 - Edicao de venda so e permitida enquanto `podeEditar()` (nenhuma parcela paga: `valorPago()<=0`).
 
-## Ciclo do agendamento
+## Ciclo do agendamento (ADR-0018)
 `Agendado -> Confirmado -> Finalizado`; `Agendado|Confirmado -> Cancelado` (terminal: Finalizado).
-`AgendaController` confirmar/finalizar/cancelar (aceitam AJAX). `FinalizarAgendamentoAction` so de
-Agendado/Confirmado. `CancelarAgendamentoAction` bloqueia se Finalizado e, se houver `pagamento`
-HasOne `Pago`, marca-o `Estornado` direto (NAO usa `estornarPagamento` — esse e do fluxo Venda; nao
-mexe no caixa). `reagendar` (PATCH AJAX) move `inicio`/`fim` sem revalidar conflito.
+`AgendaController` confirmar/finalizar/cancelar (aceitam JSON via `expectsJson()`).
+
+**Finalizar exige desfecho declarado.** Sem titulo (`pagamentos.agendamento_id`) e sem
+`motivo_sem_cobranca`, `FinalizarAgendamentoAction` lanca `NegocioException` — o atendimento nao
+encerra "mudo". As duas saidas:
+- **Finalizar e cobrar** -> `GET /vendas/nova?agendamento={id}` (modo cobranca, reusa o bloco de
+  recebimento da venda) -> `POST /vendas` com `agendamento_id` -> `VendaService::cobrarAtendimento`
+  cria o titulo (valor = `servico.valor`) + baixa se a vista + **finaliza**, tudo em uma transacao.
+  Recusa se ja houver titulo.
+- **Finalizar sem cobrar** -> `PATCH agenda/{id}/finalizar` com `motivo_sem_cobranca`
+  (cortesia/retorno/garantia/interno).
+
+**Cancelar x estornar.** Em aberto: `CancelarAgendamentoAction` cancela e **estorna de verdade** via
+`CaixaService::estornarPagamento` (contra-lancamento por baixa, `estornado_em`, recusa em caixa
+fechado). Ja finalizado: a agenda recusa; a reversao vem de `vendas.cancelar-unico`, que so estorna
+e mantem o agendamento Finalizado (situacao "Estornado"). Estorno **nao e idempotente** — ha guarda
+contra titulo ja desfeito nos dois caminhos.
+
+`reagendar` (PATCH AJAX) move `inicio`/`fim` sem revalidar conflito (pendente).
 
 ## Ciclo do pagamento a prazo (contas a receber)
 A prazo: titulo nasce `Pendente` com N parcelas `Pendente` (sem baixa). Aparecem em Contas a Receber

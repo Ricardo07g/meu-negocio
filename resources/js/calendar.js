@@ -10,6 +10,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const reagendarTemplate = calendarEl.dataset.reagendarTemplate;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 
+    let motivosSemCobranca = [];
+    try {
+        motivosSemCobranca = JSON.parse(calendarEl.dataset.motivosSemCobranca || '[]');
+    } catch (e) {
+        console.error('Motivos de não cobrança inválidos:', e);
+    }
+
     let atendenteCalendars = [];
     let eventosCache = [];
 
@@ -231,20 +238,32 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelado: 'danger',
         }[props.status] || 'secondary';
 
+        // O desfecho financeiro do atendimento e explicito: quem ja tem titulo
+        // so finaliza; quem nao tem escolhe entre cobrar ou registrar por que
+        // nao cobrou. "Finalizar" mudo era o que fazia atendimento virar
+        // historico sem nunca virar receita.
+        const jaCobrado = props.situacao === 'a_receber' || props.situacao === 'pago';
+        const emAberto = props.status === 'agendado' || props.status === 'confirmado';
+
         let actionsHtml = '';
-        if (props.status === 'agendado') {
-            actionsHtml = `
-                <button type="button" class="btn btn-primary" data-acao="confirmar"><i class="feather-check-circle me-1"></i>Confirmar</button>
-                <button type="button" class="btn btn-success" data-acao="finalizar"><i class="feather-flag me-1"></i>Finalizar</button>
-                <button type="button" class="btn btn-warning" data-acao="reagendar"><i class="feather-calendar me-1"></i>Reagendar</button>
-                <button type="button" class="btn btn-outline-danger" data-acao="cancelar"><i class="feather-x-circle me-1"></i>Cancelar</button>
-            `;
-        } else if (props.status === 'confirmado') {
-            actionsHtml = `
-                <button type="button" class="btn btn-success" data-acao="finalizar"><i class="feather-flag me-1"></i>Finalizar</button>
-                <button type="button" class="btn btn-warning" data-acao="reagendar"><i class="feather-calendar me-1"></i>Reagendar</button>
-                <button type="button" class="btn btn-outline-danger swal-btn-full" data-acao="cancelar"><i class="feather-x-circle me-1"></i>Cancelar</button>
-            `;
+        if (emAberto) {
+            const botoes = [];
+
+            if (props.status === 'agendado') {
+                botoes.push('<button type="button" class="btn btn-primary" data-acao="confirmar"><i class="feather-check-circle me-1"></i>Confirmar</button>');
+            }
+
+            if (jaCobrado) {
+                botoes.push('<button type="button" class="btn btn-success" data-acao="finalizar"><i class="feather-flag me-1"></i>Finalizar</button>');
+            } else {
+                botoes.push('<button type="button" class="btn btn-success" data-acao="cobrar"><i class="feather-dollar-sign me-1"></i>Finalizar e cobrar</button>');
+                botoes.push('<button type="button" class="btn btn-outline-secondary" data-acao="finalizar-sem-cobrar"><i class="feather-gift me-1"></i>Finalizar sem cobrar</button>');
+            }
+
+            botoes.push('<button type="button" class="btn btn-warning" data-acao="reagendar"><i class="feather-calendar me-1"></i>Reagendar</button>');
+            botoes.push('<button type="button" class="btn btn-outline-danger" data-acao="cancelar"><i class="feather-x-circle me-1"></i>Cancelar</button>');
+
+            actionsHtml = botoes.join('');
         }
 
         Swal.fire({
@@ -258,6 +277,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="swal-status-pill bg-soft-${corStatus} text-${corStatus}">
                         <span class="dot bg-${corStatus}"></span>${props.status_label || props.status}
                     </span>
+                    <span class="swal-status-pill bg-soft-${props.situacao_cor || 'secondary'} text-${props.situacao_cor || 'secondary'} ms-2">
+                        <span class="dot bg-${props.situacao_cor || 'secondary'}"></span>${escapeHtml(props.situacao_label || '—')}
+                    </span>
                 </div>
                 <div class="swal-info">
                     <div class="swal-info-row"><span class="label">Cliente</span><span class="value">${escapeHtml(props.cliente || '-')}</span></div>
@@ -265,6 +287,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="swal-info-row"><span class="label">Atendente</span><span class="value">${escapeHtml(props.atendente || '-')}</span></div>
                     <div class="swal-info-row"><span class="label">Data</span><span class="value">${dataTexto}</span></div>
                     <div class="swal-info-row"><span class="label">Horário</span><span class="value">${horaInicio} – ${horaFim}</span></div>
+                    <div class="swal-info-row"><span class="label">Valor</span><span class="value">R$ ${formatarValor(props.valor)}</span></div>
+                    ${props.motivo_sem_cobranca ? `<div class="swal-info-row"><span class="label">Não cobrado</span><span class="value">${escapeHtml(props.motivo_sem_cobranca)}</span></div>` : ''}
                 </div>
                 ${props.observacoes ? `<div class="swal-obs"><strong>Observações:</strong> ${escapeHtml(props.observacoes)}</div>` : ''}
                 ${actionsHtml ? `<div class="swal-actions">${actionsHtml}</div>` : ''}
@@ -282,6 +306,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             executarAcao(props.confirmar_url, 'Agendamento confirmado!');
                         } else if (acao === 'finalizar') {
                             executarAcao(props.finalizar_url, 'Agendamento finalizado!');
+                        } else if (acao === 'cobrar') {
+                            // A cobranca acontece na tela de venda: la mora o
+                            // split de formas, o crediario e o preview do carne.
+                            window.location.href = props.cobrar_url;
+                        } else if (acao === 'finalizar-sem-cobrar') {
+                            Swal.close();
+                            abrirModalSemCobranca(props);
                         }
                     });
                 });
@@ -289,15 +320,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    async function executarAcao(url, msgSucesso) {
+    async function executarAcao(url, msgSucesso, corpo) {
         try {
             const resp = await fetch(url, {
                 method: 'PATCH',
-                headers: {
-                    'X-CSRF-TOKEN': csrf,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    Accept: 'application/json',
-                },
+                headers: Object.assign(
+                    {
+                        'X-CSRF-TOKEN': csrf,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: 'application/json',
+                    },
+                    corpo ? { 'Content-Type': 'application/json' } : {},
+                ),
+                body: corpo ? JSON.stringify(corpo) : undefined,
             });
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({}));
@@ -310,10 +345,60 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    /**
+     * Finalizar sem cobrar exige um motivo — o servidor recusa (422) sem ele.
+     * A pergunta e o ponto da tela: e o que separa "cortesia" de "esqueci de
+     * cobrar", que antes eram o mesmo agendamento finalizado e mudo.
+     */
+    function abrirModalSemCobranca(props) {
+        const opcoes = motivosSemCobranca
+            .map((m) => `<option value="${escapeHtml(m.valor)}">${escapeHtml(m.label)}</option>`)
+            .join('');
+
+        Swal.fire({
+            title: 'Finalizar sem cobrar',
+            iconHtml: '<i class="feather-gift" style="font-size:28px;color:#3454d1;"></i>',
+            customClass: { popup: 'swal-reagendar' },
+            width: 460,
+            html: `
+                <div class="swal-hint mb-3">O atendimento será encerrado sem gerar cobrança. O motivo fica registrado no histórico.</div>
+                <div class="swal-field">
+                    <label>Motivo</label>
+                    <select id="swal-motivo-sem-cobranca" class="form-control">${opcoes}</select>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Finalizar sem cobrar',
+            cancelButtonText: 'Voltar',
+            confirmButtonColor: '#3454d1',
+            focusConfirm: false,
+            preConfirm: function () {
+                const motivo = document.getElementById('swal-motivo-sem-cobranca').value;
+                if (!motivo) {
+                    Swal.showValidationMessage('Selecione o motivo.');
+                    return false;
+                }
+                return { motivo_sem_cobranca: motivo };
+            },
+        }).then(function (result) {
+            if (!result.value) return;
+            executarAcao(props.finalizar_url, 'Atendimento finalizado sem cobrança.', result.value);
+        });
+    }
+
+    function formatarValor(valor) {
+        const n = parseFloat(valor);
+        return Number.isFinite(n) ? n.toFixed(2).replace('.', ',') : '0,00';
+    }
+
     function confirmarCancelamento(props) {
+        const jaCobrado = props.situacao === 'a_receber' || props.situacao === 'pago';
+
         Swal.fire({
             title: 'Cancelar agendamento?',
-            text: 'Essa ação não pode ser desfeita.',
+            text: jaCobrado
+                ? 'A cobrança deste atendimento será estornada. Essa ação não pode ser desfeita.'
+                : 'Essa ação não pode ser desfeita.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d13b4c',

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Agenda\Models;
 
-use App\Enums\StatusAgendamento;
+use App\Enums\{MotivoSemCobranca, SituacaoFinanceiraAgendamento, StatusAgendamento, StatusPagamento};
 use App\Models\BaseModel;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Pagamento\Models\Pagamento;
@@ -28,6 +28,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon $fim
  * @property StatusAgendamento $status
  * @property string|null $observacoes
+ * @property MotivoSemCobranca|null $motivo_sem_cobranca
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -54,6 +55,7 @@ class Agendamento extends BaseModel
         'fim',
         'status',
         'observacoes',
+        'motivo_sem_cobranca',
     ];
 
     protected function casts(): array
@@ -62,6 +64,7 @@ class Agendamento extends BaseModel
             'inicio' => 'datetime',
             'fim' => 'datetime',
             'status' => StatusAgendamento::class,
+            'motivo_sem_cobranca' => MotivoSemCobranca::class,
         ];
     }
 
@@ -95,5 +98,42 @@ class Agendamento extends BaseModel
     public function pagamento(): HasOne
     {
         return $this->hasOne(Pagamento::class, 'agendamento_id');
+    }
+
+    // ███╗   ███╗███████╗████████╗██╗  ██╗ ██████╗ ██████╗ ███████╗
+    // ████╗ ████║██╔════╝╚══██╔══╝██║  ██║██╔═══██╗██╔══██╗██╔════╝
+    // ██╔████╔██║█████╗     ██║   ███████║██║   ██║██║  ██║███████╗
+    // ██║╚██╔╝██║██╔══╝     ██║   ██╔══██║██║   ██║██║  ██║╚════██║
+    // ██║ ╚═╝ ██║███████╗   ██║   ██║  ██║╚██████╔╝██████╔╝███████║
+    // ╚═╝     ╚═╝╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝
+
+    /** Este atendimento ja tem titulo financeiro (veio de venda ou foi cobrado na finalizacao)? */
+    public function foiCobrado(): bool
+    {
+        return $this->pagamento()->exists();
+    }
+
+    /**
+     * Situacao financeira derivada do titulo — nunca persistida.
+     *
+     * A ausencia de titulo tem duas leituras diferentes e a distincao importa na
+     * recepcao: enquanto o atendimento esta em aberto, e "a cobrar"; depois de
+     * finalizado com motivo declarado, e uma decisao ("sem cobranca").
+     */
+    public function situacaoFinanceira(): SituacaoFinanceiraAgendamento
+    {
+        $pagamento = $this->loadMissing('pagamento')->pagamento;
+
+        if (! $pagamento) {
+            return $this->status === StatusAgendamento::Finalizado
+                ? SituacaoFinanceiraAgendamento::SemCobranca
+                : SituacaoFinanceiraAgendamento::ACobrar;
+        }
+
+        return match ($pagamento->status) {
+            StatusPagamento::Pago => SituacaoFinanceiraAgendamento::Pago,
+            StatusPagamento::Estornado, StatusPagamento::Cancelado => SituacaoFinanceiraAgendamento::Estornado,
+            default => SituacaoFinanceiraAgendamento::AReceber,
+        };
     }
 }

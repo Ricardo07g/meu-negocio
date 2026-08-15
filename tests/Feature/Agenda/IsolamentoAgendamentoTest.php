@@ -6,7 +6,7 @@ namespace Tests\Feature\Agenda;
 
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Tenant\Models\Empresa;
-use Database\Factories\AgendamentoFactory;
+use Database\Factories\{AgendamentoFactory, ClienteFactory, ServicoFactory};
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -91,5 +91,73 @@ class IsolamentoAgendamentoTest extends TestCase
         $idsContextoA = Agendamento::query()->pluck('id')->all();
         $this->assertSame([$agA->id], $idsContextoA, 'Com contexto=A, agendamento de B deve ficar fora do scope.');
         $this->assertNull(Agendamento::find($agB->id), 'Agendamento da empresa B nao deve ser carregavel com contexto=A.');
+    }
+
+    /**
+     * O global scope protege a LEITURA; a validacao precisa proteger a ESCRITA.
+     *
+     * `exists:clientes,id` monta a propria query e ignora o scope de rede — dava
+     * para amarrar um agendamento ao cliente de outra rede so trocando o id no
+     * POST. `RegrasDeVinculo` fecha isso escopando o `exists` por `rede_id`.
+     */
+    public function test_nao_cria_agendamento_com_cliente_de_outra_rede(): void
+    {
+        $outra = $this->criarRede('outra');
+        $clienteAlheio = ClienteFactory::new()->create(['rede_id' => $outra['rede']->id]);
+
+        $contexto = $this->criarRedeAutenticada();
+        $servico = ServicoFactory::new()->create(['rede_id' => $contexto['rede']->id]);
+
+        $resp = $this->postJson(route('agenda.criar-rapido'), [
+            'cliente_id' => $clienteAlheio->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $contexto['usuario']->id,
+            'inicio' => now()->addDay()->format('Y-m-d H:i:s'),
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertSame(
+            0,
+            Agendamento::withoutGlobalScopes()->count(),
+            'Cliente de outra rede nao pode virar agendamento aqui.'
+        );
+    }
+
+    public function test_nao_cria_agendamento_com_servico_de_outra_rede(): void
+    {
+        $outra = $this->criarRede('outra');
+        $servicoAlheio = ServicoFactory::new()->create(['rede_id' => $outra['rede']->id]);
+
+        $contexto = $this->criarRedeAutenticada();
+        $cliente = ClienteFactory::new()->create(['rede_id' => $contexto['rede']->id]);
+
+        $resp = $this->postJson(route('agenda.criar-rapido'), [
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servicoAlheio->id,
+            'atendente_id' => $contexto['usuario']->id,
+            'inicio' => now()->addDay()->format('Y-m-d H:i:s'),
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertSame(0, Agendamento::withoutGlobalScopes()->count());
+    }
+
+    public function test_nao_cria_agendamento_com_atendente_de_outra_rede(): void
+    {
+        $outra = $this->criarRede('outra');
+
+        $contexto = $this->criarRedeAutenticada();
+        $cliente = ClienteFactory::new()->create(['rede_id' => $contexto['rede']->id]);
+        $servico = ServicoFactory::new()->create(['rede_id' => $contexto['rede']->id]);
+
+        $resp = $this->postJson(route('agenda.criar-rapido'), [
+            'cliente_id' => $cliente->id,
+            'servico_id' => $servico->id,
+            'atendente_id' => $outra['usuario']->id,
+            'inicio' => now()->addDay()->format('Y-m-d H:i:s'),
+        ]);
+
+        $resp->assertStatus(422);
+        $this->assertSame(0, Agendamento::withoutGlobalScopes()->count());
     }
 }

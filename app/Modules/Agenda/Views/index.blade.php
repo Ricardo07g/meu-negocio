@@ -106,7 +106,8 @@
                 <div id="calendar"
                      data-events-url="{{ route('agenda.json') }}"
                      data-criar-url="{{ route('agenda.criar-rapido') }}"
-                     data-reagendar-template="{{ url('agenda/__ID__/reagendar') }}">
+                     data-reagendar-template="{{ url('agenda/__ID__/reagendar') }}"
+                     data-motivos-sem-cobranca='@json($motivosSemCobranca)'>
                 </div>
             </div>
         </div>

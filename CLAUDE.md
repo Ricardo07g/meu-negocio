@@ -69,7 +69,8 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
-Agenda, Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
+Agenda (agendamento e operacao, venda e financeiro: cobranca na finalizacao — ADR-0018),
+Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (licenca por empresa + trial de 15 dias renovavel, so Admin ve — ADR-0013), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008; imagens normalizadas em WebP — ADR-0015).
@@ -122,10 +123,10 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **728 testes** (2603 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial (incluindo
-  renovacao e visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro
-  de validacao) e o agendador HTTP.
+- **751 testes** (2676 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+  (403), fluxos financeiros, estoque, agenda (incluindo a cobranca do atendimento e o estorno ao
+  cancelar), dashboard, licenca por empresa, trial (incluindo renovacao e visibilidade Admin-only),
+  uploads (normalizacao em WebP e staging preservado no erro de validacao) e o agendador HTTP.
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -141,7 +142,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (17 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (18 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

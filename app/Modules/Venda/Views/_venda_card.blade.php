@@ -43,8 +43,21 @@
         ? $formasRecebidas->implode(' + ')
         : ($pagamento?->condicao_pagamento->label());
 
-    $podeCancelar = !in_array($venda->status, ['cancelado', 'cancelada', 'finalizado', 'concluido']);
+    // Atendimento realizado e cobrado: "cancelar" deixa de significar "nao
+    // aconteceu" e passa a significar "estorna a cobranca" — o servico foi
+    // prestado, so o dinheiro volta. Sem isso, toda cobranca feita na
+    // finalizacao ficaria sem caminho de volta na tela.
+    $estornoDeRealizado = $venda->tipo === 'unico' && $venda->status === 'finalizado' && $pagamento
+        && !in_array($pagamento->status->value, ['estornado', 'cancelado']);
+
+    $podeCancelar = $estornoDeRealizado
+        || !in_array($venda->status, ['cancelado', 'cancelada', 'finalizado', 'concluido']);
     $podeExcluir = !in_array($venda->status, ['finalizado', 'concluido']);
+
+    $rotuloCancelar = $estornoDeRealizado ? 'Estornar cobrança' : 'Cancelar venda';
+    $confirmaCancelar = $estornoDeRealizado
+        ? 'Estornar a cobrança deste atendimento? O atendimento continua registrado como realizado; apenas o recebimento é desfeito.'
+        : 'Cancelar esta venda? Os lançamentos (estoque/pagamento) serão desfeitos, mas a venda continua na lista como cancelada.';
 
     $vendaCancelada = in_array($venda->status, ['cancelado', 'cancelada']);
     $podeImprimirRecibo = !$vendaCancelada && $pagamento && $valorPagoAtual > 0.0;
@@ -104,10 +117,10 @@
                     @if($podeCancelar)
                         @can('agendamento.cancelar')
                             <li>
-                                <form action="{{ $rotaCancelar }}" method="POST" data-confirm="Cancelar esta venda? Os lançamentos (estoque/pagamento) serão desfeitos, mas a venda continua na lista como cancelada.">
+                                <form action="{{ $rotaCancelar }}" method="POST" data-confirm="{{ $confirmaCancelar }}">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="dropdown-item text-danger">
-                                        <i class="feather-x-circle me-2"></i>Cancelar venda
+                                        <i class="feather-x-circle me-2"></i>{{ $rotuloCancelar }}
                                     </button>
                                 </form>
                             </li>

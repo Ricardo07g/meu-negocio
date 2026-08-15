@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Venda\Requests;
 
 use App\Enums\FormaRecebimentoPrazo;
+use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\Servico\Models\Servico;
+use App\Support\Agenda\RegrasDeVinculo;
+use App\Support\ContextoEmpresa;
 use App\Support\Parcelamento\CalculadoraParcelas;
 use App\Support\Venda\TotalVenda;
 use Illuminate\Contracts\Validation\Validator;
@@ -69,9 +72,10 @@ class CriarVendaRequest extends FormRequest
         if ($tipoVenda === 'produto') {
             return array_merge($regrasEmpresa, [
                 'tipo_venda' => ['required', 'in:servico,produto'],
-                'cliente_id' => ['nullable', 'integer', 'exists:clientes,id'],
+                // `exists` monta query propria e ignora o global scope de rede.
+                'cliente_id' => ['nullable', 'integer', $this->daRede('clientes')],
                 'itens' => ['required', 'array', 'min:1'],
-                'itens.*.produto_id' => ['required', 'integer', 'exists:produtos,id'],
+                'itens.*.produto_id' => ['required', 'integer', $this->daRede('produtos')],
                 'itens.*.quantidade' => ['required', 'integer', 'min:1'],
                 'itens.*.valor_unitario' => ['required', 'numeric', 'min:0'],
                 'itens.*.desconto' => ['nullable', 'numeric', 'min:0'],
@@ -81,15 +85,31 @@ class CriarVendaRequest extends FormRequest
             ], $pagamentoRules);
         }
 
-        $servico = Servico::find($this->input('servico_id'));
-        $isEtapas = $servico && $servico->isEtapas();
+        // Cobranca de atendimento ja agendado: cliente, servico, atendente e
+        // horario vem do agendamento, nao do form. So o bloco financeiro e
+        // preenchido — por isso os vinculos deixam de ser obrigatorios aqui.
+        $agendamento = $this->agendamentoEmCobranca();
+        $servico = $agendamento->servico ?? Servico::find($this->input('servico_id'));
+        $isEtapas = ! $agendamento && $servico && $servico->isEtapas();
 
         $rules = [
             'tipo_venda' => ['required', 'in:servico,produto'],
-            'cliente_id' => ['required', 'integer', 'exists:clientes,id'],
-            'servico_id' => ['required', 'integer', 'exists:servicos,id'],
-            'atendente_id' => ['required', 'integer', 'exists:usuarios,id'],
-        ];
+            'agendamento_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('agendamentos', 'id')
+                    ->whereNull('deleted_at')
+                    ->where('rede_id', $this->user()->rede_id),
+            ],
+        ] + RegrasDeVinculo::paraAgendamento(
+            (int) $this->user()->rede_id,
+            ContextoEmpresa::resolver(),
+            $agendamento === null,
+        );
+
+        if ($agendamento) {
+            return array_merge($regrasEmpresa, $rules, $pagamentoRules);
+        }
 
         if ($isEtapas) {
             $rules += [
@@ -177,6 +197,14 @@ class CriarVendaRequest extends FormRequest
         });
     }
 
+    /** Catalogo (cliente/produto) e rede-level: o vinculo tem de ser da mesma rede. */
+    private function daRede(string $tabela): mixed
+    {
+        return Rule::exists($tabela, 'id')
+            ->whereNull('deleted_at')
+            ->where('rede_id', $this->user()->rede_id);
+    }
+
     /**
      * Universo de empresas acessiveis (para escopar a validacao da forma).
      *
@@ -188,6 +216,20 @@ class CriarVendaRequest extends FormRequest
     }
 
     /**
+     * Agendamento sendo cobrado, quando a venda parte de um atendimento que ja
+     * existe na agenda. Resolvido pelo model (global scopes de rede/empresa),
+     * nunca por query crua — e o que impede cobrar atendimento de outro tenant.
+     */
+    public function agendamentoEmCobranca(): ?Agendamento
+    {
+        if (! $this->filled('agendamento_id')) {
+            return null;
+        }
+
+        return Agendamento::with('servico')->find((int) $this->input('agendamento_id'));
+    }
+
+    /**
      * Total da venda conforme o tipo, para comparar com a soma dos recebimentos.
      * Retorna null quando ainda nao da para calcular (ex.: servico inexistente).
      */
@@ -195,6 +237,14 @@ class CriarVendaRequest extends FormRequest
     {
         if ($this->input('tipo_venda', 'servico') === 'produto') {
             return TotalVenda::deItens((array) $this->input('itens', []));
+        }
+
+        // Cobrando atendimento: o valor e o do servico agendado, nunca o que o
+        // form mandar. Ler do request aqui abriria a porta para cobrar R$ 0,01
+        // por um servico de R$ 200 so trocando o `servico_id` no POST.
+        $agendamento = $this->agendamentoEmCobranca();
+        if ($agendamento) {
+            return (float) $agendamento->servico->valor;
         }
 
         $servico = Servico::find($this->input('servico_id'));

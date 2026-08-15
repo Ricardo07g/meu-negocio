@@ -551,6 +551,34 @@ document.addEventListener('DOMContentLoaded', function() {
         aplicarTipoServico(servicoSelecionado);
     }
 
+    // ===== MODO COBRANCA =====
+    // O atendimento ja existe na agenda: cliente, servico, atendente e horario
+    // nao sao escolhidos aqui. Em vez de abrir um segundo caminho pela tela,
+    // preenchemos o MESMO estado que o fluxo normal produziria e o Blade esconde
+    // os campos — assim total, pendencias e habilitacao do pagamento continuam
+    // passando por um codigo so. O servidor ignora estes campos e le do
+    // agendamento; eles existem para o JS, nao como fonte de verdade.
+    if (cfg.agendamento) {
+        const ag = cfg.agendamento;
+
+        servicoSelecionado = ag.servico;
+        document.getElementById('clienteHidden').value = ag.cliente_id;
+        document.getElementById('servicoHidden').value = ag.servico.id;
+
+        // O atendente pode nao estar na lista da empresa (saiu da equipe, por
+        // exemplo). Sem a opcao, o select fica vazio e o submit acusa pendencia
+        // num campo que o usuario nem ve.
+        const selectAtendente = document.getElementById('atendenteSelect');
+        if (!selectAtendente.querySelector('option[value="' + ag.atendente_id + '"]')) {
+            selectAtendente.add(new Option(ag.atendente_nome, ag.atendente_id));
+        }
+        selectAtendente.value = ag.atendente_id;
+
+        aplicarTipoServico(servicoSelecionado);
+        document.getElementById('dataUnico').value = ag.data;
+        document.getElementById('horarioUnico').value = ag.horario;
+    }
+
     if (cfg.oldDatas && cfg.oldDatas.length) {
         (function() {
             const oldDatas = cfg.oldDatas;

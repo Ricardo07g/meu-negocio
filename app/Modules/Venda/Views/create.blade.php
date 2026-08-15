@@ -1,10 +1,17 @@
 @extends('layouts.app')
 
-@section('titulo', 'Nova Venda - Meu Negócio')
-@section('titulo-pagina', 'Nova Venda')
+@php $cobrando = isset($agendamento) && $agendamento; @endphp
+
+@section('titulo', ($cobrando ? 'Cobrar Atendimento' : 'Nova Venda').' - Meu Negócio')
+@section('titulo-pagina', $cobrando ? 'Cobrar Atendimento' : 'Nova Venda')
 @section('breadcrumb')
-    <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
-    <li class="breadcrumb-item active">Novo</li>
+    @if($cobrando)
+        <li class="breadcrumb-item"><a href="{{ route('agenda.index') }}">Agenda</a></li>
+        <li class="breadcrumb-item active">Cobrar</li>
+    @else
+        <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
+        <li class="breadcrumb-item active">Novo</li>
+    @endif
 @endsection
 
 @section('content')
@@ -14,7 +21,53 @@
         @csrf
         <input type="hidden" name="tipo_venda" id="tipoVendaInput" value="{{ old('tipo_venda', 'servico') }}">
 
-        <div class="card stretch stretch-full">
+        @if($cobrando)
+            {{-- Cobranca de atendimento: o que foi feito ja esta decidido na agenda.
+                 Esta tela so responde "como o cliente vai pagar". --}}
+            <input type="hidden" name="agendamento_id" value="{{ $agendamento->id }}">
+
+            <div class="card stretch stretch-full mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Atendimento realizado</h5>
+                    <a href="{{ route('agenda.index') }}" class="btn btn-sm btn-light">
+                        <i class="feather-calendar me-1"></i>Voltar à agenda
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6 col-md-3">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Cliente</div>
+                            <div class="fw-semibold">{{ $agendamento->cliente->nome ?? '—' }}</div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Serviço</div>
+                            <div class="fw-semibold">{{ $agendamento->servico->nome ?? '—' }}</div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Atendente</div>
+                            <div class="fw-semibold">{{ $agendamento->atendente->nome ?? '—' }}</div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Quando</div>
+                            <div class="fw-semibold">{{ $agendamento->inicio->format('d/m/Y H:i') }}</div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="fs-11 text-uppercase text-muted mb-1">Valor</div>
+                            <div class="fw-bold text-success">R$ {{ number_format((float) ($agendamento->servico->valor ?? 0), 2, ',', '.') }}</div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 fs-13 mt-3 mb-0">
+                        <i class="feather-info me-1"></i>
+                        Ao registrar o recebimento, o atendimento é <strong>finalizado</strong> automaticamente.
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Dados da venda. Em modo cobranca o bloco continua no DOM (o JS le e
+             preenche estes campos a partir do agendamento), mas sai da tela: o
+             que atender, para quem e quando ja foi decidido na agenda. --}}
+        <div class="card stretch stretch-full" @if($cobrando) hidden @endif>
             <div class="card-header">
                 <h5 class="card-title">Nova Venda</h5>
             </div>
@@ -456,7 +509,7 @@
             </div>
         </div>
 
-        <x-form-botoes :voltar="route('vendas.index')" />
+        <x-form-botoes :voltar="$cobrando ? route('agenda.index') : route('vendas.index')" />
     </form>
 @endsection
 
@@ -487,6 +540,22 @@ window.vendaCreateConfig = {
     } @else null @endif,
     oldDatas: @json(old('datas', [])),
     oldHorarios: @json(old('horarios', [])),
+    agendamento: @if($cobrando) {
+        id: {{ $agendamento->id }},
+        cliente_id: {{ $agendamento->cliente_id }},
+        atendente_id: {{ $agendamento->atendente_id }},
+        atendente_nome: @json($agendamento->atendente->nome ?? ''),
+        data: @json($agendamento->inicio->format('Y-m-d')),
+        horario: @json($agendamento->inicio->format('H:i')),
+        servico: {
+            id: {{ $agendamento->servico_id }},
+            nome: @json($agendamento->servico->nome ?? ''),
+            tipo: @json($agendamento->servico->tipo->value ?? 'unico'),
+            valor: {{ (float) ($agendamento->servico->valor ?? 0) }},
+            duracao: {{ (int) ($agendamento->servico->duracao ?? 0) }},
+            qtd_etapas: null,
+        },
+    } @else null @endif,
     formas: @json($formasJs),
     empresaId: @json($empresaId),
     recebimentosOld: @json(array_values(old('recebimentos', []))),

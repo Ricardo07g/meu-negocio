@@ -61,12 +61,35 @@ class VendaController extends Controller
         }
     }
 
-    public function create(): View|RedirectResponse
+    /**
+     * Tela de venda. Com `?agendamento={id}` entra em modo cobranca: o
+     * atendimento ja existe na agenda, entao cliente/servico/horario viram
+     * resumo travado e so o bloco de recebimento e preenchido.
+     */
+    public function create(Request $request): View|RedirectResponse
     {
         try {
             $this->authorize('create', Agendamento::class);
 
-            $empresaId = ContextoEmpresa::resolver();
+            // `old()` mantem o modo cobranca vivo quando a validacao devolve o
+            // form (o back nem sempre carrega a query string original).
+            $agendamentoId = $request->query('agendamento') ?? old('agendamento_id');
+
+            $agendamento = null;
+            if ($agendamentoId) {
+                $agendamento = Agendamento::with(['cliente', 'servico', 'atendente'])
+                    ->findOrFail((int) $agendamentoId);
+                $this->authorize('update', $agendamento);
+
+                if ($agendamento->foiCobrado()) {
+                    return redirect()->route('agenda.index')
+                        ->with('erro', 'Este atendimento já tem uma cobrança registrada.');
+                }
+            }
+
+            // Cobrando, a venda pertence a empresa do atendimento — nao ao
+            // contexto da listagem, que pode estar em outra unidade.
+            $empresaId = $agendamento->empresa_id ?? ContextoEmpresa::resolver();
             $atendentes = ($empresaId
                 ? Usuario::atendentesDaEmpresa($empresaId)
                 : Usuario::where('atende', true))
@@ -100,7 +123,7 @@ class VendaController extends Controller
                 ->orderBy('nome')
                 ->get();
 
-            return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld', 'formas'));
+            return view('venda::create', compact('atendentes', 'empresaId', 'clienteOld', 'clienteSelecionado', 'servicoOld', 'itensOld', 'formas', 'agendamento'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar formulário de venda');
         }
@@ -116,9 +139,15 @@ class VendaController extends Controller
             // contexto da listagem (filtro/unica empresa acessivel) > empresa padrao do
             // usuario. Sem o fallback, um usuario com varias empresas acessiveis e sem
             // contexto selecionado gerava agendamento/venda sem empresa_id (viola NOT NULL).
-            $empresaId = $request->filled('empresa_id')
-                ? (int) $request->empresa_id
-                : (ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id);
+            // Cobrando um atendimento, a empresa e a dele: o titulo tem de nascer
+            // na mesma unidade do agendamento, independente do contexto da tela.
+            $agendamento = $request->agendamentoEmCobranca();
+
+            $empresaId = match (true) {
+                $agendamento !== null => (int) $agendamento->empresa_id,
+                $request->filled('empresa_id') => (int) $request->empresa_id,
+                default => ContextoEmpresa::resolver() ?? (int) $usuario->empresa_id,
+            };
 
             return $this->comEmpresaDeCriacao($empresaId, fn () => $this->processarVenda($request, $empresaId));
         } catch (\Throwable $e) {
@@ -196,6 +225,27 @@ class VendaController extends Controller
             );
 
             return redirect()->route('vendas.index')->with('sucesso', 'Venda de produto registrada com sucesso.');
+        }
+
+        // Cobranca de atendimento existente: nao cria agendamento, so o titulo
+        // (e finaliza). Precede o ramo de servico porque nao ha `servico_id` no
+        // form — o servico vem do agendamento.
+        if ($agendamento = $request->agendamentoEmCobranca()) {
+            $this->authorize('update', $agendamento);
+
+            $this->service->cobrarAtendimento(
+                $agendamento,
+                $condicao,
+                $mesReferencia,
+                $recebimentos,
+                $numeroParcelas,
+                $primeiroVencimento,
+                $parcelasPersonalizadas,
+                $formaRecebimentoPrazo,
+            );
+
+            return redirect()->route('agenda.index', ['data' => $agendamento->inicio->format('Y-m-d')])
+                ->with('sucesso', 'Atendimento cobrado e finalizado.');
         }
 
         $servico = Servico::findOrFail($request->servico_id);

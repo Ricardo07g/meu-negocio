@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Venda\Services;
 
-use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusParcela, StatusVendaEtapas, StatusVendaProduto};
-use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction};
+use App\Enums\{CondicaoPagamento, FormaRecebimentoPrazo, StatusAgendamento, StatusPagamento, StatusParcela, StatusVendaEtapas, StatusVendaProduto};
+use App\Exceptions\NegocioException;
+use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction, FinalizarAgendamentoAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Caixa\Services\CaixaService;
@@ -28,6 +29,7 @@ class VendaService
         private CriarAgendamentoAction $criarAgendamento,
         private VenderEtapasAction $venderEtapas,
         private CancelarAgendamentoAction $cancelarAgendamento,
+        private FinalizarAgendamentoAction $finalizarAgendamento,
         private CaixaService $caixaService,
         private CriarPagamentoComParcelasAction $criarPagamento,
         private CriarVendaProdutoAction $criarVendaProdutoAction,
@@ -50,8 +52,13 @@ class VendaService
             $this->aplicarStatusEtapas($etapasQuery, $filtros['status_venda'] ?? null);
             $etapas = $etapasQuery->get()->map(fn ($p) => $this->mapearEtapas($p));
 
+            // Venda de servico unico E o agendamento que tem titulo. Agendamento
+            // sem titulo e agenda, nao venda: sem o whereHas, todo agendamento
+            // criado direto no calendario aparecia aqui com `valor = servico.valor`
+            // (ver mapearUnico) sem ter gerado um centavo — receita fantasma na tela.
             $unicosQuery = Agendamento::with(['cliente', 'servico', 'atendente', 'pagamento.parcelas.baixas'])
                 ->whereNull('venda_etapas_id')
+                ->whereHas('pagamento')
                 ->orderByDesc('created_at');
             $this->aplicarFiltrosComuns($unicosQuery, $filtros, $dataInicio, $dataFim, 'unico');
             $this->aplicarBuscaUnico($unicosQuery, $filtros['q'] ?? null);
@@ -321,6 +328,9 @@ class VendaService
 
     /**
      * Cria venda de serviço único + pagamento (título + parcelas).
+     *
+     * É a porta do pré-pago: vende primeiro, atende depois. O agendamento nasce
+     * já com título. Quem atende primeiro e cobra no fim usa `cobrarAtendimento`.
      */
     public function criarUnico(
         AgendamentoData $data,
@@ -334,25 +344,93 @@ class VendaService
     ): Agendamento {
         return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
             $agendamento = $this->criarAgendamento->executar($data);
-            $servico = Servico::findOrFail($data->servico_id);
 
-            $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
-                valor_total: (float) $servico->valor,
-                condicao_pagamento: $condicao,
-                mes_referencia: $mesReferencia,
-                cliente_id: $data->cliente_id,
-                agendamento_id: $agendamento->id,
-                numero_parcelas: $numeroParcelas,
-                primeiro_vencimento: $primeiroVencimento ?? now(),
-                forma_pagamento_avista: $recebimentos[0]->forma,
-                forma_recebimento_prazo: $formaRecebimentoPrazo,
-                parcelas_personalizadas: $parcelasPersonalizadas,
-            ));
+            $pagamento = $this->criarTituloDoAgendamento(
+                $agendamento, $condicao, $mesReferencia, $recebimentos,
+                $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo,
+            );
 
             $this->baixarAVistaSeAplicavel($pagamento, $condicao, $recebimentos);
 
             return $agendamento;
         });
+    }
+
+    /**
+     * Cobra um atendimento que já existe na agenda e o finaliza.
+     *
+     * É a ponte que faltava entre agenda e financeiro: o agendamento criado
+     * direto no calendário nasce sem título, e sem este caminho o atendimento
+     * acontecia, era finalizado e nunca virava receita. Cobrar e finalizar são
+     * o mesmo ato do balcão, então acontecem na mesma transação.
+     *
+     * @param  array<int, RecebimentoData>  $recebimentos
+     * @param  array<int, array<string, mixed>>|null  $parcelasPersonalizadas
+     */
+    public function cobrarAtendimento(
+        Agendamento $agendamento,
+        CondicaoPagamento $condicao,
+        Carbon $mesReferencia,
+        array $recebimentos,
+        ?int $numeroParcelas = null,
+        ?Carbon $primeiroVencimento = null,
+        ?array $parcelasPersonalizadas = null,
+        ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+    ): Agendamento {
+        return DB::transaction(function () use ($agendamento, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
+            if ($agendamento->foiCobrado()) {
+                throw new NegocioException('Este atendimento já tem uma cobrança registrada.');
+            }
+
+            $pagamento = $this->criarTituloDoAgendamento(
+                $agendamento, $condicao, $mesReferencia, $recebimentos,
+                $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo,
+            );
+
+            $this->baixarAVistaSeAplicavel($pagamento, $condicao, $recebimentos);
+
+            // Já finalizado (cobrança tardia de um atendimento encerrado sem
+            // desfecho) não regride nem estoura: o título é o que faltava.
+            if ($agendamento->status !== StatusAgendamento::Finalizado) {
+                $this->finalizarAgendamento->executar($agendamento);
+            }
+
+            return $agendamento->fresh();
+        });
+    }
+
+    /**
+     * Passo financeiro de um agendamento: o título (+ parcelas) que o transforma
+     * em venda. Fonte única do valor — sempre `servico.valor`, nunca o que veio
+     * do form — para o pré-pago e a cobrança no fim não divergirem.
+     *
+     * @param  array<int, RecebimentoData>  $recebimentos
+     * @param  array<int, array<string, mixed>>|null  $parcelasPersonalizadas
+     */
+    private function criarTituloDoAgendamento(
+        Agendamento $agendamento,
+        CondicaoPagamento $condicao,
+        Carbon $mesReferencia,
+        array $recebimentos,
+        ?int $numeroParcelas,
+        ?Carbon $primeiroVencimento,
+        ?array $parcelasPersonalizadas,
+        ?FormaRecebimentoPrazo $formaRecebimentoPrazo,
+    ): Pagamento {
+        $servico = Servico::findOrFail($agendamento->servico_id);
+
+        return $this->criarPagamento->executar(new CriarPagamentoData(
+            valor_total: (float) $servico->valor,
+            condicao_pagamento: $condicao,
+            mes_referencia: $mesReferencia,
+            cliente_id: $agendamento->cliente_id,
+            agendamento_id: $agendamento->id,
+            numero_parcelas: $numeroParcelas,
+            primeiro_vencimento: $primeiroVencimento ?? now(),
+            forma_pagamento_avista: $recebimentos[0]->forma,
+            forma_recebimento_prazo: $formaRecebimentoPrazo,
+            parcelas_personalizadas: $parcelasPersonalizadas,
+        ));
     }
 
     /**
@@ -456,11 +534,32 @@ class VendaService
         }
     }
 
+    /**
+     * Cancela a venda de serviço único — o que significa duas coisas diferentes
+     * conforme o atendimento já tenha acontecido ou não.
+     *
+     * **Ainda não atendido**: cancelar a venda é cancelar o compromisso — some da
+     * agenda e o dinheiro volta.
+     *
+     * **Já finalizado**: o serviço foi prestado; desfazer isso seria mentir sobre
+     * o passado. Cancelar aqui é *estornar a cobrança* — o agendamento continua
+     * Finalizado e passa a exibir situação "Estornado". Sem esta distinção, toda
+     * cobrança feita na finalização ficaria sem caminho de volta, porque a Action
+     * (com razão) recusa cancelar um atendimento realizado.
+     */
     public function cancelarUnico(Agendamento $agendamento): Agendamento
     {
         return DB::transaction(function () use ($agendamento) {
+            if ($agendamento->status === StatusAgendamento::Finalizado) {
+                $this->estornarPagamentoSeExistir($agendamento->pagamento);
+
+                return $agendamento->fresh();
+            }
+
+            // O estorno mora na Action: cancelar pela agenda e cancelar pela tela
+            // de vendas são o mesmo evento, e ter os dois caminhos estornando
+            // geraria contra-lançamento em dobro (estorno não é idempotente).
             $this->cancelarAgendamento->executar($agendamento);
-            $this->estornarPagamentoSeExistir($agendamento->pagamento);
 
             return $agendamento->fresh();
         });
@@ -509,6 +608,13 @@ class VendaService
         if (! $pagamento) {
             return;
         }
+
+        // Estorno não é idempotente: cada passagem gera contra-lançamento por
+        // baixa. Título já desfeito não volta a ser desfeito.
+        if (in_array($pagamento->status, [StatusPagamento::Estornado, StatusPagamento::Cancelado], true)) {
+            return;
+        }
+
         $this->caixaService->estornarPagamento($pagamento);
     }
 

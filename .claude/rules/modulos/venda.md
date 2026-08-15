@@ -25,13 +25,17 @@ Frente de venda transacional (com `empresa_id`). **Tres tipos**: servico unico, 
   `desconto`, `acrescimo`, `subtotal`.
 - **Servico unico nao tem model proprio** — a venda "unica" e apenas 1 `Agendamento` (FK
   `venda_etapas_id` NULL) + 1 `Pagamento` (FK `agendamento_id`). Listagem agrega os 3 tipos.
+  **So e venda o agendamento que TEM titulo** (`whereHas('pagamento')` em `listar`) — agendamento
+  solto e agenda, nao faturamento (ADR-0018).
 
 ## Camadas-chave
 - **`VendaController`**: `store` -> `processarVenda` roteia por `tipo_venda`/`servico->isEtapas()`.
   Escrita envolta em `comEmpresaDeCriacao($empresaId, fn ...)` (trait `DefineEmpresaDeCriacao`).
   Cancelar e excluir por tipo: `*Unico` / `*Etapas` / `*Produto`; `recibo($tipo,$id)` gera PDF;
   `show($tipo,$id)` = detalhes. **Nao existe edicao de venda** (sem rota/metodo edit|update).
-- **`VendaService`**: `criarUnico`, `criarEtapas`, `criarVendaProduto` (cada um em `DB::transaction`);
+- **`VendaService`**: `criarUnico` (pre-pago: cria agendamento + titulo), **`cobrarAtendimento`**
+  (agendamento que ja existe: cria titulo + finaliza; recusa titulo duplicado), `criarEtapas`,
+  `criarVendaProduto` (cada um em `DB::transaction`);
   `cancelar*` (estorno); `excluir*`; `detalhar($tipo,$id)`;
   `listar` (merge dos 3 tipos + paginacao manual com filtros pesados). O `listar` faz eager de
   `pagamento.parcelas.baixas` — a forma/parcelamento mora na BAIXA, e o card da listagem os exibe.
@@ -59,8 +63,15 @@ Frente de venda transacional (com `empresa_id`). **Tres tipos**: servico unico, 
   recebe `estornado_em`; contra-lancamento por-baixa **so quando ha `Lancamento` de origem** — a
   gaveta: `Lancamento` de debito `categoria=estorno` na conta de origem. Cartao/pix nao tem
   lancamento, so a marca). Etapas: cancela tambem agendamentos `agendado|confirmado`.
-  Produto: devolve estoque (`increment` + MovimentoEstoque entrada). `cancelarUnico` cancela o
-  Agendamento (Action) + estorna. (Contraste: cancelar pela tela de Agenda NAO estorna no caixa.)
+  Produto: devolve estoque (`increment` + MovimentoEstoque entrada).
+- **`cancelarUnico` faz duas coisas diferentes** (ADR-0018): atendimento **em aberto** -> delega a
+  `CancelarAgendamentoAction` (cancela E estorna); atendimento **ja Finalizado** -> so estorna, e o
+  agendamento continua Finalizado ("o servico foi prestado"). Na tela o botao vira **"Estornar
+  cobranca"**. Sem essa distincao, toda cobranca feita na finalizacao ficaria sem caminho de volta.
+- **Modo cobranca na tela de venda**: `GET /vendas/nova?agendamento={id}`. O bloco de
+  cliente/servico/horario continua no DOM (o `venda-create.js` le `cfg.agendamento` e preenche o
+  MESMO estado do fluxo normal) mas sai da tela via `hidden`. Nao ha segunda UI de recebimento —
+  quem mexer no `venda-create.js` precisa saber que existem dois modos.
 - `qtd_etapas` da venda = `count($data->datas)` (nao vem do servico).
 
 ## Veja tambem
