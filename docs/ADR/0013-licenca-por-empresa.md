@@ -96,9 +96,12 @@ Duas consequências no modelo de dados:
   idempotência do comando, que antes vinha de zerar a data, agora vem do plano de destino — uma
   unidade já no Grátis sai da query. Contratar o Pro continua zerando a data (`TransicionarPlanoAction`):
   quem virou cliente pagante não volta para a fila do teste.
-- **Renovar só vale a partir do Grátis.** Reabrir o teste de uma licença paga seria deixar de cobrar
-  quem já contratou, então a Action recusa (`Empresa::podeRenovarTrial()`). Não há ajuste de fatura:
-  Grátis e teste custam R$ 0, e nenhum dos dois entra no valor do mês.
+- **A elegibilidade olha o plano atual, não o histórico.** Quem está no Grátis pode testar o Pro,
+  tenha testado antes ou não. A primeira versão exigia um teste anterior e errava o alvo: as contas
+  rebaixadas *antes* desta feature existir tiveram `trial_expira_em` zerada pelo código antigo, e
+  eram justamente elas que ficavam presas no Grátis sem nenhuma saída. `trialVencido()` sobrou só
+  para escolher o texto da tela. A guarda que permanece é a licença paga — reabrir o teste de quem
+  já contratou seria deixar de cobrar. Não há ajuste de fatura: Grátis e teste custam R$ 0.
 
 Renovações são ilimitadas de propósito — é uma cortesia temporária, que sai quando a cobrança de
 verdade entrar. Não há contador porque contar sem cobrar não decide nada.
