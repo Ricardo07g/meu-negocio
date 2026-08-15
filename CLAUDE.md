@@ -69,7 +69,8 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 
 ## Modulos — completos
 Auth, Tenant (Rede/Empresa/Plano), Usuario, Perfil (Meu Perfil), PerfilAcesso, Cliente, Servico,
-Agenda (agendamento e operacao, venda e financeiro: cobranca na finalizacao — ADR-0018),
+Agenda (agendamento e operacao, venda e financeiro: cobranca na finalizacao — ADR-0018; expediente
+da unidade + encaixe autorizado — ADR-0019),
 Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
 Assinatura (licenca por empresa + trial de 15 dias renovavel, so Admin ve — ADR-0013), Arquivo (uploads genericos —
@@ -81,7 +82,8 @@ planos, redes, empresas (com `plano_id` = licenca), usuarios, clientes, servicos
 venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **despesas,
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
 movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **recebiveis**,
-**contas**, **lancamentos**, **exportacoes**, **faturas**, **arquivos** (polimorfica).
+**contas**, **lancamentos**, **exportacoes**, **faturas**, **horarios_atendimento**,
+**arquivos** (polimorfica).
 -> convencoes de migration em `.claude/rules/banco-de-dados.md` e skill `criar-migration`.
 
 ## Traits
@@ -123,10 +125,11 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **751 testes** (2676 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda (incluindo a cobranca do atendimento e o estorno ao
-  cancelar), dashboard, licenca por empresa, trial (incluindo renovacao e visibilidade Admin-only),
-  uploads (normalizacao em WebP e staging preservado no erro de validacao) e o agendador HTTP.
+- **780 testes** (2751 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+  (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
+  expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
+  visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
+  validacao) e o agendador HTTP.
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -142,7 +145,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (18 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (19 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

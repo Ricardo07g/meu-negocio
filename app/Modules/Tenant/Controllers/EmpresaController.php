@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\Empresa;
 use App\Modules\Tenant\Requests\SalvarEmpresaRequest;
-use App\Modules\Tenant\Services\EmpresaService;
+use App\Modules\Tenant\Services\{EmpresaService, ExpedienteService};
 use App\Traits\TratamentoErros;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -25,6 +25,7 @@ class EmpresaController extends Controller
 
     public function __construct(
         private EmpresaService $service,
+        private ExpedienteService $expediente,
     ) {}
 
     public function index(): View|RedirectResponse
@@ -44,7 +45,15 @@ class EmpresaController extends Controller
         try {
             $this->authorize('update', $empresa);
 
-            return view('tenant::edit', compact('empresa'));
+            // Unidade antiga (anterior ao expediente) chega sem linha nenhuma:
+            // semeia o padrao para a tela nunca abrir vazia.
+            if ($this->expediente->daEmpresa($empresa->id)->isEmpty()) {
+                $this->expediente->semearPadrao($empresa->rede_id, $empresa->id);
+            }
+
+            $expediente = $this->expediente->daEmpresa($empresa->id)->keyBy('dia_semana');
+
+            return view('tenant::edit', compact('empresa', 'expediente'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar edição de empresa');
         }
@@ -54,7 +63,11 @@ class EmpresaController extends Controller
     {
         try {
             $this->authorize('update', $empresa);
-            $this->service->atualizar($empresa, EmpresaData::from($request->validated()));
+            $this->service->atualizar($empresa, EmpresaData::from($request->safe()->except('expediente')));
+
+            if ($request->has('expediente')) {
+                $this->expediente->salvar($empresa, (array) $request->input('expediente'));
+            }
 
             return redirect()->route('empresas.index')->with('sucesso', 'Empresa atualizada com sucesso.');
         } catch (\Throwable $e) {

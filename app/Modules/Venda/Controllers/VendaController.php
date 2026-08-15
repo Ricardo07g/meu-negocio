@@ -250,6 +250,12 @@ class VendaController extends Controller
 
         $servico = Servico::findOrFail($request->servico_id);
 
+        // A venda respeita o expediente da unidade como a agenda respeita. Aqui
+        // ainda nao ha o "agendar mesmo assim?" da agenda: quem tem autoridade
+        // para encaixar passa direto (e o agendamento nasce marcado), quem nao
+        // tem recebe a mesma recusa com a janela na mensagem.
+        $encaixe = (bool) $request->user()->can('agendamento.forcar_horario');
+
         if ($servico->isEtapas()) {
             $this->service->criarEtapas(
                 VenderEtapasData::from($request->validated()),
@@ -260,6 +266,7 @@ class VendaController extends Controller
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
+                $encaixe,
             );
             $msg = 'Serviço em etapas vendido com sucesso! Agendamentos criados.';
         } else {
@@ -274,6 +281,7 @@ class VendaController extends Controller
                 $primeiroVencimento,
                 $parcelasPersonalizadas,
                 $formaRecebimentoPrazo,
+                $encaixe,
             );
             $msg = 'Agendamento criado com sucesso.';
         }

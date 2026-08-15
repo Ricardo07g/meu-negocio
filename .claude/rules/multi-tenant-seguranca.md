@@ -105,6 +105,7 @@ Single DB + colunas de tenant, em dois niveis:
 | EmpresaNaoEncontradaException | usuario sem empresa (e nao e admin) |
 | PlanoLimiteException | recurso excede limite do plano |
 | ConflitoAgendamentoException | horario conflita com outro agendamento |
+| ForaDoExpedienteException | horario fora do expediente da unidade (422 + `codigo`; encaixe exige `agendamento.forcar_horario`) |
 | NegocioException | regra de negocio generica violada |
 
 `TratamentoErros`: NegocioException -> warning no log + msg amigavel; Validation/Authorization ->

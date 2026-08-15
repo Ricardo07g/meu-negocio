@@ -9,6 +9,7 @@ use App\Modules\Conta\Services\ContaService;
 use App\Modules\FormaPagamento\Services\FormaPagamentoService;
 use App\Modules\Tenant\DTOs\EmpresaData;
 use App\Modules\Tenant\Models\{Empresa, Plano, Rede};
+use App\Modules\Tenant\Services\ExpedienteService;
 use Illuminate\Support\Carbon;
 
 /**
@@ -24,6 +25,7 @@ class CriarEmpresaAction
     public function __construct(
         private ContaService $contaService,
         private FormaPagamentoService $formaPagamentoService,
+        private ExpedienteService $expedienteService,
     ) {}
 
     public function executar(Rede $rede, EmpresaData $data, ?Plano $plano = null): Empresa
@@ -42,10 +44,13 @@ class CriarEmpresaAction
             'email' => $data->email,
         ]);
 
-        // Toda empresa nasce com suas contas financeiras padrao (Caixa + Banco)
-        // e suas formas de pagamento padrao (cada unidade tem suas maquinas/taxas).
+        // Toda empresa nasce com suas contas financeiras padrao (Caixa + Banco),
+        // suas formas de pagamento padrao (cada unidade tem suas maquinas/taxas)
+        // e seu expediente — sem ele a agenda nao teria janela para validar, e
+        // qualquer horario passaria como se nada estivesse configurado.
         $this->contaService->semearPadrao($rede->id, $empresa->id);
         $this->formaPagamentoService->semearPadrao($rede->id, $empresa->id);
+        $this->expedienteService->semearPadrao($rede->id, $empresa->id);
 
         return $empresa;
     }

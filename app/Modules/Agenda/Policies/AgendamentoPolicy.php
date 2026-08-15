@@ -40,6 +40,17 @@ class AgendamentoPolicy
             && $usuario->can('agendamento.cancelar');
     }
 
+    /**
+     * Encaixar fora do expediente.
+     *
+     * Separado de `criar` de proposito: recepcao agenda, mas quem decide abrir
+     * a loja fora do horario e quem responde pela unidade.
+     */
+    public function forcarHorario(Usuario $usuario): bool
+    {
+        return $usuario->can('agendamento.forcar_horario');
+    }
+
     public function delete(Usuario $usuario, Agendamento $agendamento): bool
     {
         return $usuario->rede_id === $agendamento->rede_id

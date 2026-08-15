@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error('Motivos de não cobrança inválidos:', e);
     }
 
+    // A grade desenha o expediente configurado da unidade. O 8–21 que estava
+    // fixo aqui nunca teve relação com o horário real de ninguém.
+    const horaInicial = parseInt(calendarEl.dataset.horaInicial, 10);
+    const horaFinal = parseInt(calendarEl.dataset.horaFinal, 10);
+    const podeForcarHorario = calendarEl.dataset.podeForcarHorario === '1';
+
     let atendenteCalendars = [];
     let eventosCache = [];
 
@@ -27,8 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
         useDetailPopup: false,
         week: {
             startDayOfWeek: 1,
-            hourStart: 8,
-            hourEnd: 21,
+            hourStart: Number.isFinite(horaInicial) ? horaInicial : 8,
+            hourEnd: Number.isFinite(horaFinal) ? horaFinal : 21,
             taskView: false,
             eventView: ['time'],
         },
@@ -42,6 +48,64 @@ document.addEventListener('DOMContentLoaded', function () {
             },
         },
     });
+
+    /**
+     * Envia uma escrita da agenda tratando o "fora do expediente".
+     *
+     * Conflito de horário é um não seco. Fora do expediente é uma pergunta: o
+     * servidor devolve 422 com `codigo: fora_expediente`, e quem tem permissão
+     * de encaixe reenvia com `forcar_horario`. Quem não tem só vê a recusa —
+     * por isso a decisão de perguntar mora aqui e não no servidor.
+     *
+     * Retorna a resposta ok, ou `null` quando o usuário desistiu do encaixe.
+     */
+    async function enviarComEncaixe(url, method, corpo) {
+        const enviar = (payload) => fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        let resp = await enviar(corpo);
+        if (resp.ok) return resp;
+
+        let err = await resp.json().catch(() => ({}));
+
+        if (resp.status === 422 && err.codigo === 'fora_expediente' && podeForcarHorario) {
+            const confirmado = await confirmarEncaixe(err.message);
+            if (!confirmado) return null;
+
+            resp = await enviar(Object.assign({}, corpo, { forcar_horario: true }));
+            if (resp.ok) return resp;
+
+            err = await resp.json().catch(() => ({}));
+        }
+
+        throw new Error(err.message || 'Erro na operação');
+    }
+
+    function confirmarEncaixe(mensagem) {
+        return new Promise((resolve) => {
+            Swal.fire({
+                title: 'Fora do expediente',
+                text: `${mensagem} Deseja encaixar mesmo assim?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Encaixar',
+                cancelButtonText: 'Voltar',
+                confirmButtonColor: '#e49e3d',
+            }).then(function (result) {
+                // O SweetAlert2 do tema e anterior ao `isConfirmed`: resolve com
+                // `{value: true}`. Aceitar os dois sobrevive a uma atualizacao.
+                resolve(!!(result && (result.value === true || result.isConfirmed === true)));
+            });
+        });
+    }
 
     // ——— Carregar eventos ———
     async function carregarEventos() {
@@ -160,23 +224,12 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(form).entries());
             try {
-                const resp = await fetch(criarUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf,
-                        Accept: 'application/json',
-                    },
-                    body: JSON.stringify(data),
-                });
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({}));
-                    throw new Error(err.message || 'Erro ao criar');
-                }
+                const resp = await enviarComEncaixe(criarUrl, 'POST', data);
+                if (!resp) return; // desistiu do encaixe: modal segue aberto
                 modal.hide();
                 carregarEventos();
             } catch (err) {
-                alert(err.message);
+                Swal.fire({ icon: 'error', title: 'Não foi possível agendar', text: err.message });
             }
         };
     }
@@ -191,25 +244,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const url = reagendarTemplate.replace('__ID__', event.id);
 
         try {
-            const resp = await fetch(url, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
-                    Accept: 'application/json',
-                },
-                body: JSON.stringify({
-                    inicio: toLocalIso(novoInicio),
-                    fim: toLocalIso(novoFim),
-                }),
+            const resp = await enviarComEncaixe(url, 'PATCH', {
+                inicio: toLocalIso(novoInicio),
+                fim: toLocalIso(novoFim),
             });
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new Error(err.message || 'Erro ao reagendar');
+
+            // Recusado ou desistido: recarrega para o evento voltar ao lugar em
+            // vez de ficar onde o arrasto o largou — a tela mentiria sobre o que
+            // esta gravado.
+            if (!resp) {
+                carregarEventos();
+
+                return;
             }
+
             calendar.updateEvent(event.id, event.calendarId, changes);
         } catch (err) {
-            alert(err.message);
+            Swal.fire({ icon: 'error', title: 'Não foi possível reagendar', text: err.message });
+            carregarEventos();
         }
     });
 
@@ -280,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     <span class="swal-status-pill bg-soft-${props.situacao_cor || 'secondary'} text-${props.situacao_cor || 'secondary'} ms-2">
                         <span class="dot bg-${props.situacao_cor || 'secondary'}"></span>${escapeHtml(props.situacao_label || '—')}
                     </span>
+                    ${props.fora_expediente ? '<span class="swal-status-pill bg-soft-warning text-warning ms-2"><span class="dot bg-warning"></span>Encaixe</span>' : ''}
                 </div>
                 <div class="swal-info">
                     <div class="swal-info-row"><span class="label">Cliente</span><span class="value">${escapeHtml(props.cliente || '-')}</span></div>
@@ -453,20 +506,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!result.value) return;
             const url = reagendarTemplate.replace('__ID__', ev.id);
             try {
-                const resp = await fetch(url, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        Accept: 'application/json',
-                    },
-                    body: JSON.stringify(result.value),
-                });
-                if (!resp.ok) {
-                    const err = await resp.json().catch(() => ({}));
-                    throw new Error(err.message || 'Erro ao reagendar');
-                }
+                const resp = await enviarComEncaixe(url, 'PATCH', result.value);
+                if (!resp) return;
                 Swal.fire({ icon: 'success', title: 'Reagendado!', timer: 1500, showConfirmButton: false });
                 carregarEventos();
             } catch (err) {

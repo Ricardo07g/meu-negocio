@@ -78,4 +78,33 @@ class CriarAgendamentoTest extends TestCase
         $resp->assertStatus(422);
         $this->assertSame(0, Agendamento::query()->count(), 'Nenhum agendamento deveria ter sido criado sem atendente.');
     }
+
+    /**
+     * Regressao: Admin com varias empresas acessiveis e nenhuma em contexto caia
+     * no ramo "deixa null" do EmpresaTrait, e o insert estourava no NOT NULL de
+     * `empresa_id` (500 na cara do usuario). A empresa passa a ser resolvida na
+     * Action — a mesma que decide qual expediente vale.
+     */
+    public function test_cria_agendamento_com_admin_de_varias_empresas_sem_contexto(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $rede = $contexto['rede'];
+
+        $empresaB = $this->criarEmpresaExtra($rede->id, 'Empresa B');
+        session(['empresas_atuais' => [$contexto['empresa']->id, $empresaB->id]]);
+        session()->forget('empresa_contexto_atual');
+
+        $resp = $this->postJson(route('agenda.criar-rapido'), [
+            'cliente_id' => ClienteFactory::new()->create(['rede_id' => $rede->id])->id,
+            'servico_id' => ServicoFactory::new()->create(['rede_id' => $rede->id, 'duracao' => 30])->id,
+            'atendente_id' => $contexto['usuario']->id,
+            'inicio' => now()->addDay()->setTime(10, 0)->format('Y-m-d H:i:s'),
+        ]);
+
+        $resp->assertCreated();
+        $this->assertNotNull(
+            Agendamento::query()->latest('id')->firstOrFail()->empresa_id,
+            'Agendamento sem empresa nao passa no NOT NULL — e nao teria expediente para validar.'
+        );
+    }
 }

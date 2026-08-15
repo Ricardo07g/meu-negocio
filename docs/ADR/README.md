@@ -26,6 +26,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0016](0016-agendador-por-cron-http-externo.md) | Agendador por cron HTTP externo (Cloudflare Workers) | Aceito |
 | [0017](0017-frankenphp-no-lugar-do-artisan-serve.md) | FrankenPHP no lugar do `php artisan serve` em produção | Aceito |
 | [0018](0018-agendamento-e-operacao-venda-e-financeiro.md) | Agendamento é operação, venda é financeiro: a cobrança acontece na finalização | Aceito |
+| [0019](0019-expediente-da-unidade-e-encaixe-autorizado.md) | Expediente da unidade: fora do horário é encaixe autorizado, não acidente | Aceito |
 
 ## Como ler
 

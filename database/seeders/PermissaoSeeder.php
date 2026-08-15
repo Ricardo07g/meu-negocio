@@ -29,6 +29,8 @@ class PermissaoSeeder extends Seeder
             'servico.ver', 'servico.criar', 'servico.editar', 'servico.excluir',
             // Agendamento
             'agendamento.ver', 'agendamento.criar', 'agendamento.editar', 'agendamento.cancelar', 'agendamento.excluir',
+            // Encaixe fora do expediente: agendar nao implica poder furar o horario.
+            'agendamento.forcar_horario',
             // Financeiro
             'financeiro.ver', 'financeiro.criar', 'financeiro.editar', 'financeiro.excluir', 'financeiro.relatorio',
             // Pagamento
