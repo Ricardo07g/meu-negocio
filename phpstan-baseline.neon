@@ -7,48 +7,6 @@ parameters:
 			path: app/Http/Middleware/VerificarRede.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$atendente_id\.$#'
-			identifier: property.notFound
-			count: 2
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$fim\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$inicio\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$observacoes\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<\(int\|string\),Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Modules/Agenda/Controllers/AgendaController.php
-
-		-
 			message: '#^Instanceof between Illuminate\\Support\\Carbon and Carbon\\Carbon will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 5

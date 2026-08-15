@@ -26,6 +26,22 @@
                         @default <span class="badge bg-secondary">{{ ucfirst($agendamento->status->value) }}</span>
                     @endswitch
                 </div>
+                @php $situacao = $agendamento->situacaoFinanceira(); @endphp
+                <div class="col-md-6 mb-3">
+                    <strong>Cobrança:</strong>
+                    <x-badge-status :cor="$situacao->cor()" :label="$situacao->label()" />
+                    @if($agendamento->motivo_sem_cobranca)
+                        <span class="text-muted fs-13 ms-1">({{ $agendamento->motivo_sem_cobranca->label() }})</span>
+                    @endif
+                </div>
+                @if($agendamento->pagamento)
+                <div class="col-md-6 mb-3">
+                    <strong>Venda:</strong>
+                    <a href="{{ route('vendas.show', ['unico', $agendamento->id]) }}">
+                        R$ {{ number_format((float) $agendamento->pagamento->valor_total, 2, ',', '.') }}
+                    </a>
+                </div>
+                @endif
                 @if($agendamento->observacoes)
                 <div class="col-12 mb-3"><strong>Observações:</strong> {{ $agendamento->observacoes }}</div>
                 @endif

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Agenda\Requests;
 
+use App\Support\Agenda\RegrasDeVinculo;
+use App\Support\ContextoEmpresa;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SalvarAgendamentoRequest extends FormRequest
@@ -31,12 +33,13 @@ class SalvarAgendamentoRequest extends FormRequest
                 'integer',
                 $exigeEmpresa ? 'in:'.implode(',', $empresasAtuais) : 'nullable',
             ],
-            'cliente_id' => [$obrigatorio, 'exists:clientes,id'],
-            'servico_id' => [$obrigatorio, 'exists:servicos,id'],
-            'atendente_id' => [$obrigatorio, 'exists:usuarios,id'],
             'inicio' => [$obrigatorio, 'date'],
             'fim' => ['nullable', 'date', 'after:inicio'],
             'observacoes' => ['nullable', 'string', 'max:1000'],
-        ];
+        ] + RegrasDeVinculo::paraAgendamento(
+            (int) $this->user()->rede_id,
+            ContextoEmpresa::resolver(),
+            $criando,
+        );
     }
 }
