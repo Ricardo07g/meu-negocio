@@ -78,6 +78,37 @@ entre `criar-migration` e `scaffold-modulo` porque o pedido é mesmo ambíguo �
 já existir. Um caso assim se resolve desambiguando a `description` ou aceitando a ambiguidade de
 forma consciente; o que não dá é fingir que ela não existe.
 
+### Linha de base atual
+
+3 execuções por caso, modelo Sonnet — resultado bruto em
+[`resultados/exemplo-triggering.tsv`](resultados/exemplo-triggering.tsv):
+
+| | |
+|---|---|
+| Decisões corretas | **80/90 (88%)** em 30 casos |
+| Erram sempre | **0** |
+| Instáveis | **7** |
+| Falso positivo | 2 |
+| Falso negativo | 6 |
+
+Zero casos errando sempre significa que nenhuma `description` está simplesmente errada. Os 7
+instáveis são o backlog real, e cada um diz uma coisa diferente:
+
+- **`pode commitar isso?` (1/3)** e **`implementei o filtro novo, funciona?` (1/3)** — pedidos curtos
+  e coloquiais. As descriptions cobrem a intenção formal ("gerar mensagem de commit", "validar
+  implementação") e perdem a forma como a pessoa realmente fala.
+- **`quantos testes temos hoje?` (1/3)** — o modelo respondeu `testar`, que é *slash command*, não
+  skill. Falso positivo que revela um limite do próprio eval: o catálogo mostra só skills, mas o
+  agente real também enxerga comandos. Vale medir os dois juntos.
+- **`ta bom esse service?` (2/3)** — oscila entre `revisar-codigo` e `padroes-projeto`. Sobreposição
+  legítima: revisar exige conhecer o padrão.
+- **`cria a tabela de fornecedores` (2/3)** — ambiguidade do pedido, não da description: depende de a
+  entidade já existir.
+
+Nenhum foi corrigido ainda. Registrar o que se sabe e ainda não se resolveu é parte do método —
+esconder as instabilidades para publicar um número redondo seria o oposto do que esta pasta existe
+para fazer.
+
 ### O loop na prática
 
 Esta pasta nasceu junto com a skill `fluxo-git`, e o primeiro run já cobrou o preço: `terminei a

@@ -1,0 +1,31 @@
+prompt	esperado	acertos	runs	obtidos
+escreve testes pro modulo de Estoque	gerar-teste-model	3	3	gerar-teste-model,gerar-teste-model,gerar-teste-model
+preciso de uma factory de Despesa	gerar-teste-model	3	3	gerar-teste-model,gerar-teste-model,gerar-teste-model
+adiciona o campo observacao na tabela de clientes	criar-migration	3	3	criar-migration,criar-migration,criar-migration
+cria a tabela de fornecedores	criar-migration	2	3	criar-migration,scaffold-modulo,criar-migration
+so admin pode ver o relatorio de comissao	adicionar-permissao	3	3	adicionar-permissao,adicionar-permissao,adicionar-permissao
+cria um perfil de acesso pra recepcao	adicionar-permissao	3	3	adicionar-permissao,adicionar-permissao,adicionar-permissao
+documenta essa decisao de arquitetura	documentar-adr	3	3	documentar-adr,documentar-adr,documentar-adr
+registra o porque de termos escolhido fila em vez de sincrono	documentar-adr	2	3	documentar-adr,nenhuma,documentar-adr
+pode commitar isso?	escrever-commit	1	3	nenhuma,escrever-commit,nenhuma
+me da uma mensagem de commit pra essas mudancas	escrever-commit	3	3	escrever-commit,escrever-commit,escrever-commit
+cria o modulo Comissao	scaffold-modulo	3	3	scaffold-modulo,scaffold-modulo,scaffold-modulo
+preciso de um CRUD de Fornecedor	scaffold-modulo	3	3	scaffold-modulo,scaffold-modulo,scaffold-modulo
+vou comecar uma feature nova, de onde eu parto?	fluxo-git	3	3	fluxo-git,fluxo-git,fluxo-git
+qual nome eu dou pra branch?	fluxo-git	3	3	fluxo-git,fluxo-git,fluxo-git
+ja posso mergear esse PR?	fluxo-git	3	3	fluxo-git,fluxo-git,fluxo-git
+como faco pra subir isso pra producao?	fluxo-git	3	3	fluxo-git,fluxo-git,fluxo-git
+acabei de implementar a renovacao de trial, confere se ta tudo certo	validar-implementacao	3	3	validar-implementacao,validar-implementacao,validar-implementacao
+terminei a feature, quero abrir o PR	checklist-pre-pr	3	3	checklist-pre-pr,checklist-pre-pr,checklist-pre-pr
+ta pronto pra revisao?	checklist-pre-pr	3	3	checklist-pre-pr,checklist-pre-pr,checklist-pre-pr
+implementei o filtro novo, funciona?	validar-implementacao	1	3	nenhuma,validar-implementacao,nenhuma
+o botao de upgrade nao funciona	depurar	3	3	depurar,depurar,depurar
+ta dando 403 ao salvar o pagamento	depurar	2	3	depurar,depurar,nenhuma
+da uma olhada nesse codigo	revisar-codigo	3	3	revisar-codigo,revisar-codigo,revisar-codigo
+ta bom esse service?	revisar-codigo	2	3	padroes-projeto,revisar-codigo,revisar-codigo
+como e o padrao de Controller aqui?	padroes-projeto	3	3	padroes-projeto,padroes-projeto,padroes-projeto
+onde fica a regra de negocio nesse projeto?	padroes-projeto	3	3	padroes-projeto,padroes-projeto,padroes-projeto
+qual a versao do PHP do projeto?	nenhuma	3	3	nenhuma,nenhuma,nenhuma
+quantos testes temos hoje?	nenhuma	1	3	testar,nenhuma,testar
+me explica o que e multi-tenant	nenhuma	3	3	nenhuma,nenhuma,nenhuma
+que horas sao?	nenhuma	3	3	nenhuma,nenhuma,nenhuma
