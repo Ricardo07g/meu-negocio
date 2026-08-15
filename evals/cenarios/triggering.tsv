@@ -1,0 +1,51 @@
+# Eval de triggering: a `description` da skill discrimina bem?
+#
+# Formato: <prompt do usuario> TAB <skill esperada>   ("nenhuma" = nao deve disparar)
+# Linhas com # sao comentario. Editar aqui e o jeito de cobrir um caso novo.
+#
+# Os casos vieram de tres fontes: pedidos reais desta sessao, pedidos que
+# confundem duas skills de proposito (validar-implementacao x checklist-pre-pr),
+# e distratores — perguntas que NAO devem acionar skill nenhuma. Sem distrator,
+# o eval premia a skill que dispara sempre, que e o pior tipo de skill.
+
+# --- caminhos obvios ---
+escreve testes pro modulo de Estoque	gerar-teste-model
+preciso de uma factory de Despesa	gerar-teste-model
+adiciona o campo observacao na tabela de clientes	criar-migration
+cria a tabela de fornecedores	criar-migration
+so admin pode ver o relatorio de comissao	adicionar-permissao
+cria um perfil de acesso pra recepcao	adicionar-permissao
+documenta essa decisao de arquitetura	documentar-adr
+registra o porque de termos escolhido fila em vez de sincrono	documentar-adr
+pode commitar isso?	escrever-commit
+me da uma mensagem de commit pra essas mudancas	escrever-commit
+cria o modulo Comissao	scaffold-modulo
+preciso de um CRUD de Fornecedor	scaffold-modulo
+
+# --- fluxo de trabalho (o que estava faltando) ---
+vou comecar uma feature nova, de onde eu parto?	fluxo-git
+qual nome eu dou pra branch?	fluxo-git
+ja posso mergear esse PR?	fluxo-git
+como faco pra subir isso pra producao?	fluxo-git
+
+# --- pares que se confundem ---
+acabei de implementar a renovacao de trial, confere se ta tudo certo	validar-implementacao
+terminei a feature, quero abrir o PR	checklist-pre-pr
+ta pronto pra revisao?	checklist-pre-pr
+implementei o filtro novo, funciona?	validar-implementacao
+
+# --- diagnostico x revisao ---
+o botao de upgrade nao funciona	depurar
+ta dando 403 ao salvar o pagamento	depurar
+da uma olhada nesse codigo	revisar-codigo
+ta bom esse service?	revisar-codigo
+
+# --- conhecimento de padrao ---
+como e o padrao de Controller aqui?	padroes-projeto
+onde fica a regra de negocio nesse projeto?	padroes-projeto
+
+# --- distratores: nao deve disparar skill ---
+qual a versao do PHP do projeto?	nenhuma
+quantos testes temos hoje?	nenhuma
+me explica o que e multi-tenant	nenhuma
+que horas sao?	nenhuma
