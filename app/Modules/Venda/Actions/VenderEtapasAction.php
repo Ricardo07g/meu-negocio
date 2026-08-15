@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Venda\Actions;
 
 use App\Enums\{StatusAgendamento, StatusVendaEtapas};
-use App\Exceptions\ConflitoAgendamentoException;
+use App\Exceptions\{ConflitoAgendamentoException, ForaDoExpedienteException};
+use App\Modules\Agenda\Actions\VerificarDisponibilidadeAction;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Venda\DTOs\VenderEtapasData;
@@ -15,9 +16,14 @@ use Illuminate\Support\Facades\DB;
 
 class VenderEtapasAction
 {
-    public function executar(VenderEtapasData $data): VendaEtapas
+    public function __construct(private VerificarDisponibilidadeAction $verificarDisponibilidade) {}
+
+    /**
+     * @param  bool  $forcarHorario  encaixe fora do expediente (exige permissão no caller)
+     */
+    public function executar(VenderEtapasData $data, bool $forcarHorario = false): VendaEtapas
     {
-        return DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data, $forcarHorario) {
             $servico = Servico::findOrFail($data->servico_id);
 
             $venda = VendaEtapas::create([
@@ -33,21 +39,31 @@ class VenderEtapasAction
             ]);
 
             $conflitos = [];
+            $foraDoExpediente = [];
 
             foreach ($data->datas as $index => $dataStr) {
                 $horarioSessao = $data->horarios[$index] ?? $data->horario;
                 $inicio = Carbon::parse($dataStr.' '.$horarioSessao);
                 $fim = $inicio->copy()->addMinutes($servico->duracao);
+                $quando = $inicio->format('d/m/Y').' às '.$inicio->format('H:i');
 
-                // Verificar conflito
-                $temConflito = Agendamento::where('atendente_id', $data->atendente_id)
-                    ->whereNotIn('status', [StatusAgendamento::Cancelado->value])
-                    ->where('inicio', '<', $fim)
-                    ->where('fim', '>', $inicio)
-                    ->exists();
+                // As sessões são avaliadas em bloco: a venda de 10 etapas informa
+                // TODAS as datas problemáticas de uma vez, em vez de reprovar uma
+                // por vez e obrigar o vendedor a descobrir o resto por tentativa.
+                try {
+                    $encaixe = $this->verificarDisponibilidade->executar(
+                        empresaId: (int) $venda->empresa_id,
+                        atendenteId: (int) $data->atendente_id,
+                        inicio: $inicio,
+                        fim: $fim,
+                        forcarHorario: $forcarHorario,
+                    );
+                } catch (ConflitoAgendamentoException) {
+                    $conflitos[] = $quando;
 
-                if ($temConflito) {
-                    $conflitos[] = $inicio->format('d/m/Y').' às '.$inicio->format('H:i');
+                    continue;
+                } catch (ForaDoExpedienteException) {
+                    $foraDoExpediente[] = $quando;
 
                     continue;
                 }
@@ -60,6 +76,7 @@ class VenderEtapasAction
                     'inicio' => $inicio,
                     'fim' => $fim,
                     'status' => StatusAgendamento::Agendado,
+                    'fora_expediente' => $encaixe,
                 ]);
             }
 
@@ -70,6 +87,13 @@ class VenderEtapasAction
                     '%s já está com a agenda ocupada em: %s. Ajuste a data ou o horário dessas sessões para concluir a venda.',
                     $profissional,
                     implode('; ', $conflitos),
+                ));
+            }
+
+            if (! empty($foraDoExpediente)) {
+                throw new ForaDoExpedienteException(sprintf(
+                    'Fora do expediente da unidade em: %s. Ajuste essas sessões ou peça a quem pode autorizar o encaixe.',
+                    implode('; ', $foraDoExpediente),
                 ));
             }
 

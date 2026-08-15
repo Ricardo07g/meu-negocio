@@ -13,6 +13,8 @@
 
         @include('tenant::_form', ['entidade' => $empresa])
 
+        @include('tenant::_expediente', ['expediente' => $expediente])
+
         <x-form-botoes :voltar="route('empresas.index')" />
     </form>
 @endsection

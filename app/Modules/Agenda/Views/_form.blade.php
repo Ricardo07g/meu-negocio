@@ -49,6 +49,23 @@
                 @error('fim') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
         </div>
+        @can('forcarHorario', \App\Modules\Agenda\Models\Agendamento::class)
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="forcar_horario" value="1"
+                           id="forcarHorario" {{ old('forcar_horario', $entidade?->fora_expediente) ? 'checked' : '' }}>
+                    <label class="form-check-label" for="forcarHorario">
+                        Encaixe fora do expediente
+                        <span class="d-block fs-12 text-muted">
+                            Marque para agendar em horário que a unidade não atende. O atendimento fica sinalizado na agenda.
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        @endcan
+
         <div class="row mb-4">
             <div class="col-md-12">
                 <label class="form-label">Observações</label>

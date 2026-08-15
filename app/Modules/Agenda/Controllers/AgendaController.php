@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\Agenda\Controllers;
 
 use App\Enums\{MotivoSemCobranca, StatusAgendamento};
-use App\Exceptions\NegocioException;
+use App\Exceptions\{ForaDoExpedienteException, NegocioException};
 use App\Http\Controllers\Controller;
-use App\Modules\Agenda\Actions\CriarAgendamentoAction;
+use App\Modules\Agenda\Actions\{CriarAgendamentoAction, VerificarDisponibilidadeAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
 use App\Modules\Agenda\Requests\SalvarAgendamentoRequest;
 use App\Modules\Agenda\Services\AgendamentoService;
 use App\Modules\Cliente\Models\Cliente;
 use App\Modules\Servico\Models\Servico;
+use App\Modules\Tenant\Services\ExpedienteService;
 use App\Modules\Usuario\Models\Usuario;
 use App\Support\Agenda\RegrasDeVinculo;
 use App\Support\ContextoEmpresa;
@@ -28,7 +29,10 @@ class AgendaController extends Controller
 {
     use TratamentoErros;
 
-    public function __construct(private AgendamentoService $service) {}
+    public function __construct(
+        private AgendamentoService $service,
+        private ExpedienteService $expediente,
+    ) {}
 
     private array $coresAtendente = [
         '#3454d1', '#25b865', '#e49e3d', '#d13b4c', '#17a2b8',
@@ -83,6 +87,7 @@ class AgendaController extends Controller
                         'situacao_label' => $situacao->label(),
                         'situacao_cor' => $situacao->cor(),
                         'motivo_sem_cobranca' => $ag->motivo_sem_cobranca?->label(),
+                        'fora_expediente' => (bool) $ag->fora_expediente,
                         'valor' => (float) ($ag->servico->valor ?? 0),
                         'confirmar_url' => route('agenda.confirmar', $ag),
                         'finalizar_url' => route('agenda.finalizar', $ag),
@@ -124,26 +129,32 @@ class AgendaController extends Controller
                 ContextoEmpresa::resolver(),
             ));
 
-            $agendamento = $action->executar(AgendamentoData::from([
-                'empresa_id' => isset($dados['empresa_id']) ? (int) $dados['empresa_id'] : null,
-                'cliente_id' => (int) $dados['cliente_id'],
-                'servico_id' => (int) $dados['servico_id'],
-                'atendente_id' => (int) $dados['atendente_id'],
-                'inicio' => Carbon::parse($dados['inicio']),
-                'fim' => ! empty($dados['fim']) ? Carbon::parse($dados['fim']) : null,
-            ]));
+            $agendamento = $action->executar(
+                AgendamentoData::from([
+                    'empresa_id' => isset($dados['empresa_id']) ? (int) $dados['empresa_id'] : null,
+                    'cliente_id' => (int) $dados['cliente_id'],
+                    'servico_id' => (int) $dados['servico_id'],
+                    'atendente_id' => (int) $dados['atendente_id'],
+                    'inicio' => Carbon::parse($dados['inicio']),
+                    'fim' => ! empty($dados['fim']) ? Carbon::parse($dados['fim']) : null,
+                ]),
+                $this->encaixeAutorizado($request),
+            );
 
             return response()->json(['id' => $agendamento->id], 201);
-        } catch (ValidationException $e) {
-            return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
-        } catch (AuthorizationException $e) {
-            return response()->json(['message' => 'Você não tem permissão para esta ação.'], 403);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+            return $this->erroJson($e);
         }
     }
 
-    public function reagendar(Request $request, Agendamento $agendamento): JsonResponse
+    /**
+     * Move inicio/fim de um atendimento.
+     *
+     * Passa pelo mesmo validador da criacao: antes daqui nao sair nada, o
+     * drag-and-drop do calendario empilhava dois clientes no mesmo atendente —
+     * o `reagendar` nao revalidava conflito nenhum.
+     */
+    public function reagendar(Request $request, Agendamento $agendamento, VerificarDisponibilidadeAction $verificar): JsonResponse
     {
         try {
             $this->authorize('update', $agendamento);
@@ -153,19 +164,74 @@ class AgendaController extends Controller
                 'fim' => 'required|date|after:inicio',
             ]);
 
+            $inicio = Carbon::parse($dados['inicio']);
+            $fim = Carbon::parse($dados['fim']);
+
+            $foraExpediente = $verificar->executar(
+                empresaId: (int) $agendamento->empresa_id,
+                atendenteId: (int) $agendamento->atendente_id,
+                inicio: $inicio,
+                fim: $fim,
+                ignorarId: $agendamento->id,
+                forcarHorario: $this->encaixeAutorizado($request),
+            );
+
             $agendamento->update([
-                'inicio' => Carbon::parse($dados['inicio']),
-                'fim' => Carbon::parse($dados['fim']),
+                'inicio' => $inicio,
+                'fim' => $fim,
+                'fora_expediente' => $foraExpediente,
             ]);
 
             return response()->json(['ok' => true]);
-        } catch (ValidationException $e) {
-            return response()->json(['message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos'], 422);
-        } catch (AuthorizationException $e) {
-            return response()->json(['message' => 'Você não tem permissão para esta ação.'], 403);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+            return $this->erroJson($e);
         }
+    }
+
+    /**
+     * O usuario pediu encaixe fora do expediente — e pode?
+     *
+     * Pedir sem permissao e 403, nao um "ignora e segue": silenciar o pedido
+     * faria a tela mostrar "agendado" para quem nao tinha autoridade.
+     */
+    private function encaixeAutorizado(Request $request): bool
+    {
+        if (! $request->boolean('forcar_horario')) {
+            return false;
+        }
+
+        $this->authorize('forcarHorario', Agendamento::class);
+
+        return true;
+    }
+
+    /**
+     * Resposta JSON de erro das rotas AJAX da agenda.
+     *
+     * `fora_expediente` viaja com um `codigo` estavel porque a tela precisa
+     * distinguir "nao pode" de "quer mesmo?" — e texto de mensagem nao e
+     * contrato.
+     */
+    private function erroJson(\Throwable $e): JsonResponse
+    {
+        if ($e instanceof ValidationException) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? 'Dados inválidos',
+            ], 422);
+        }
+
+        if ($e instanceof AuthorizationException) {
+            return response()->json(['message' => 'Você não tem permissão para esta ação.'], 403);
+        }
+
+        if ($e instanceof ForaDoExpedienteException) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'codigo' => ForaDoExpedienteException::CODIGO,
+            ], 422);
+        }
+
+        return response()->json(['message' => $e->getMessage()], $this->statusDoErro($e));
     }
 
     public function index(Request $request): View|RedirectResponse
@@ -186,7 +252,17 @@ class AgendaController extends Controller
                 ->map(fn (MotivoSemCobranca $m) => ['valor' => $m->value, 'label' => $m->label()])
                 ->values();
 
-            return view('agenda::index', compact('atendentes', 'cores', 'motivosSemCobranca'));
+            // A grade do calendario passa a desenhar o expediente configurado,
+            // no lugar do 8–21 que estava fixo no JS.
+            $empresaDaAgenda = $empresaId ?? (int) $request->user()->empresa_id;
+            [$horaInicial, $horaFinal] = $this->expediente->janelaDoCalendario((int) $empresaDaAgenda);
+            $resumoExpediente = $this->expediente->resumo((int) $empresaDaAgenda);
+            $podeForcarHorario = $request->user()->can('agendamento.forcar_horario');
+
+            return view('agenda::index', compact(
+                'atendentes', 'cores', 'motivosSemCobranca',
+                'horaInicial', 'horaFinal', 'resumoExpediente', 'podeForcarHorario',
+            ));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao listar agenda');
         }
@@ -240,7 +316,11 @@ class AgendaController extends Controller
     {
         try {
             $this->authorize('update', $agendamento);
-            $this->service->atualizar($agendamento, AgendamentoData::from($request->validated()));
+            $this->service->atualizar(
+                $agendamento,
+                AgendamentoData::from($request->validated()),
+                $this->encaixeAutorizado($request),
+            );
 
             return redirect()
                 ->route('agenda.index')

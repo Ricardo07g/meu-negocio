@@ -341,9 +341,10 @@ class VendaService
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+        bool $forcarHorario = false,
     ): Agendamento {
-        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
-            $agendamento = $this->criarAgendamento->executar($data);
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo, $forcarHorario) {
+            $agendamento = $this->criarAgendamento->executar($data, $forcarHorario);
 
             $pagamento = $this->criarTituloDoAgendamento(
                 $agendamento, $condicao, $mesReferencia, $recebimentos,
@@ -445,9 +446,10 @@ class VendaService
         ?Carbon $primeiroVencimento = null,
         ?array $parcelasPersonalizadas = null,
         ?FormaRecebimentoPrazo $formaRecebimentoPrazo = null,
+        bool $forcarHorario = false,
     ): VendaEtapas {
-        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo) {
-            $etapas = $this->venderEtapas->executar($data);
+        return DB::transaction(function () use ($data, $condicao, $mesReferencia, $recebimentos, $numeroParcelas, $primeiroVencimento, $parcelasPersonalizadas, $formaRecebimentoPrazo, $forcarHorario) {
+            $etapas = $this->venderEtapas->executar($data, $forcarHorario);
 
             $pagamento = $this->criarPagamento->executar(new CriarPagamentoData(
                 valor_total: (float) $data->valor_total,

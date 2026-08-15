@@ -56,6 +56,16 @@
                     <i class="feather-plus me-2"></i>Novo Agendamento
                 </button>
 
+                <div class="fs-12 text-muted fw-semibold text-uppercase mb-2">Expediente</div>
+                <div class="fs-12 text-muted mb-3 lh-base">
+                    {{ $resumoExpediente }}
+                    @can('empresa.editar')
+                        <a href="{{ route('empresas.index') }}" class="d-block mt-1">Alterar</a>
+                    @endcan
+                </div>
+
+                <hr class="border-dashed my-3">
+
                 <div class="fs-12 text-muted fw-semibold text-uppercase mb-2">Atendentes</div>
                 <div class="form-check py-1 border-bottom mb-2 pb-2">
                     <input class="form-check-input" type="checkbox" id="filtro-todos" checked>
@@ -107,7 +117,10 @@
                      data-events-url="{{ route('agenda.json') }}"
                      data-criar-url="{{ route('agenda.criar-rapido') }}"
                      data-reagendar-template="{{ url('agenda/__ID__/reagendar') }}"
-                     data-motivos-sem-cobranca='@json($motivosSemCobranca)'>
+                     data-motivos-sem-cobranca='@json($motivosSemCobranca)'
+                     data-hora-inicial="{{ $horaInicial }}"
+                     data-hora-final="{{ $horaFinal }}"
+                     data-pode-forcar-horario="{{ $podeForcarHorario ? '1' : '0' }}">
                 </div>
             </div>
         </div>

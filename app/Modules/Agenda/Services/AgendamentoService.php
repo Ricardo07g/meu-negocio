@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Agenda\Services;
 
 use App\Enums\{MotivoSemCobranca, StatusAgendamento};
-use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction, FinalizarAgendamentoAction};
+use App\Modules\Agenda\Actions\{CancelarAgendamentoAction, CriarAgendamentoAction, FinalizarAgendamentoAction, VerificarDisponibilidadeAction};
 use App\Modules\Agenda\DTOs\AgendamentoData;
 use App\Modules\Agenda\Models\Agendamento;
+use App\Modules\Servico\Models\Servico;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -17,6 +18,7 @@ class AgendamentoService
         private CriarAgendamentoAction $criarAgendamento,
         private CancelarAgendamentoAction $cancelarAgendamento,
         private FinalizarAgendamentoAction $finalizarAgendamento,
+        private VerificarDisponibilidadeAction $verificarDisponibilidade,
     ) {}
 
     public function listar(): Collection
@@ -45,9 +47,34 @@ class AgendamentoService
         return $this->criarAgendamento->executar($data);
     }
 
-    public function atualizar(Agendamento $agendamento, AgendamentoData $data): Agendamento
+    /**
+     * Reagenda pelo formulario completo.
+     *
+     * Passa pelo mesmo validador das outras portas (conflito + expediente) e
+     * recalcula o fim quando o inicio muda: antes, mudar so o inicio deixava o
+     * fim antigo no lugar — que podia acabar ANTES do novo inicio.
+     */
+    public function atualizar(Agendamento $agendamento, AgendamentoData $data, bool $forcarHorario = false): Agendamento
     {
         $campos = array_filter($data->toArray(), fn ($v) => $v !== null);
+
+        $inicio = $data->inicio ?? $agendamento->inicio;
+        $servicoId = $data->servico_id ?? $agendamento->servico_id;
+
+        $fim = $data->fim ?? ($data->inicio
+            ? $inicio->copy()->addMinutes(Servico::findOrFail($servicoId)->duracao)
+            : $agendamento->fim);
+
+        $campos['fim'] = $fim;
+        $campos['fora_expediente'] = $this->verificarDisponibilidade->executar(
+            empresaId: (int) $agendamento->empresa_id,
+            atendenteId: (int) ($data->atendente_id ?? $agendamento->atendente_id),
+            inicio: $inicio,
+            fim: $fim,
+            ignorarId: $agendamento->id,
+            forcarHorario: $forcarHorario,
+        );
+
         $agendamento->update($campos);
 
         return $agendamento->fresh();

@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property StatusAgendamento $status
  * @property string|null $observacoes
  * @property MotivoSemCobranca|null $motivo_sem_cobranca
+ * @property bool $fora_expediente
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -56,6 +57,7 @@ class Agendamento extends BaseModel
         'status',
         'observacoes',
         'motivo_sem_cobranca',
+        'fora_expediente',
     ];
 
     protected function casts(): array
@@ -65,6 +67,7 @@ class Agendamento extends BaseModel
             'fim' => 'datetime',
             'status' => StatusAgendamento::class,
             'motivo_sem_cobranca' => MotivoSemCobranca::class,
+            'fora_expediente' => 'boolean',
         ];
     }
 
