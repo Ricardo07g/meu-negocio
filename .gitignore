@@ -24,3 +24,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Evals: resultados sao artefatos de execucao. Um exemplo real fica versionado
+# em evals/resultados/exemplo-triggering.tsv como evidencia.
+evals/resultados/triggering-*.tsv

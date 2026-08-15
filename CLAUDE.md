@@ -60,6 +60,10 @@ Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
 - **Formatacao**: `pint.json` versionado — `declare(strict_types=1)` + imports agrupados/ordenados.
   Rode `vendor/bin/pint`.
 - **Commits**: `tipo(modulo): mensagem` (feat/fix/refactor/docs/chore/test).
+- **Fluxo git**: trabalho novo **sempre a partir da `main` atualizada**, em branch
+  `tipo/descricao-curta`, com PR. **A `main` publica em producao** (Railway) — mergear e publicar,
+  entao confirme antes. `/nova-feature <descricao>` prepara o terreno; skill `fluxo-git` tem o ciclo
+  completo. Um hook recusa commit/push direto na main.
 
 ---
 
@@ -142,16 +146,23 @@ Fonte canonica em `.claude/` (versionado, auto-descoberto); espelhada como plugi
 container (`docker exec meu-negocio-app <cmd>`).
 
 - **Rules lazy** (`.claude/rules/`): conhecimento ativado por `paths:` —
-  `multi-tenant-seguranca`, `modelo-financeiro`, `ui-duralux`, `banco-de-dados`, `modulos/{modulo}`,
-  `arquivos`, `fluxos`. Carregam so ao editar arquivos do escopo (mantem o contexto enxuto).
+  `multi-tenant-seguranca`, `modelo-financeiro`, `ui-duralux`, `javascript-telas`, `banco-de-dados`,
+  `modulos/{modulo}`, `arquivos`, `fluxos`. Carregam so ao editar arquivos do escopo (contexto enxuto).
 - **Skills** (`.claude/skills/`): `padroes-projeto`, `scaffold-modulo`, `gerar-teste-model`,
   `checklist-pre-pr`, `validar-implementacao`, `revisar-codigo`, `depurar`, `criar-migration`,
-  `adicionar-permissao`, `documentar-adr`, `escrever-commit`.
+  `adicionar-permissao`, `documentar-adr`, `escrever-commit`, `fluxo-git`.
 - **Subagents** (`.claude/agents/`): `laravel-test-writer`, `laravel-module-scaffolder`,
   `tenancy-security-reviewer`, `tech-product-owner` (+ global `laravel-senior-architect`).
-- **Slash commands** (`.claude/commands/`): `/testar`, `/migrar`, `/auditar-tenancy`, `/pre-pr`.
-- **Hooks** (`.claude/settings.json`): Pint ao editar `.php`, bloqueio de `.env`, lembrete de
-  `down()` em migrations.
+- **Slash commands** (`.claude/commands/`): `/nova-feature`, `/testar`, `/migrar`, `/auditar-tenancy`,
+  `/pre-pr`.
+- **Hooks** (`.claude/settings.json` + `hooks/lib.sh`): Pint ao editar `.php`; **lint de Blade**
+  (SweetAlert/`@json`/diretivas); bloqueio de `.env`; **bloqueio de commit/push na main**; **bloqueio
+  de edicao no `devkit/`** (e gerado) + **re-sync automatico** ao mexer em `.claude/`; lembrete de
+  `down()` em migrations. Os hooks leem o stdin via `lib.sh` (jq **ou** python3) — dependia so de
+  `jq`, que nao existe no macOS, e falhavam calados.
+- **Evals** (`evals/`): a automacao e medida, nao so escrita. Nivel 1 (integridade, no CI, sem LLM),
+  nivel 2 (`bash evals/bin/triggering.sh`), nivel 3 (A/B com grader). Ver `evals/README.md`.
+- **Diagnostico**: `bash bin/doctor.sh` (hooks ativos? container? main protegida? branches obsoletas?).
 
 ---
 

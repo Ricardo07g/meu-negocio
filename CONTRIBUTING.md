@@ -18,9 +18,56 @@ Exemplos reais do `git log`:
 
 Quando o commit fizer parte de um item do backlog em [`docs/FECHAMENTO_PORTFOLIO.md`](docs/FECHAMENTO_PORTFOLIO.md), referencie o ID (`FECH-XXX`) no final.
 
-## Branches
+## Fluxo de trabalho (branches e PR)
 
-Fluxo simples: `main` é a base. Para mudanças, abra uma feature branch nomeada como `feat/descricao-curta` ou `fix/descricao-curta` e abra um Pull Request contra `main`.
+> **A `main` publica em produção.** O deploy no Railway acontece por git: o que entra na `main` vai ao ar. Ela não é uma branch de integração onde se acumula trabalho — é o que os usuários estão rodando agora. Todo o fluxo abaixo existe por causa disso.
+
+### 1. Comece sempre da `main` atualizada
+
+```bash
+git checkout main && git pull
+git checkout -b tipo/descricao-curta
+```
+
+Partir de uma branch antiga faz o PR carregar commits que já estão lá e polui a revisão; partir de outra feature branch acopla as duas.
+
+### 2. Nomeie no padrão `tipo/descricao-curta`
+
+Em português, sem acento, com hífen, descrevendo o **resultado** (`feat/renovar-teste-gratuito`, não `feat/mexer-na-assinatura`). Os tipos são os mesmos dos commits: `feat`, `fix`, `refactor`, `perf`, `docs`, `chore`, `test`.
+
+**Uma branch, um assunto.** Se aparecer um bug sem relação no meio do caminho, anote e trate depois: PR que faz duas coisas não pode ser revertido pela metade — e reverter é a ferramenta mais rápida quando algo quebra em produção.
+
+### 3. Antes de abrir o PR
+
+Rode a porta local (mesmos passos do CI):
+
+```bash
+docker compose exec app composer test
+docker compose exec app vendor/bin/phpstan analyse --no-progress
+docker compose exec app vendor/bin/pint --test
+```
+
+Se mexeu em **JS de tela**, clique de verdade no navegador: teste HTTP não pega handler que não dispara.
+
+### 4. Abra, espere o CI, mergeie
+
+```bash
+git push -u origin <branch>
+gh pr create --base main          # o template já pergunta o que importa
+gh pr checks <n> --watch
+gh pr merge <n> --merge --delete-branch
+```
+
+`--merge` e não `--squash`: o histórico preserva os commits individuais, e a separação `feat`/`test`/`docs` só tem valor se sobreviver ao merge.
+
+### Configuração do repositório
+
+```bash
+bash bin/configurar-github.sh --check   # mostra o estado
+bash bin/configurar-github.sh           # aplica: PR obrigatório, CI obrigatório, branch deletada ao mergear
+bash bin/limpar-branches.sh             # remove branches remotas já mergeadas
+bash bin/doctor.sh                      # diagnóstico do ambiente e da automação
+```
 
 ## Como rodar testes e lint
 
@@ -35,9 +82,10 @@ Ambos precisam passar antes do PR. Se você tocou em arquivos PHP, rode também 
 
 Quem desenvolve com o Claude Code tem atalhos prontos em `.claude/` (detalhes em [`docs/AUTOMACAO.md`](docs/AUTOMACAO.md)):
 
-- **Slash commands**: `/testar [filtro]`, `/migrar`, `/pre-pr` (porta de qualidade) e `/auditar-tenancy`.
-- **Skills**: `validar-implementacao` valida uma feature ponta-a-ponta (testes do módulo + Pint + PHPStan + smoke); `revisar-codigo`, `depurar`, `criar-migration`, `adicionar-permissao` e outras guiam tarefas no padrão do projeto.
+- **Slash commands**: `/nova-feature <descrição>` (cria a branch a partir da main atualizada), `/testar [filtro]`, `/migrar`, `/pre-pr` (porta de qualidade) e `/auditar-tenancy`.
+- **Skills**: `fluxo-git` conduz o ciclo branch → commits → PR → merge; `validar-implementacao` valida uma feature ponta-a-ponta (testes do módulo + Pint + PHPStan + smoke); `revisar-codigo`, `depurar`, `criar-migration`, `adicionar-permissao` e outras guiam tarefas no padrão do projeto.
 - **Knowledge lazy**: regras de domínio em `.claude/rules/` carregam sozinhas conforme o arquivo que você edita.
+- **Hooks**: formatam o PHP editado, conferem o Blade, e recusam commit na `main` ou edição no `devkit/` (que é gerado).
 
 Não é obrigatório — `composer test` + `pint` cobrem o essencial — mas usar `/pre-pr` antes de abrir o PR reproduz localmente a porta do CI.
 
