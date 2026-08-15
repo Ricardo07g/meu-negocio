@@ -38,19 +38,32 @@ escopo — mantendo o contexto barato. Substituem a antiga pasta `.ai/`, que era
 
 ## Hooks (qualidade automatica)
 
-Definidos em `.claude/settings.json`; scripts leem o JSON do stdin via `jq` e **falham de forma
-segura** (nunca travam o fluxo). PHP/Pint rodam no container (`docker exec`), pois nao ha PHP no host.
+Definidos em `.claude/settings.json`. Todos leem o JSON do stdin pela **`hooks/lib.sh`** e **falham de
+forma segura** (nunca travam o fluxo). PHP/Pint rodam no container (`docker exec`), pois nao ha PHP no
+host.
 
-- **PostToolUse `Write|Edit`** -> `hooks/pint.sh`: formata o `.php` recem-editado com o Pint.
-- **PreToolUse `Write|Edit`** -> `hooks/guard-env.sh`: bloqueia edicao de `.env` real (permite `.env.example`).
-- **PreToolUse `Bash`** -> `hooks/guard-migration.sh`: lembra de `down()` reversivel ao aplicar migrations.
+| Evento | Hook | O que faz |
+|---|---|---|
+| PreToolUse `Write\|Edit` | `guard-env.sh` | bloqueia edicao de `.env` real (permite `.env.example`) |
+| PreToolUse `Write\|Edit` | `guard-devkit.sh` | bloqueia edicao em `devkit/` — e **gerado**; aponta o arquivo de origem em `.claude/` |
+| PreToolUse `Bash` | `guard-migration.sh` | lembra de `down()` reversivel ao aplicar migrations |
+| PreToolUse `Bash` | `guard-branch.sh` | recusa `git commit`/`push` na **main** (ela publica em producao); avisa em `gh pr merge` |
+| PostToolUse `Write\|Edit` | `pint.sh` | formata o `.php` recem-editado |
+| PostToolUse `Write\|Edit` | `blade-lint.sh` | confere `.blade.php`: SweetAlert sem fallback, interpolacao em aspas simples, diretivas desbalanceadas |
+| PostToolUse `Write\|Edit` | `sync-devkit.sh` | re-gera o `devkit/` quando `.claude/` muda — o passo de drift do CI deixa de falhar por esquecimento |
+
+> **Por que existe a `lib.sh`.** Os hooks liam o stdin com `jq`, que **nao vem instalado no macOS**.
+> Sem ele, cada hook caia no `exit 0` e saia calado: o `guard-env` parou de proteger o `.env` sem
+> nenhum sinal disso. A lib tenta `jq`, cai para `python3` e, se faltarem os dois, avisa uma vez por
+> dia. Falhar de forma segura e certo; falhar de forma **invisivel** nao e — e e o que
+> `bin/doctor.sh` e o teste de integridade passaram a vigiar.
 
 ## Subagents
 
 - **laravel-test-writer** — testes Feature/Unit no padrao da suite (trait `CriaTenant`, SQLite in-memory) + factories.
 - **laravel-module-scaffolder** — esqueleto de modulo (Controller fino, Service/Action, Request/DTO unificados, Policy registrada, BaseModel, Views com `_form`).
 - **tenancy-security-reviewer** — revisor read-only de isolamento `rede_id`/`empresa_id`, Policies e `authorize()`.
-- **tech-product-owner** — PO tecnico (especifica features, criterios de aceite, trade-offs); tem memoria de projeto em `.claude/agent-memory/`.
+- **tech-product-owner** — PO tecnico (especifica features, criterios de aceite, trade-offs).
 
 O agente global `laravel-senior-architect` (fora do repo) tambem e usado para revisao arquitetural.
 
@@ -70,13 +83,27 @@ fluxo de evals do skill-creator (ver `docs/` da automacao).
 - **adicionar-permissao** — permissao/perfil spatie no padrao `recurso.acao` + Policy registrada.
 - **documentar-adr** — ADR no padrao `docs/ADR/`.
 - **escrever-commit** — mensagem `tipo(modulo): ...`.
+- **fluxo-git** — o ciclo completo: partir da main atualizada, nomear a branch, agrupar commits,
+  abrir o PR, mergear (= publicar).
 
 ## Slash commands
 
+- `/nova-feature <descricao>` — comeca o trabalho a partir da main atualizada, criando a branch no padrao.
 - `/testar [filtro]` — roda a suite no container.
 - `/migrar` — aplica migrations no container.
 - `/auditar-tenancy [escopo]` — dispara o `tenancy-security-reviewer`.
 - `/pre-pr` — porta de qualidade (Pint + PHPStan + testes) + `checklist-pre-pr`.
+
+## Fluxo git — a main publica em producao
+
+Nao e uma branch de integracao: e o que os usuarios estao rodando. Por isso o ciclo e sempre
+`main atualizada -> branch tipo/descricao -> PR -> CI verde -> merge`, e o merge se confirma antes.
+
+- `bash bin/configurar-github.sh` — aplica no GitHub o que o fluxo pressupoe: PR obrigatorio, check
+  "Tests + Pint" obrigatorio, force-push bloqueado, branch deletada ao mergear. `--check` so mostra o estado.
+- `bash bin/limpar-branches.sh` — remove as branches remotas ja mergeadas (o passivo).
+- `bash bin/doctor.sh` — diagnostico: hooks ativos, container no ar, devkit em sincronia, main
+  protegida, branches obsoletas, Chrome/puppeteer para o smoke.
 
 ## Como as pecas se compoem
 
@@ -112,14 +139,29 @@ lado sem re-sincronizar. O que e espelhado: `agents/`, `skills/`, `commands/`, `
 `${CLAUDE_PLUGIN_ROOT}/hooks/`). **Nao** espelhados: `rules/` (conhecimento especifico deste projeto),
 `settings.json` e `agent-memory/` (estado de runtime).
 
-## Qualidade medida (evals das skills)
+## Qualidade medida (evals)
 
-As skills nao sao so escritas — sao **avaliadas**. As 3 flagship (`validar-implementacao`,
-`revisar-codigo`, `depurar`) passaram por um harness A/B (skill-creator): para cada cenario, dois
-agentes resolvem a MESMA tarefa sobre este codigo — um com a skill, outro sem (baseline) — e um
-grader pontua o resultado contra criterios objetivos.
+A automacao nao e so escrita — e **medida**, e o harness esta versionado em **[`evals/`](../evals/README.md)**
+para que a afirmacao seja verificavel, nao declarada. Tres niveis:
 
-Iteracao 1 (6 cenarios reais, modelo Sonnet, 1 run por configuracao):
+| Nivel | Pergunta | Custo | Onde roda |
+|---|---|---|---|
+| **1 — Integridade** | rules apontam para arquivos que existem? `paths:` casa com algo? hooks funcionam? | zero | **CI**, a cada push |
+| **2 — Triggering** | a skill certa dispara — e fica quieta quando nao e o caso? | centavos | sob demanda |
+| **3 — A/B** | a skill melhora o resultado vs. o mesmo agente sem ela? | dolares | sob demanda |
+
+```bash
+docker exec meu-negocio-app php artisan test --filter=AutomacaoIntegridadeTest   # nivel 1
+bash evals/bin/triggering.sh                                                     # nivel 2
+```
+
+O nivel 1 (`tests/Feature/AutomacaoIntegridadeTest.php`) e o que mais paga no dia a dia: pega a rule
+cujo `paths:` nao casa com nada — ela existe, parece saudavel e **nunca carrega** — e o hook que
+depende so de `jq`. O nivel 2 mede a `description`, unico texto da skill sempre em contexto, e conta
+falso positivo separado de falso negativo (pedem correcoes opostas). Os cenarios do nivel 3 saem de
+defeitos que aconteceram de verdade aqui.
+
+### Iteracao 1 do A/B (6 cenarios reais, modelo Sonnet, 1 run por configuracao)
 
 | Metrica | Com skill | Sem skill |
 |---------|-----------|-----------|
@@ -136,6 +178,11 @@ benchmark estatistico.
 
 ## Pre-requisitos
 
+> Confira tudo de uma vez com **`bash bin/doctor.sh`** — ele testa o hook de verdade em vez de
+> presumir que esta ativo.
+
 - Docker Compose rodando (container `meu-negocio-app`; override via `MEUNEGOCIO_APP_CONTAINER`).
-- `jq` no host (hooks). `python3` no host/CI (gera o `hooks.json` no `sync-devkit.sh`).
+- `jq` **ou** `python3` no host (hooks; a `lib.sh` usa o que houver). `python3` no host/CI (gera o
+  `hooks.json` no `sync-devkit.sh`).
+- `claude` no PATH para os evals de nivel 2 e 3 (opcional).
 - Smoke da `validar-implementacao`: `google-chrome` + `puppeteer-core` no host (opcional; sem eles, o smoke e pulado e a tela e coberta por teste de view).
