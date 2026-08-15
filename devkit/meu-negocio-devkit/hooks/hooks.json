@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-env.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-devkit.sh"
           }
         ]
       },
@@ -16,6 +20,10 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-migration.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-branch.sh"
           }
         ]
       }
@@ -28,6 +36,18 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/pint.sh",
             "statusMessage": "Formatando com Pint...",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/blade-lint.sh",
+            "statusMessage": "Conferindo o Blade...",
+            "timeout": 20
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sync-devkit.sh",
+            "statusMessage": "Sincronizando o devkit...",
             "timeout": 60
           }
         ]

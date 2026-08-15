@@ -1,6 +1,6 @@
 ---
 name: padroes-projeto
-description: "Blueprints e convencoes de codigo do projeto Meu Negocio (Laravel 13 multi-tenant). Consulte SEMPRE que for escrever ou revisar codigo Laravel neste repo — criar/editar Controller, Service, Action, Model, DTO, Request, Policy, Migration, View ou factory — para garantir que o resultado segue o padrao real dos modulos existentes em vez de um estilo generico."
+description: "Blueprints e convencoes de codigo do projeto Meu Negocio (Laravel 13 multi-tenant). Consulte SEMPRE que for escrever ou revisar codigo Laravel neste repo — criar/editar Controller, Service, Action, Model, DTO, Request, Policy, Migration, View ou factory. Use tambem para responder ONDE algo mora e COMO se faz aqui ('onde fica a regra de negocio?', 'qual o padrao de Controller?', 'onde ponho isso?'), garantindo o padrao real dos modulos existentes em vez de um estilo generico."
 ---
 
 # Padroes de codigo — Meu Negocio
