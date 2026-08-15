@@ -24,11 +24,17 @@ CRUD de usuarios da rede (admin) + "Meu Perfil" self-service. Usuario e a entida
 - `CriarUsuarioAction` — valida plano (`ValidarPlanoAction->executar($rede, 'usuario')`), cria, `assignRole`, sincroniza pivot.
 - `UsuarioData` (DTO unico criar/editar): `nome, email, ?password, ?empresa_id, ?papel, ?ativo, ?atende, ?empresas[]`.
 - `SalvarUsuarioRequest` (`isMethod('post')` decide criar/editar). `AtualizarPerfilRequest`, `AtualizarSenhaPerfilRequest` (self-service).
-- `UsuarioPolicy` — `viewAny/create` por permissao `usuario.*`; `update` exige mesma `rede_id` + `podeAcessarEmpresa($alvo->empresa_id)`; `delete` exige mesma `rede_id`.
+- `UsuarioPolicy` — `viewAny/create` por permissao `usuario.*`; `update` exige mesma `rede_id` +
+  alcance (Admin alcanca toda a rede; nao-admin so quem compartilha empresa); `delete` exige mesma `rede_id`.
+  **Nao autorize por `$alvo->empresa_id`**: e preferencia de login, costuma ser nulo (a tela nem tem
+  o campo) e `podeAcessarEmpresa(null)` devolve false ANTES de checar o papel — era o 403 que batia
+  ate no Admin.
 
 ## Regras de negocio / gotchas
 - **Pivot `empresa_usuario`** (`rede_id, empresa_id, usuario_id`) e a fonte de verdade do conjunto de empresas
   acessiveis (relacao `empresas()`). `empresa_id` na tabela e so a empresa default ao logar (preferencia, NAO barreira de tenancy).
+  O form **nao tem** campo de empresa default — `CriarUsuarioAction`/`UsuarioService` preenchem com a
+  primeira empresa do pivot (antes nascia nulo, e o usuario ficava sem unidade para abrir no login).
 - `SalvarUsuarioRequest`: nao-admin exige `empresas` array com `min:1`; Admin nao precisa de pivot (acessa tudo). `empresas.*` validados como pertencentes a propria `rede_id`.
 - Ao sincronizar pivot (Action e Service): o `sync` precisa preencher `rede_id` no pivot — `mapWithKeys(fn($id) => [(int)$id => ['rede_id' => $usuario->rede_id]])`.
 - `CriarUsuarioAction`: `atende` default = `($papel === 'Admin')` quando nao informado; `ativo` sempre true na criacao.

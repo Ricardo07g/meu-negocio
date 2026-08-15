@@ -23,7 +23,10 @@ class CriarUsuarioAction
 
         $usuario = Usuario::create([
             'rede_id' => $rede->id,
-            'empresa_id' => $data->empresa_id,
+            // A tela nao tem campo de empresa default — so os checkboxes do
+            // pivot. Sem este fallback todo funcionario nascia com `empresa_id`
+            // nulo e, no login, sem unidade para abrir.
+            'empresa_id' => $data->empresa_id ?? $this->primeiraEmpresa($data),
             'nome' => $data->nome,
             'email' => $data->email,
             'password' => $data->password,
@@ -42,6 +45,14 @@ class CriarUsuarioAction
         }
 
         return $usuario;
+    }
+
+    /** Empresa default = a primeira unidade a que o usuario recebeu acesso. */
+    private function primeiraEmpresa(UsuarioData $data): ?int
+    {
+        $primeira = collect($data->empresas ?? [])->first();
+
+        return $primeira !== null ? (int) $primeira : null;
     }
 
     /**

@@ -66,6 +66,13 @@ class UsuarioService
                 ->mapWithKeys(fn ($id) => [(int) $id => ['rede_id' => $usuario->rede_id]])
                 ->all();
             $usuario->empresas()->sync($sync);
+
+            // Usuario sem empresa default (criado pela tela, que nao tem o campo)
+            // ganha a primeira unidade a que tem acesso — senao fica sem unidade
+            // para abrir no login.
+            if ($usuario->empresa_id === null && ($primeira = collect($data->empresas)->first()) !== null) {
+                $usuario->update(['empresa_id' => (int) $primeira]);
+            }
         }
 
         return $usuario->fresh();
