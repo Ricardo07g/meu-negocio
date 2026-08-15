@@ -145,8 +145,9 @@ class Empresa extends BaseModel
     /**
      * Ja teve teste e ele acabou.
      *
-     * A data sobrevive ao rebaixamento justamente para responder isto: `trial_expira_em`
-     * nulo significa "nunca teve teste", nao "o teste acabou".
+     * Serve so para o texto da tela ("terminou em dd/mm" vs "esta no Grátis"): a data e
+     * nula tanto em quem nunca testou quanto em quem foi rebaixado pela versao antiga do
+     * `EncerrarTrialAction`, que zerava a coluna. Nao use isto para decidir elegibilidade.
      */
     public function trialVencido(): bool
     {
@@ -154,15 +155,19 @@ class Empresa extends BaseModel
     }
 
     /**
-     * O Admin pode reabrir o teste desta unidade?
+     * O Admin pode abrir (ou reabrir) o teste desta unidade?
      *
-     * Enquanto nao ha gateway de pagamento, o teste vencido e renovavel em vez de ser um
-     * beco sem saida (ADR-0013). So vale para quem caiu no Gratis: numa licenca paga
-     * "renovar o teste" seria deixar de cobrar quem ja contratou.
+     * A pergunta que importa e o plano atual, nao o historico: **quem esta no Gratis pode
+     * testar o Pro**. Exigir um teste anterior deixava de fora justamente quem mais
+     * precisa — as contas rebaixadas antes desta feature existir, cuja `trial_expira_em`
+     * o codigo antigo zerou, e que ficariam presas no Gratis para sempre.
+     *
+     * A guarda que sobra e a que tem consequencia: numa licenca paga, reabrir o teste
+     * seria deixar de cobrar quem ja contratou (ADR-0013).
      */
     public function podeRenovarTrial(): bool
     {
-        return $this->trialVencido() && $this->plano->slug === Plano::GRATIS;
+        return ! $this->emTrial() && $this->plano->slug === Plano::GRATIS;
     }
 
     /** Dias que faltam para o teste acabar (0 quando nao ha trial vigente). */

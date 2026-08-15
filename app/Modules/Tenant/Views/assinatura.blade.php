@@ -133,22 +133,29 @@
         </div>
     </div>
 
-    {{-- Teste vencido: as duas saidas (renovar ou trocar de plano) ficam lado a lado. --}}
+    {{-- No Gratis: as duas saidas (testar o Pro ou contratar) ficam lado a lado. --}}
     @if ($empresaVigente?->podeRenovarTrial())
+        @php $jaTestou = $empresaVigente->trialVencido(); @endphp
         <div class="alert alert-warning d-flex flex-wrap align-items-center gap-2 mb-3" role="alert">
             <i class="feather-alert-circle me-1"></i>
             <div class="flex-grow-1">
-                <strong>O teste de {{ $empresaVigente->nome }} terminou em
-                    {{ $empresaVigente->trial_expira_em->format('d/m/Y') }}.</strong>
-                A unidade voltou para o plano Grátis. Você pode contratar o Pro ou renovar o teste
-                por mais {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias.
+                @if ($jaTestou)
+                    <strong>O teste de {{ $empresaVigente->nome }} terminou em
+                        {{ $empresaVigente->trial_expira_em->format('d/m/Y') }}.</strong>
+                    A unidade voltou para o plano Grátis.
+                @else
+                    <strong>{{ $empresaVigente->nome }} está no plano Grátis.</strong>
+                @endif
+                Você pode contratar o Pro ou usá-lo por
+                {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias de teste, sem cobrança.
             </div>
             @if ($podeRenovarTeste)
                 <button type="button" class="btn btn-warning btn-renovar-teste"
                     data-empresa-id="{{ $empresaVigente->id }}"
                     data-empresa-nome="{{ $empresaVigente->nome }}">
                     <i class="feather-refresh-cw me-1"></i>
-                    Renovar por {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias
+                    {{ $jaTestou ? 'Renovar' : 'Testar o Pro' }} por
+                    {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias
                 </button>
             @endif
         </div>
@@ -305,7 +312,8 @@
                                                     <button type="button" class="btn btn-sm btn-outline-warning btn-renovar-teste"
                                                         data-empresa-id="{{ $licenca->id }}"
                                                         data-empresa-nome="{{ $licenca->nome }}">
-                                                        <i class="feather-refresh-cw me-1"></i> Renovar teste
+                                                        <i class="feather-refresh-cw me-1"></i>
+                                                        {{ $licenca->trialVencido() ? 'Renovar teste' : 'Testar o Pro' }}
                                                     </button>
                                                 @else
                                                     <span class="text-muted">—</span>
@@ -542,6 +550,15 @@
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // O SweetAlert2 embarcado no Duralux e anterior ao `isConfirmed`: ele resolve com
+    // `{value: true}`. Confiar so no campo novo faz o botao abrir o modal e nao fazer
+    // nada ao confirmar — era o que acontecia com a troca de plano. Aceita os dois.
+    function confirmou(resultado) {
+        if (! resultado) return false;
+
+        return resultado.isConfirmed === true || resultado.value === true;
+    }
+
     document.querySelectorAll('.btn-trocar-plano').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const id = this.dataset.planoId;
@@ -559,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 confirmButtonText: 'Sim, fazer upgrade',
                 cancelButtonText: 'Cancelar',
             }).then(function (resultado) {
-                if (resultado.isConfirmed) {
+                if (confirmou(resultado)) {
                     document.getElementById('input-plano-id').value = id;
                     document.getElementById('form-transicionar-plano').submit();
                 }
@@ -582,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 confirmButtonText: 'Sim, renovar o teste',
                 cancelButtonText: 'Cancelar',
             }).then(function (resultado) {
-                if (resultado.isConfirmed) {
+                if (confirmou(resultado)) {
                     document.getElementById('input-renovar-empresa-id').value = id;
                     document.getElementById('form-renovar-teste').submit();
                 }

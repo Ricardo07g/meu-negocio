@@ -211,6 +211,31 @@ class AssinaturaTest extends TestCase
         $resp->assertSessionHas('erro');
     }
 
+    public function test_unidade_no_gratis_sem_historico_de_teste_pode_renovar(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $empresa = $contexto['empresa'];
+        $gratis = Plano::where('slug', Plano::GRATIS)->firstOrFail();
+
+        // Estado de quem foi rebaixado pela versao ANTERIOR do EncerrarTrialAction, que
+        // zerava a data — e de qualquer unidade que caiu no Gratis sem teste registrado.
+        $empresa->update(['plano_id' => $gratis->id, 'trial_expira_em' => null]);
+
+        $this->assertTrue($empresa->refresh()->podeRenovarTrial());
+
+        // A tela precisa se virar sem data de teste anterior (nada de format() em null).
+        $this->get(route('assinatura.index'))
+            ->assertOk()
+            ->assertSee('Testar o Pro')
+            ->assertSee('está no plano Grátis', escape: false);
+
+        $this->post(route('assinatura.renovar-teste'), ['empresa_id' => $empresa->id])
+            ->assertRedirect(route('assinatura.index'))
+            ->assertSessionHas('sucesso');
+
+        $this->assertTrue($empresa->refresh()->emTrial());
+    }
+
     public function test_tela_oferece_a_renovacao_quando_o_teste_venceu(): void
     {
         $contexto = $this->criarRedeAutenticada();
@@ -297,9 +322,12 @@ class AssinaturaTest extends TestCase
         $this->assertSame($expiraEm->toDateString(), $empresa->fresh()->trial_expira_em->toDateString());
     }
 
-    public function test_renovar_e_rejeitado_em_unidade_que_nunca_teve_teste(): void
+    public function test_renovar_e_rejeitado_em_unidade_contratada_direto_no_pro(): void
     {
         $contexto = $this->criarRedeAutenticada();
+
+        // Unidade contratada depois nasce paga, sem teste: o que a barra e a licenca
+        // paga, nao a ausencia de historico.
         $outra = $this->criarEmpresaExtra($contexto['rede']->id, 'Filial Centro');
         session(['empresas_atuais' => [$contexto['empresa']->id, $outra->id]]);
 

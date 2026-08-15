@@ -354,8 +354,10 @@
             </div>
             <div class="main-content">
                 {{-- Teste gratuito da unidade: ao vencer, a licenca cai para o Gratis.
-                     So o Admin ve — assinatura e assunto do dono da conta. --}}
+                     So o Admin ve — assinatura e assunto do dono da conta. Dentro da propria
+                     tela de assinatura o aviso e redundante: la o alerta ja traz o botao. --}}
                 @can('viewAny', \App\Modules\Tenant\Models\Fatura::class)
+                @unless(request()->routeIs('assinatura.index'))
                 @if($empresaVigente?->emTrial())
                 @php $diasDeTeste = $empresaVigente->diasRestantesTrial(); @endphp
                 <div class="alert alert-info d-flex align-items-center" role="alert">
@@ -375,13 +377,18 @@
                 <div class="alert alert-warning d-flex align-items-center" role="alert">
                     <i class="feather-alert-circle me-2"></i>
                     <div class="flex-grow-1">
-                        <strong>Seu teste do plano Pro terminou.</strong>
-                        Esta unidade está no plano Grátis — renove o teste ou mude de plano para
-                        voltar a usar estoque e financeiro.
+                        @if($empresaVigente->trialVencido())
+                            <strong>Seu teste do plano Pro terminou.</strong>
+                        @else
+                            <strong>Esta unidade está no plano Grátis.</strong>
+                        @endif
+                        Estoque e financeiro estão fora — teste o Pro por
+                        {{ \App\Modules\Tenant\Models\Empresa::DIAS_DE_TRIAL }} dias ou contrate o plano.
                     </div>
                     <a href="{{ route('assinatura.index') }}" class="btn btn-sm btn-warning ms-2">Ver opções</a>
                 </div>
                 @endif
+                @endunless
                 @endcan
 
                 {{-- Flash messages --}}
@@ -564,15 +571,17 @@
         });
     </script>
 
-    {{-- SweetAlert2: flash messages --}}
+    {{-- SweetAlert2: flash messages.
+         `@json` e nao `'{{ }}'`: interpolar dentro de aspas simples exibia `&quot;` no lugar
+         das aspas da mensagem e quebrava o script inteiro se o texto tivesse apostrofo. --}}
     @if(session('sucesso'))
     <script>
-        Swal.fire({ icon: 'success', title: 'Sucesso!', text: '{{ session('sucesso') }}', timer: 3000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: 'Sucesso!', text: @json(session('sucesso')), timer: 3000, showConfirmButton: false });
     </script>
     @endif
     @if(session('erro'))
     <script>
-        Swal.fire({ icon: 'error', title: 'Erro', text: '{{ session('erro') }}' });
+        Swal.fire({ icon: 'error', title: 'Erro', text: @json(session('erro')) });
     </script>
     @endif
     @if($errors->any())

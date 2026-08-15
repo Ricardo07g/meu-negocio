@@ -33,16 +33,11 @@ class RenovarTrialAction
     }
 
     /**
-     * Renovar so faz sentido para quem ja testou, cujo teste acabou e que caiu no Gratis.
+     * Quem esta no Gratis pode testar o Pro — o historico de testes anteriores nao entra
+     * na conta (ver `Empresa::podeRenovarTrial()`).
      */
     private function validarElegibilidade(Empresa $empresa): void
     {
-        if ($empresa->trial_expira_em === null) {
-            throw new NegocioException(
-                "A unidade \"{$empresa->nome}\" nunca teve teste gratuito — ela foi contratada já no plano pago."
-            );
-        }
-
         if ($empresa->emTrial()) {
             throw new NegocioException(
                 "O teste da unidade \"{$empresa->nome}\" ainda está ativo: faltam "

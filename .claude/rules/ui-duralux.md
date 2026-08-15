@@ -27,6 +27,12 @@ O tema usa Feather como **fonte CSS**: use a classe `feather-nome` (ex.: `<i cla
   `bg-secondary` (estornado).
 - **Modais SweetAlert**: inputs `width:100%;max-width:100%;box-sizing:border-box;`, textareas
   `rows="3"`, cor primaria `#3454d1`.
+- **SweetAlert2 do Duralux e ANTIGO** (`public/assets/vendors/js/sweetalert2.min.js`): resolve com
+  `{value: true}`, **nao** tem `isConfirmed`. Confiar so em `result.isConfirmed` faz o modal abrir e
+  o botao nao fazer nada ao confirmar — falha silenciosa, sem erro no console, que teste HTTP nao
+  pega (so clique real no browser). Use `result.value` (padrao do repo) ou aceite os dois.
+- **Flash em Swal**: passe a mensagem com `@json(session('sucesso'))`, nunca `'{{ session(...) }}'` —
+  interpolar em aspas simples exibe `&quot;` no lugar das aspas e quebra o script se houver apostrofo.
 - **Ações por permissao**: gates `@can(...)` ocultam itens de menu/dropdown; checar plano para
   ocultar financeiro/estoque quando o plano nao permite.
 - **Confirmacao destrutiva**: SweetAlert2 via `data-confirm`.
