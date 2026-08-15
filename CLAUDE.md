@@ -118,7 +118,11 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
   Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
   `_FactoriesSmokeTest`.
-- **338 testes** (1294 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **O que cada feature precisa ter de teste e uma regua, nao um conselho**:
+  `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
+  Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
+  por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
+- **728 testes** (2603 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda, dashboard, licenca por empresa, trial (incluindo
   renovacao e visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro
   de validacao) e o agendador HTTP.
@@ -131,6 +135,9 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - `.github/workflows/ci.yml` em `push`/`pull_request` para `main`: setup PHP 8.3 (pcov) -> composer
   install -> key:generate -> **PHPStan** (nivel 5 + baseline) -> **testes** (`--coverage --min=30`)
   -> **Pint** (`--test`) -> **sync devkit** (`bin/sync-devkit.sh --check`).
+- `.github/workflows/code-review.yml` em `pull_request`: revisao automatica que **comenta** no PR
+  (nunca reprova), priorizando tenancy, JS de tela e a regua de testes. E o unico revisor do fluxo
+  que nao escreveu o codigo — todo o resto e auto-review. Sem o secret `ANTHROPIC_API_KEY`, pula.
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
@@ -146,8 +153,9 @@ Fonte canonica em `.claude/` (versionado, auto-descoberto); espelhada como plugi
 container (`docker exec meu-negocio-app <cmd>`).
 
 - **Rules lazy** (`.claude/rules/`): conhecimento ativado por `paths:` —
-  `multi-tenant-seguranca`, `modelo-financeiro`, `ui-duralux`, `javascript-telas`, `banco-de-dados`,
-  `modulos/{modulo}`, `arquivos`, `fluxos`. Carregam so ao editar arquivos do escopo (contexto enxuto).
+  `multi-tenant-seguranca`, `modelo-financeiro`, `ui-duralux`, `javascript-telas`,
+  `testes-por-feature`, `banco-de-dados`, `modulos/{modulo}`, `arquivos`, `fluxos`. Carregam so ao
+  editar arquivos do escopo (contexto enxuto).
 - **Skills** (`.claude/skills/`): `padroes-projeto`, `scaffold-modulo`, `gerar-teste-model`,
   `checklist-pre-pr`, `validar-implementacao`, `revisar-codigo`, `depurar`, `criar-migration`,
   `adicionar-permissao`, `documentar-adr`, `escrever-commit`, `fluxo-git`.

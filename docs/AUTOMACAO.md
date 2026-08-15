@@ -30,6 +30,8 @@ escopo — mantendo o contexto barato. Substituem a antiga pasta `.ai/`, que era
 | `modelo-financeiro.md` | Pagamento, Despesa, Venda, Caixa, parcelamento |
 | `ui-duralux.md` | Blade/Views |
 | `banco-de-dados.md` | migrations, `database/` |
+| `javascript-telas.md` | JS proprio ou inline em Blade |
+| `testes-por-feature.md` | modulos e `tests/` — a **regua** do que cada feature exige de teste |
 | `modulos/{modulo}.md` (14) | o respectivo `app/Modules/{Modulo}/` |
 | `fluxos.md` | fluxos ponta-a-ponta (venda, pagamento, agenda, caixa, estoque) |
 
@@ -93,6 +95,24 @@ fluxo de evals do skill-creator (ver `docs/` da automacao).
 - `/migrar` — aplica migrations no container.
 - `/auditar-tenancy [escopo]` — dispara o `tenancy-security-reviewer`.
 - `/pre-pr` — porta de qualidade (Pint + PHPStan + testes) + `checklist-pre-pr`.
+
+## Code review — quem revisa quem
+
+Num projeto de um desenvolvedor so, tudo e **auto-review**: o mesmo agente que escreveu conferindo o
+proprio trabalho, que e exatamente quando ponto cego sobrevive. Tres camadas, e so a ultima e
+independente:
+
+| Camada | Quando | Quem revisa |
+|---|---|---|
+| skill `revisar-codigo` | durante o trabalho, sobre o diff | o proprio agente |
+| `/auditar-tenancy` (subagente `tenancy-security-reviewer`) | antes do PR, read-only | subagente com contexto isolado |
+| `.github/workflows/code-review.yml` | ao abrir/atualizar o PR | **agente que nao escreveu o codigo** |
+
+O job do CI **comenta, nunca reprova** — quem decide continua sendo quem abriu. Prioriza tenancy, JS
+de tela e a regua de `testes-por-feature`, e diz "nada critico encontrado" quando e o caso, em vez de
+inventar achado para parecer util. Sem o secret `ANTHROPIC_API_KEY`, o job avisa e sai sem quebrar
+nada. PR vindo de fork nao recebe secret (gatilho `pull_request`, nao `pull_request_target`), entao
+ali ele simplesmente pula.
 
 ## Fluxo git — a main publica em producao
 

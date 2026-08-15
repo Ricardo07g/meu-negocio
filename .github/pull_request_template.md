@@ -20,7 +20,9 @@ docker exec meu-negocio-app vendor/bin/pint --test
 
 ## Checklist
 
-- [ ] Testes cobrindo o comportamento novo (e o caso de erro, nao so o feliz)
+<!-- A régua completa está em .claude/rules/testes-por-feature.md -->
+
+- [ ] Testes que a régua exige: isolamento (dado tenant-aware) · 403 (rota mutável) · estorno (dinheiro) · um por regra de recusa
 - [ ] `/pre-pr` verde localmente
 - [ ] Se mexeu em dado tenant-aware: `/auditar-tenancy` no diff
 - [ ] Se mexeu em **JS de tela**: validado com clique real no browser, nao so por teste HTTP

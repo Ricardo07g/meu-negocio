@@ -31,12 +31,17 @@ Produz testes que **passam de verdade** e seguem as convencoes da suite existent
    Ja existem factories para os models principais em `database/factories/` (catalogo, financeiro,
    caixa, estoque, agenda); reutilize-as. Se faltar alguma, crie no mesmo estilo (states, relacoes,
    `rede_id`/`empresa_id` explicitos quando o teste roda sem auth).
-3. **Casos minimos** a cobrir, conforme o tipo:
+3. **Casos minimos**: a regua completa esta em `.claude/rules/testes-por-feature.md` (carrega sozinha
+   ao editar `app/Modules/**` ou `tests/**`) — consulte-a para saber o que a feature **exige**, nao
+   so o que seria bom ter. Resumo:
    - CRUD: criar, listar (com escopo), atualizar, excluir.
    - **Isolamento multi-tenant**: rede/empresa A nao ve dados de B (modelo: `MultiTenant/IsolamentoTest`).
    - **Autorizacao**: caminho autorizado + 403 sem permissao (modelo: `Pagamento/PermissoesTest`).
-   - **Financeiro** (Pagamento/Despesa/Caixa): status de parcela, valores, movimentos de caixa.
+   - **Regras de recusa**: um teste por `NegocioException` — e nelas que mora a regra de negocio,
+     e um teste so do caminho feliz nao prova que a regra existe.
+   - **Financeiro** (Pagamento/Despesa/Caixa): status de parcela, valores, movimentos de caixa, estorno.
    - **Smoke de tela** (Dashboard/index): 200 + dados-chave presentes.
+   - **JS de tela**: teste HTTP NAO cobre. Exige clique real — ver `.claude/rules/javascript-telas.md`.
 4. **Rode ate verde**: `docker exec meu-negocio-app php artisan test --filter=...`. Itere.
 5. **Formate**: `docker exec meu-negocio-app vendor/bin/pint <arquivos>`.
 
