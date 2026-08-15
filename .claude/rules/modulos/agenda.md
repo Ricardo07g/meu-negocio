@@ -68,9 +68,18 @@ agendamento sem titulo **nao** aparece na listagem de Vendas, e finalizar exige 
 - **`exists:` nao respeita global scope.** Vinculos (cliente/servico/atendente) DEVEM passar por
   `RegrasDeVinculo::paraAgendamento(...)`, que escopa por `rede_id` (e pela empresa no atendente).
   Um `exists:clientes,id` cru aceita id de qualquer rede.
-- **Falta expediente**: `hourStart: 8 / hourEnd: 21` em `resources/js/calendar.js` e so janela de
-  visualizacao do Toast UI. Nao ha validacao de horario no servidor, e `reagendar` **nao revalida
-  conflito** — proximo passo, ainda em aberto.
+- **Expediente + encaixe** (ADR-0019): `VerificarDisponibilidadeAction` e a peca unica que responde
+  "atendente livre?" e "unidade aberta?", usada por `criarRapido`, `update`, `reagendar` e pela venda.
+  Conflito e **nao** (nao ha como forcar). Fora do expediente e **"quer mesmo?"**: 422 com
+  `codigo: fora_expediente`, a tela pergunta, e o reenvio com `forcar_horario` exige a permissao
+  `agendamento.forcar_horario` e grava `fora_expediente = true` (marcado como "Encaixe").
+  **Unidade sem expediente configurado NAO restringe** — rede de seguranca deliberada.
+  `hourStart`/`hourEnd` do calendario vem da config (±1h de folga), nao mais do 8–21 fixo.
+- `CriarAgendamentoAction` resolve a empresa (`data > contexto > default do usuario`) e a usa tanto
+  para o expediente quanto para a coluna — antes, Admin com varias empresas e nenhuma em contexto
+  estourava o NOT NULL de `empresa_id`.
+- `AgendamentoService::atualizar` recalcula o `fim` quando o inicio muda (antes sobrava o fim antigo,
+  que podia acabar ANTES do novo inicio).
 
 ## Veja tambem
 - `docs/ADR/0018-agendamento-e-operacao-venda-e-financeiro.md` — a fronteira agenda/financeiro.

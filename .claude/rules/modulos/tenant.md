@@ -107,7 +107,21 @@ O Gratis vale para **uma unica unidade por rede** (guarda em `CriarEmpresaAction
   `redes_plano_id_foreign`. Ao mexer em FK de `redes`, descubra o nome via
   `Schema::getForeignKeys()` em vez de assumir a convencao.
 
+## Expediente da unidade (ADR-0019)
+- Tabela **`horarios_atendimento`** (`rede_id`, `empresa_id`, `usuario_id` **nullable**,
+  `dia_semana` 0–6, `hora_inicio`, `hora_fim`, `ativo`) + model `HorarioAtendimento` (BaseModel +
+  EmpresaTrait) + **`ExpedienteService`**. `usuario_id` nulo = expediente da empresa toda; a coluna
+  ja nasce para o horario por atendente (o resolvedor prefere a linha do atendente quando existe),
+  mas a v1 so expoe a UI da empresa.
+- Semeado por `CriarEmpresaAction` (junto com contas e formas) e retroativo por migration. A tela e
+  a **aba Expediente na edicao da Empresa** (`tenant::_expediente`), salva no mesmo PUT; o service
+  troca as 7 linhas em bloco.
+- **Sem expediente configurado = sem restricao** (`ExpedienteService::configurado`): recusar tudo por
+  falta de config trancaria a agenda de quem depende dela.
+- Quem consome: `.claude/rules/modulos/agenda.md` (validacao de horario e encaixe).
+
 ## Veja tambem
+- `docs/ADR/0019-expediente-da-unidade-e-encaixe-autorizado.md` — expediente + encaixe autorizado.
 - `docs/ADR/0013-licenca-por-empresa.md` — a decisao completa (plano por empresa, 2 planos, trial).
 - `docs/ADR/0007-assinatura-faturamento.md` — parcialmente substituido pelo 0013.
 - `.claude/rules/multi-tenant-seguranca.md` — RedeTrait/EmpresaTrait, middlewares (`verificar.rede`,
