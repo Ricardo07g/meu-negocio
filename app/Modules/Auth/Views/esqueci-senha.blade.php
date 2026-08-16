@@ -7,11 +7,7 @@
     <h4 class="fs-13 fw-bold mb-2">Vamos te ajudar a entrar de volta</h4>
     <p class="fs-12 fw-medium text-muted">Informe o email da sua conta no <strong>Meu Negócio</strong> e enviaremos um link para você definir uma nova senha.</p>
 
-    @if(session('sucesso'))
-        <div class="alert alert-success" role="alert">
-            {{ session('sucesso') }}
-        </div>
-    @endif
+    {{-- O flash agora e do layout (layouts/auth) — repetir aqui exibiria duas vezes. --}}
 
     <form action="{{ route('senha.solicitar.enviar') }}" method="POST" class="w-100 mt-4 pt-2">
         @csrf

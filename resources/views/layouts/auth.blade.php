@@ -26,6 +26,24 @@
                         @include('partials.logo-mark', ['size' => 52])
                     </a>
                     <div class="card-body p-sm-5">
+                        {{-- Flash das telas de autenticacao. Mora no layout porque o
+                             destino da mensagem nem sempre e a tela que a criou: a
+                             redefinicao de senha termina com um redirect para o
+                             login, e o login nao renderizava flash nenhum — a senha
+                             era trocada e o usuario caia numa tela muda, sem saber
+                             se tinha dado certo. --}}
+                        @if(session('sucesso'))
+                            <div class="alert alert-success" role="alert">
+                                {{ session('sucesso') }}
+                            </div>
+                        @endif
+
+                        @if(session('erro'))
+                            <div class="alert alert-danger" role="alert">
+                                {{ session('erro') }}
+                            </div>
+                        @endif
+
                         @yield('content')
                     </div>
                 </div>
