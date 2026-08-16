@@ -117,4 +117,24 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail: tema e views
+    |--------------------------------------------------------------------------
+    |
+    | O tema `meu-negocio` (resources/views/vendor/mail/html/themes) aplica a
+    | identidade da marca a TODO email do sistema. O `paths` entra na frente das
+    | views do framework, entao so precisamos manter aqui os arquivos que de
+    | fato mudam (header e message) — o resto continua vindo do Laravel.
+    |
+    */
+
+    'markdown' => [
+        'theme' => env('MAIL_MARKDOWN_THEME', 'meu-negocio'),
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];
