@@ -207,31 +207,67 @@ document.addEventListener('DOMContentLoaded', function () {
         calendar.clearGridSelections();
     });
 
-    function abrirModalCriar(inicio) {
-        const modalEl = document.getElementById('modalNovoAgendamento');
-        if (!modalEl) return;
+    /*
+     * O modal de criação tem DUAS portas: clicar num horário da grade e o botão
+     * "Novo Agendamento" da sidebar — este último é Bootstrap puro
+     * (`data-bs-toggle="modal"`), não passa por JS nenhum.
+     *
+     * O submit é ligado UMA vez, aqui. Enquanto ele morava dentro de
+     * `abrirModalCriar`, só a porta do calendário saía com handler: pela
+     * sidebar o formulário abria sem `onsubmit` e, como ele não tem `action`
+     * nem `method`, o clique em "Agendar" virava um GET nativo para a própria
+     * URL. A página recarregava, o modal fechava, os dados viravam query string
+     * e nada era criado — sem erro no console e sem nada no servidor.
+     */
+    const modalCriarEl = document.getElementById('modalNovoAgendamento');
 
-        const form = modalEl.querySelector('form');
+    if (modalCriarEl) {
+        const formCriar = modalCriarEl.querySelector('form');
+
+        // Limpa ao fechar, não ao abrir: a porta do calendário preenche o
+        // `inicio` ANTES de mostrar, e um reset no `show` apagaria justamente o
+        // horário que o usuário acabou de clicar.
+        modalCriarEl.addEventListener('hidden.bs.modal', () => formCriar.reset());
+
+        formCriar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(formCriar).entries());
+
+            // `required` mora nos campos de texto da busca, mas quem vai para o
+            // servidor são os ids escondidos — e `required` em input `hidden` é
+            // inerte por especificação. Sem esta guarda, digitar "Maria" sem
+            // escolher ninguém da lista manda cliente_id vazio e volta um 422
+            // que não explica o que fazer.
+            if (!data.cliente_id || !data.servico_id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Escolha na lista',
+                    text: 'Selecione o cliente e o serviço nas sugestões — digitar o nome não basta.',
+                });
+                return;
+            }
+
+            try {
+                const resp = await enviarComEncaixe(criarUrl, 'POST', data);
+                if (!resp) return; // desistiu do encaixe: modal segue aberto
+                bootstrap.Modal.getOrCreateInstance(modalCriarEl).hide();
+                carregarEventos();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Não foi possível agendar', text: err.message });
+            }
+        });
+    }
+
+    function abrirModalCriar(inicio) {
+        if (!modalCriarEl) return;
+
+        const form = modalCriarEl.querySelector('form');
         form.reset();
         const pad = (n) => String(n).padStart(2, '0');
         const iso = `${inicio.getFullYear()}-${pad(inicio.getMonth() + 1)}-${pad(inicio.getDate())}T${pad(inicio.getHours())}:${pad(inicio.getMinutes())}`;
         form.querySelector('[name="inicio"]').value = iso;
 
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(form).entries());
-            try {
-                const resp = await enviarComEncaixe(criarUrl, 'POST', data);
-                if (!resp) return; // desistiu do encaixe: modal segue aberto
-                modal.hide();
-                carregarEventos();
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Não foi possível agendar', text: err.message });
-            }
-        };
+        bootstrap.Modal.getOrCreateInstance(modalCriarEl).show();
     }
 
     // ——— Drag-drop reagendar ———
