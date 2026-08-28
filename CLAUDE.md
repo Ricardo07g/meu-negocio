@@ -101,6 +101,10 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   Vite). Um listener delegado troca o rotulo do botao por spinner e trava contra duplo clique. Opt-out
   por `<form data-sem-loading>`; texto por `<button data-texto-carregando="...">`. Nao acende quando o
   submit foi cancelado (respeita o `data-confirm` do SweetAlert).
+- **Email**: producao envia pela **API HTTPS do Resend** (`MAIL_MAILER=resend` + `RESEND_API_KEY`),
+  nunca SMTP — o Railway descarta conexao SMTP em silencio e o request pendura ate o timeout
+  (ADR-0020). Dev usa `log`, testes usam `array`. Ha um unico email no sistema: o link de
+  redefinicao de senha. Remetente precisa de dominio verificado (DKIM/SPF/MX de retorno).
 - **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
   POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
   widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.
@@ -125,11 +129,12 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **780 testes** (2751 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **803 testes** (2826 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
-  validacao) e o agendador HTTP.
+  validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro) e o
+  agendador HTTP.
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -145,7 +150,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (19 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (20 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---
