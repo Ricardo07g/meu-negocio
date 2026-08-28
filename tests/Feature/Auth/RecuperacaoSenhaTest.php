@@ -8,6 +8,7 @@ use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
 use App\Modules\Usuario\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\{DB, Hash, Mail, Password};
+use Symfony\Component\Mailer\Exception\TransportException;
 use Tests\Concerns\CriaTenant;
 use Tests\TestCase;
 
@@ -72,6 +73,36 @@ class RecuperacaoSenhaTest extends TestCase
         $resp->assertRedirect()->assertSessionHas('sucesso');
         $resp->assertSessionMissing('erro');
         Mail::assertNothingSent();
+    }
+
+    /**
+     * Segurança: falhar o envio também não pode revelar que o email existe.
+     *
+     * Com `MAIL_MAILER=log` nada falhava, então a assimetria dormia. Com transporte
+     * real (Resend — ADR-0020) a falha só acontece para quem ESTÁ cadastrado: para
+     * um endereço desconhecido o broker devolve INVALID_USER antes de tentar enviar.
+     * Sem o catch no controller, "provedor fora do ar" vira um oráculo de cadastro.
+     */
+    public function test_falha_no_envio_nao_revela_que_o_email_existe(): void
+    {
+        $usuario = $this->usuario();
+
+        // Referência: endereço desconhecido, ninguém chega a tentar enviar.
+        Mail::fake();
+        $this->post(route('senha.solicitar.enviar'), ['email' => 'ninguem@teste.com']);
+        $mensagemGenerica = session('sucesso');
+
+        // Agora o transporte cai no meio do envio para um endereço que existe.
+        Mail::shouldReceive('to')->once()->andThrow(new TransportException('conexão descartada'));
+
+        $resp = $this->post(route('senha.solicitar.enviar'), ['email' => $usuario->email]);
+
+        $resp->assertRedirect()->assertSessionMissing('erro');
+        $this->assertSame(
+            $mensagemGenerica,
+            session('sucesso'),
+            'A resposta de quem existe precisa ser byte a byte igual à de quem não existe.'
+        );
     }
 
     public function test_email_carrega_o_link_com_token_e_destinatario(): void
