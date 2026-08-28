@@ -27,6 +27,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0017](0017-frankenphp-no-lugar-do-artisan-serve.md) | FrankenPHP no lugar do `php artisan serve` em produção | Aceito |
 | [0018](0018-agendamento-e-operacao-venda-e-financeiro.md) | Agendamento é operação, venda é financeiro: a cobrança acontece na finalização | Aceito |
 | [0019](0019-expediente-da-unidade-e-encaixe-autorizado.md) | Expediente da unidade: fora do horário é encaixe autorizado, não acidente | Aceito |
+| [0020](0020-email-transacional-pela-api-do-resend.md) | E-mail transacional pela API do Resend, não por SMTP | Aceito |
 
 ## Como ler
 

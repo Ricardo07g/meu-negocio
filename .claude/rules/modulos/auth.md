@@ -24,7 +24,8 @@ Autenticacao: login, registro de nova rede, logout, recuperacao/redefinicao de s
 ## Regras de negocio / gotchas
 - **Login** valida `Auth::attempt`; se falha -> erro "Credenciais inválidas." Se sucesso mas `!usuario->ativo` -> `Auth::logout()` + "Sua conta está desativada." Em sucesso: `session()->regenerate()` + `redirect()->intended(dashboard)`.
 - **Registro** monta toda a estrutura de tenant via `RedeService->criar(CriarRedeData, UsuarioData)`: Rede (plano free) -> Empresa padrao -> Usuario Admin -> seeds (categorias/produtos/servicos/clientes). Auto-login via `Auth::login($rede->getRelation('usuarioCriado'))` -> dashboard. NAO valida plano/empresa aqui.
-- **Esqueci senha**: sempre retorna a MESMA mensagem generica ("Se o email ... estiver cadastrado ...") independente do email existir — evita vazar existencia de cadastro.
+- **Esqueci senha**: sempre retorna a MESMA mensagem generica ("Se o email ... estiver cadastrado ...") independente do email existir — evita vazar existencia de cadastro. **Falha no envio tambem cai na mensagem generica**: o controller captura a excecao do `Password::sendResetLink`, loga e responde igual. Toda falha de transporte acontece para quem EXISTE (endereco desconhecido devolve `INVALID_USER` sem tentar enviar), entao deixar a excecao subir viraria oraculo de cadastro — ADR-0020.
+- **Envio real**: producao usa a API HTTPS do Resend (`MAIL_MAILER=resend` + `RESEND_API_KEY`), nunca SMTP — o Railway descarta conexao SMTP em silencio. Dev usa `log`; testes usam `array`. Ver ADR-0020.
 - **Rate limit**: `login`, `registrar` e `esqueci-senha` (POST) usam `throttle:5,1` (5/min).
 - Rotas de login/registro/recuperacao no grupo `middleware('guest')`. `logout` (POST) sob `middleware('auth')`. Nenhuma usa `verificar.rede`/`verificar.empresa`.
 - `logout` invalida E regenera o token de sessao; redireciona para `home`.

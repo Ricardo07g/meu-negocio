@@ -182,7 +182,7 @@ Após o `DesenvolvimentoSeeder`:
 | `admin@teste.com` | `password` | Admin (acesso total) |
 | `atendente1@teste.com` ... `atendente5@teste.com` | `password` | Admin com `atende = true` (aparece no select da agenda) |
 
-> Para fluxo de **reset de senha**: tela de login → "Esqueci minha senha" → digite o email → o email vai para `storage/logs/laravel.log` (driver `log`, sem necessidade de SMTP real).
+> Para fluxo de **reset de senha**: tela de login → "Esqueci minha senha" → digite o email → o email vai para `storage/logs/laravel.log` (driver `log`, sem necessidade de SMTP real). Para ver a mensagem renderizada numa caixa de entrada de verdade, aponte as variáveis `MAIL_*` para um sandbox de SMTP (Mailtrap e similares) — em produção o transporte é outro, ver [ADR-0020](docs/ADR/0020-email-transacional-pela-api-do-resend.md).
 
 ---
 
@@ -227,7 +227,7 @@ Próximas evoluções planejadas, em ordem de prioridade. A base modular (Servic
 | 7 | **Tempo real** (WebSockets) | Agenda colaborativa e atualização ao vivo entre atendentes. |
 | 8 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |
 
-> **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, `MAIL_MAILER` SMTP, backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
+> **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, um transporte de e-mail de verdade (ver abaixo), backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
 
 ### Runtime de produção
 
@@ -237,6 +237,29 @@ O `Dockerfile` da raiz sobe a aplicação com **FrankenPHP** (Caddy + PHP embarc
 gera nomes com hash) e uma semana com revalidação por `ETag` para os assets do template. Antes disso,
 sem nenhum cabeçalho de cache, cada navegação rebaixava ~285 KB de CSS/JS —
 ver [ADR-0017](docs/ADR/0017-frankenphp-no-lugar-do-artisan-serve.md).
+
+### Variáveis de produção
+
+O `.env.example` descreve o ambiente de **desenvolvimento**. O deploy de demonstração diverge dele em
+alguns pontos, e os segredos vivem só nas variáveis da plataforma — nunca no repositório:
+
+| Variável | Papel |
+|---|---|
+| `APP_URL` | Origem HTTPS real. Não é cosmético: o cabeçalho dos e-mails usa `config('app.url')` direto, então errado aqui o link da marca aponta para `localhost` na caixa de quem recebeu. |
+| `DB_CONNECTION` / `DB_DATABASE` | SQLite num volume persistente, em vez do MySQL do Compose. |
+| `QUEUE_CONNECTION` | `sync` — não há worker; a exportação de extrato roda inline. |
+| `CACHE_STORE` / `SESSION_DRIVER` | `database` / `file`. `SESSION_DRIVER=database` **não** funciona: não existe migration da tabela `sessions`. |
+| `MAIL_MAILER` | `resend` — a API HTTPS, não SMTP. Voltar para `log` desliga o envio sem deploy. |
+| `RESEND_API_KEY` | Chave do provedor de e-mail. |
+| `MAIL_FROM_ADDRESS` / `MAIL_FROM_NAME` | Remetente, num domínio **verificado** no provedor (DKIM + SPF + MX de return-path). |
+| `R2_*` | Bucket, credenciais e URL pública do Cloudflare R2 ([ADR-0008](docs/ADR/0008-armazenamento-de-arquivos-r2.md)). |
+| `CRON_TOKEN` | Segredo compartilhado com o gatilho do agendador HTTP. Vazio, o endpoint responde 404. |
+| `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Anti-bot nos formulários públicos. Vazias, o recurso se desliga por inteiro. |
+
+> Sobre o e-mail: o transporte é a **API HTTPS do Resend**, e não SMTP, porque a hospedagem usada
+> (Railway) só libera SMTP no plano Pro e descarta a conexão em silêncio nos demais — o request fica
+> pendurado até o timeout, sem erro no log. Detalhes e alternativas em
+> [ADR-0020](docs/ADR/0020-email-transacional-pela-api-do-resend.md).
 
 ### Tarefas agendadas
 
