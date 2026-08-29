@@ -43,12 +43,19 @@ return [
         'workers_ai' => [
             'account_id' => env('IA_CF_ACCOUNT_ID', env('R2_ACCOUNT_ID')),
             'token' => env('IA_CF_TOKEN'),
+            /*
+             * 70B por aderencia ao schema e portugues, nao por preco — custo aqui e troco
+             * (~US$ 0,001 por analise, e a cota interna estoura antes da cota gratis da
+             * Cloudflare). Alternativa ~6x mais barata se precisar de volume:
+             * `@cf/meta/llama-3.1-8b-instruct-fp8-fast`.
+             */
             'modelo' => env('IA_CF_MODELO', '@cf/meta/llama-3.3-70b-instruct-fp8-fast'),
             'url_base' => env('IA_CF_URL_BASE', 'https://api.cloudflare.com/client/v4'),
-            // USD por 1M tokens (derivado da tabela de neuronios do Workers AI).
+            // USD por 1M tokens (tabela de neuronios do Workers AI, para o 70B fp8-fast).
+            // Trocou de modelo? Ajuste tambem, senao o custo estimado no historico mente.
             'precos' => [
-                'entrada' => (float) env('IA_CF_PRECO_ENTRADA', 0.29),
-                'saida' => (float) env('IA_CF_PRECO_SAIDA', 2.25),
+                'entrada' => (float) env('IA_CF_PRECO_ENTRADA', 0.293),
+                'saida' => (float) env('IA_CF_PRECO_SAIDA', 2.253),
             ],
         ],
 
