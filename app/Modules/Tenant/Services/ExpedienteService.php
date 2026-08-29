@@ -7,6 +7,7 @@ namespace App\Modules\Tenant\Services;
 use App\Exceptions\NegocioException;
 use App\Modules\Tenant\Models\{Empresa, HorarioAtendimento};
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -153,15 +154,25 @@ class ExpedienteService
     }
 
     /** Resumo legível ("Seg–Sex 08:00–18:00 · Sáb 08:00–12:00") para exibir na agenda. */
-    public function resumo(int $empresaId): string
+    /**
+     * Uma linha por dia de expediente, para a barra lateral da agenda.
+     *
+     * Devolve as linhas soltas em vez da frase pronta porque quem exibe decide
+     * como separar — em coluna, uma embaixo da outra, seis dias sao legiveis de
+     * relance; na mesma linha, viravam um paragrafo que ninguem le.
+     *
+     * @return SupportCollection<int, string>
+     */
+    public function resumoPorDia(int $empresaId): SupportCollection
     {
         $ativos = $this->daEmpresa($empresaId)->where('ativo', true);
 
         if ($ativos->isEmpty()) {
-            return 'Sem expediente configurado';
+            return collect(['Sem expediente configurado']);
         }
 
-        return $ativos
+        /** @var SupportCollection<int, string> $linhas */
+        $linhas = $ativos
             ->map(fn (HorarioAtendimento $h) => sprintf(
                 '%s %s–%s',
                 // mb_substr: "Sábado" tem acento, e cortar por bytes devolvia "Sá".
@@ -169,6 +180,9 @@ class ExpedienteService
                 substr($h->hora_inicio, 0, 5),
                 substr($h->hora_fim, 0, 5),
             ))
-            ->implode(' · ');
+            ->values()
+            ->toBase();
+
+        return $linhas;
     }
 }

@@ -58,7 +58,9 @@
 
                 <div class="fs-12 text-muted fw-semibold text-uppercase mb-2">Expediente</div>
                 <div class="fs-12 text-muted mb-3 lh-base">
-                    {{ $resumoExpediente }}
+                    @foreach($resumoExpediente as $linhaExpediente)
+                        <div>{{ $linhaExpediente }}</div>
+                    @endforeach
                     @can('empresa.editar')
                         <a href="{{ route('empresas.index') }}" class="d-block mt-1">Alterar</a>
                     @endcan

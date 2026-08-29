@@ -47,6 +47,17 @@ agendamento sem titulo **nao** aparece na listagem de Vendas, e finalizar exige 
   `AgendaController::criarRapido`) e pela cobranca (`CriarVendaRequest`).
 
 ## Regras de negocio / gotchas
+- **O modal de criacao tem DUAS portas**: clicar num horario da grade (passa por
+  `abrirModalCriar`, que pre-preenche o `inicio`) e o botao "Novo Agendamento" da sidebar, que e
+  Bootstrap puro (`data-bs-toggle="modal"`) e **nao passa por JS nenhum**. Por isso o `submit` do
+  `#formNovoAgendamento` e ligado UMA vez na inicializacao do `calendar.js`, nunca dentro de
+  `abrirModalCriar`. Enquanto ficou la dentro, a porta da sidebar abria um form sem handler — e como
+  ele nao tem `action` nem `method`, "Agendar" virava GET nativo para a propria URL: nada criado,
+  nada no console, suite verde. Quem mexer aqui valida com
+  `node .claude/skills/validar-implementacao/scripts/clique-agenda.cjs`.
+- **`required` nos campos de busca nao protege nada**: ele esta nos inputs de texto do autocomplete,
+  e os ids vao em `<input type="hidden">` — onde `required` e inerte por especificacao. A guarda de
+  "escolha na lista" mora no handler de submit.
 - **Deteccao de conflito** (`CriarAgendamentoAction::verificarConflito`): mesmo `atendente_id`,
   status != Cancelado, sobreposicao `existente.inicio < novoFim AND existente.fim > novoInicio`.
   Lanca `ConflitoAgendamentoException`. `reagendar` **nao** revalida conflito.

@@ -25,6 +25,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let atendenteCalendars = [];
     let eventosCache = [];
+    let janelaAtual = {
+        inicio: Number.isFinite(horaInicial) ? horaInicial : 8,
+        fim: Number.isFinite(horaFinal) ? horaFinal : 21,
+    };
+
+    // O Toast UI rotula os dias em ingles por padrao ("Mon", "Tue", ...) e nao
+    // olha o locale do navegador. O array comeca no DOMINGO — indice 0 e domingo
+    // mesmo com `startDayOfWeek: 1`, que so gira a exibicao.
+    const DIAS_DA_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
     const calendar = new Calendar(calendarEl, {
         defaultView: 'week',
@@ -33,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
         useDetailPopup: false,
         week: {
             startDayOfWeek: 1,
+            dayNames: DIAS_DA_SEMANA,
             hourStart: Number.isFinite(horaInicial) ? horaInicial : 8,
             hourEnd: Number.isFinite(horaFinal) ? horaFinal : 21,
             taskView: false,
@@ -40,12 +50,24 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         month: {
             startDayOfWeek: 1,
+            dayNames: DIAS_DA_SEMANA,
         },
         template: {
             time(event) {
                 const start = new Date(event.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 return `<strong>${start}</strong> ${event.title}`;
             },
+            // O que a biblioteca escreve sozinha, em ingles: o "N more" dos dias
+            // cheios (mes e semana) e o popup que ele abre.
+            monthGridHeaderExceed: (quantos) => `+${quantos} mais`,
+            monthGridFooterExceed: (quantos) => `+${quantos} mais`,
+            weekGridFooterExceed: (quantos) => `+${quantos} mais`,
+            monthMoreClose: () => 'Fechar',
+            collapseBtnTitle: () => 'Recolher',
+            // A regua de horas vinha em 12h americano ("8 am", "12 pm"). Aqui
+            // hora e 24h — e o expediente na barra lateral ja fala essa lingua.
+            timegridDisplayPrimaryTime: ({ time }) => `${String(time.getHours()).padStart(2, '0')}:00`,
+            timegridNowIndicatorLabel: ({ time }) => time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         },
     });
 
@@ -108,10 +130,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ——— Carregar eventos ———
+    /** `2026-08-30 23:59:59` — hora de parede, que e como o banco guarda. */
+    function paraServidor(data, hora) {
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(data.getDate())} ${hora}`;
+    }
+
     async function carregarEventos() {
         const inicio = calendar.getDateRangeStart().toDate();
         const fim = calendar.getDateRangeEnd().toDate();
-        const url = `${eventsUrl}?start=${inicio.toISOString()}&end=${fim.toISOString()}`;
+
+        /*
+         * Nada de `toISOString()` aqui, por dois motivos que se somavam:
+         *
+         * 1. Ele converte para UTC. A app roda em UTC e os agendamentos sao
+         *    gravados como hora de parede, entao a meia-noite local virava
+         *    03:00Z e a janela inteira andava 3 horas.
+         * 2. `getDateRangeEnd()` devolve o ULTIMO DIA as 00:00, nao o fim dele.
+         *
+         * Juntos, faziam o ultimo dia da semana nunca carregar: a busca terminava
+         * antes de ele comecar. Domingo aparecia vazio toda semana, e qualquer
+         * atendimento nele — encaixe ou nao — sumia da tela sem deixar rastro.
+         */
+        const url = `${eventsUrl}?start=${encodeURIComponent(paraServidor(inicio, '00:00:00'))}`
+            + `&end=${encodeURIComponent(paraServidor(fim, '23:59:59'))}`;
 
         try {
             const resp = await fetch(url, { headers: { Accept: 'application/json' } });
@@ -128,11 +170,54 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    /**
+     * Abre a janela de horas o suficiente para caber TODO atendimento carregado.
+     *
+     * A grade e desenhada a partir do expediente da unidade (±1h de folga), e o
+     * Toast UI simplesmente nao desenha o que cai fora de `hourStart`/`hourEnd`.
+     * O efeito era o pior possivel: um encaixe as 20:00 — justamente o caso que
+     * o ADR-0019 existe para permitir — era criado, vinha no JSON e ficava
+     * INVISIVEL na agenda. O atendimento existia e a tela dizia que nao.
+     *
+     * Esticar so quando precisa mantem a semana comum enxuta: desenhar 00:00–24:00
+     * sempre espremeria o horario util todo dia por causa da excecao.
+     */
+    function ajustarJanelaAosEventos(eventos) {
+        const base = {
+            inicio: Number.isFinite(horaInicial) ? horaInicial : 8,
+            fim: Number.isFinite(horaFinal) ? horaFinal : 21,
+        };
+
+        let menor = base.inicio;
+        let maior = base.fim;
+
+        eventos.forEach((ev) => {
+            const ini = new Date(ev.start);
+            const fim = new Date(ev.end);
+            menor = Math.min(menor, ini.getHours());
+            // Minuto > 0 precisa da hora seguinte inteira, senao o evento fica
+            // cortado no rodape da grade: 20:30 exige que a grade va ate 21.
+            maior = Math.max(maior, fim.getMinutes() > 0 ? fim.getHours() + 1 : fim.getHours());
+        });
+
+        menor = Math.max(0, menor);
+        maior = Math.min(24, maior);
+
+        if (menor === janelaAtual.inicio && maior === janelaAtual.fim) return;
+
+        janelaAtual = { inicio: menor, fim: maior };
+        calendar.setOptions({ week: { hourStart: menor, hourEnd: maior } });
+    }
+
     function renderEventos() {
         const statusAtivos = Array.from(document.querySelectorAll('.filtro-status:checked')).map((c) => c.value);
         const visiveis = statusAtivos.length
             ? eventosCache.filter((ev) => statusAtivos.includes(ev.raw?.status))
             : eventosCache;
+
+        // Antes de desenhar: a grade precisa ter altura para o que vai entrar.
+        ajustarJanelaAosEventos(visiveis);
+
         calendar.clear();
         calendar.createEvents(visiveis);
     }
@@ -207,31 +292,67 @@ document.addEventListener('DOMContentLoaded', function () {
         calendar.clearGridSelections();
     });
 
-    function abrirModalCriar(inicio) {
-        const modalEl = document.getElementById('modalNovoAgendamento');
-        if (!modalEl) return;
+    /*
+     * O modal de criação tem DUAS portas: clicar num horário da grade e o botão
+     * "Novo Agendamento" da sidebar — este último é Bootstrap puro
+     * (`data-bs-toggle="modal"`), não passa por JS nenhum.
+     *
+     * O submit é ligado UMA vez, aqui. Enquanto ele morava dentro de
+     * `abrirModalCriar`, só a porta do calendário saía com handler: pela
+     * sidebar o formulário abria sem `onsubmit` e, como ele não tem `action`
+     * nem `method`, o clique em "Agendar" virava um GET nativo para a própria
+     * URL. A página recarregava, o modal fechava, os dados viravam query string
+     * e nada era criado — sem erro no console e sem nada no servidor.
+     */
+    const modalCriarEl = document.getElementById('modalNovoAgendamento');
 
-        const form = modalEl.querySelector('form');
+    if (modalCriarEl) {
+        const formCriar = modalCriarEl.querySelector('form');
+
+        // Limpa ao fechar, não ao abrir: a porta do calendário preenche o
+        // `inicio` ANTES de mostrar, e um reset no `show` apagaria justamente o
+        // horário que o usuário acabou de clicar.
+        modalCriarEl.addEventListener('hidden.bs.modal', () => formCriar.reset());
+
+        formCriar.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(formCriar).entries());
+
+            // `required` mora nos campos de texto da busca, mas quem vai para o
+            // servidor são os ids escondidos — e `required` em input `hidden` é
+            // inerte por especificação. Sem esta guarda, digitar "Maria" sem
+            // escolher ninguém da lista manda cliente_id vazio e volta um 422
+            // que não explica o que fazer.
+            if (!data.cliente_id || !data.servico_id) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Escolha na lista',
+                    text: 'Selecione o cliente e o serviço nas sugestões — digitar o nome não basta.',
+                });
+                return;
+            }
+
+            try {
+                const resp = await enviarComEncaixe(criarUrl, 'POST', data);
+                if (!resp) return; // desistiu do encaixe: modal segue aberto
+                bootstrap.Modal.getOrCreateInstance(modalCriarEl).hide();
+                carregarEventos();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Não foi possível agendar', text: err.message });
+            }
+        });
+    }
+
+    function abrirModalCriar(inicio) {
+        if (!modalCriarEl) return;
+
+        const form = modalCriarEl.querySelector('form');
         form.reset();
         const pad = (n) => String(n).padStart(2, '0');
         const iso = `${inicio.getFullYear()}-${pad(inicio.getMonth() + 1)}-${pad(inicio.getDate())}T${pad(inicio.getHours())}:${pad(inicio.getMinutes())}`;
         form.querySelector('[name="inicio"]').value = iso;
 
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            const data = Object.fromEntries(new FormData(form).entries());
-            try {
-                const resp = await enviarComEncaixe(criarUrl, 'POST', data);
-                if (!resp) return; // desistiu do encaixe: modal segue aberto
-                modal.hide();
-                carregarEventos();
-            } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Não foi possível agendar', text: err.message });
-            }
-        };
+        bootstrap.Modal.getOrCreateInstance(modalCriarEl).show();
     }
 
     // ——— Drag-drop reagendar ———

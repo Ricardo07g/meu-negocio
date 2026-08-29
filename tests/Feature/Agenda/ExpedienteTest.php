@@ -174,6 +174,39 @@ class ExpedienteTest extends TestCase
      * Rede de segurança: unidade sem expediente configurado não restringe.
      * Recusar tudo deixaria a agenda inutilizável — inclusive para consertar.
      */
+    /**
+     * O resumo da barra lateral sai em linhas, uma por dia.
+     *
+     * Antes era uma frase unica com os dias colados por " · ": seis faixas na
+     * mesma linha viravam um paragrafo que ninguem le de relance, justamente na
+     * informacao que a recepcao consulta o dia inteiro.
+     */
+    public function test_resumo_do_expediente_traz_uma_linha_por_dia_ativo(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $this->expedienteComercial($contexto);
+
+        $linhas = app(ExpedienteService::class)->resumoPorDia((int) $contexto['empresa']->id);
+
+        // Segunda a sexta ativos; sabado e domingo ficam de fora.
+        $this->assertCount(5, $linhas);
+        $this->assertSame('Seg 08:00–18:00', $linhas->first());
+
+        $resp = $this->get(route('agenda.index'))->assertOk();
+        foreach ($linhas as $linha) {
+            $resp->assertSee('<div>'.$linha.'</div>', false);
+        }
+    }
+
+    public function test_resumo_sem_expediente_configurado_avisa_em_vez_de_vir_vazio(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $linhas = app(ExpedienteService::class)->resumoPorDia((int) $contexto['empresa']->id);
+
+        $this->assertSame(['Sem expediente configurado'], $linhas->all());
+    }
+
     public function test_unidade_sem_expediente_configurado_nao_restringe(): void
     {
         $contexto = $this->criarRedeAutenticada();
