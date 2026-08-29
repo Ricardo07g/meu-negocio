@@ -61,6 +61,7 @@ class WorkersAiIa implements Ia
                         'json_schema' => $pedido->schema,
                     ],
                     'max_tokens' => (int) config('ia.max_tokens'),
+                    'temperature' => (float) config('ia.temperatura'),
                 ]);
         } catch (Throwable $e) {
             Log::warning('Workers AI: falha de rede na analise.', ['exception' => $e]);

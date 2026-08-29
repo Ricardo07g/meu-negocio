@@ -19,7 +19,12 @@ use App\Modules\Ia\Exceptions\IaIndisponivelException;
  */
 class FakeIa implements Ia
 {
-    public static array $dados = ['resumo' => 'Analise de exemplo.', 'destaques' => [], 'acoes' => []];
+    public static array $dados = [
+        'resumo' => 'Analise de exemplo.',
+        'pontos_fortes' => [],
+        'alertas' => [],
+        'sugestoes' => [],
+    ];
 
     public static int $tokensEntrada = 100;
 
@@ -35,7 +40,12 @@ class FakeIa implements Ia
 
     public static function resetar(): void
     {
-        self::$dados = ['resumo' => 'Analise de exemplo.', 'destaques' => [], 'acoes' => []];
+        self::$dados = [
+            'resumo' => 'Analise de exemplo.',
+            'pontos_fortes' => [],
+            'alertas' => [],
+            'sugestoes' => [],
+        ];
         self::$tokensEntrada = 100;
         self::$tokensSaida = 50;
         self::$ativo = true;

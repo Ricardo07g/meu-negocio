@@ -102,6 +102,15 @@
                             Gerada em {{ $ultimaAnalise->created_at?->format('d/m/Y H:i') }}
                         @endif
                     </p>
+
+                    @if ($analiseDesatualizada)
+                        <div class="alert alert-info d-flex align-items-center py-2" role="alert" id="ia-desatualizada">
+                            <i class="feather-refresh-cw me-2"></i>
+                            <div class="fs-12">
+                                A carteira mudou desde esta leitura. Clique em <strong>Analisar com IA</strong> para atualizá-la.
+                            </div>
+                        </div>
+                    @endif
                     <p id="ia-resumo" class="mb-3">{{ $ultimaAnalise->resultado['resumo'] ?? '' }}</p>
 
                     <div class="row">
@@ -122,9 +131,9 @@
                             </ul>
                         </div>
                         <div class="col-12 col-lg-4 mb-3">
-                            <h6 class="text-primary"><i class="feather-check-circle me-1"></i>O que fazer</h6>
-                            <ul class="ps-3 mb-0" id="ia-acoes">
-                                @foreach ($ultimaAnalise->resultado['acoes'] ?? [] as $item)
+                            <h6 class="text-primary"><i class="feather-check-circle me-1"></i>Sugestões</h6>
+                            <ul class="ps-3 mb-0" id="ia-sugestoes">
+                                @foreach ($ultimaAnalise->resultado['sugestoes'] ?? [] as $item)
                                     <li>{{ $item }}</li>
                                 @endforeach
                             </ul>
@@ -192,28 +201,32 @@
                         <tr>
                             <th>Cliente</th>
                             <th>Segmento</th>
-                            <th class="text-center">
-                                R / F / V
-                                <x-label-info content="Notas de 1 a 5 em cada dimensão.<br><b>R</b> (Recência): há quanto tempo comprou.<br><b>F</b> (Frequência): quantas vezes comprou no período.<br><b>V</b> (Valor): quanto gastou, comparado à média da sua base." />
+                            <th class="text-end">Última compra</th>
+                            <th class="text-end">Compras no período</th>
+                            <th class="text-end">Total gasto</th>
+                            <th class="text-end">
+                                Comparado à média
+                                <x-label-info content="Quanto este cliente gastou em relação à média da sua base no período.<br><b>2,0×</b> significa o dobro da média; <b>0,5×</b>, metade." />
                             </th>
-                            <th class="text-end">Compras</th>
-                            <th class="text-end">Valor</th>
-                            <th class="text-end">Dias sem comprar</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($carteira['clientes'] as $linha)
+                            @php
+                                $dias = $linha['dias_sem_comprar'];
+                                $quando = $dias === 0 ? 'hoje' : ($dias === 1 ? 'ontem' : "há {$dias} dias");
+                                $razao = $linha['razao_valor'];
+                                $corRazao = $razao >= 1.2 ? 'text-success fw-semibold' : ($razao < 0.8 ? 'text-muted' : '');
+                            @endphp
                             <tr>
                                 <td>
                                     <a href="{{ route('clientes.show', $linha['cliente_id']) }}">{{ $linha['nome'] }}</a>
                                 </td>
                                 <td><span class="badge bg-{{ $linha['segmento']->cor() }}">{{ $linha['segmento']->label() }}</span></td>
-                                <td class="text-center text-muted fs-12">
-                                    {{ $linha['r'] }} / {{ $linha['f'] }} / {{ $linha['m'] }}
-                                </td>
+                                <td class="text-end {{ $dias > 180 ? 'text-danger' : '' }}">{{ $quando }}</td>
                                 <td class="text-end">{{ $linha['compras'] }}</td>
                                 <td class="text-end">R$ {{ number_format($linha['valor'], 2, ',', '.') }}</td>
-                                <td class="text-end">{{ $linha['dias_sem_comprar'] }}</td>
+                                <td class="text-end {{ $corRazao }}">{{ number_format($razao, 1, ',', '.') }}×</td>
                             </tr>
                         @empty
                             <tr><td colspan="6" class="text-center text-muted py-4">Nenhum cliente com compras no período.</td></tr>
@@ -289,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('ia-resumo').textContent = dados.resultado.resumo || '';
             preencherLista('ia-pontos-fortes', dados.resultado.pontos_fortes);
             preencherLista('ia-alertas', dados.resultado.alertas);
-            preencherLista('ia-acoes', dados.resultado.acoes);
+            preencherLista('ia-sugestoes', dados.resultado.sugestoes);
 
             document.getElementById('ia-meta').textContent = dados.reaproveitada
                 ? 'Reaproveitada da análise de ' + dados.geradaEm + ' — nada mudou na carteira desde então.'

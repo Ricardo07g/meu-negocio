@@ -76,6 +76,13 @@ rota). Ambas ficam registradas para medição.
   leve. Aceito porque o payload é de tamanho limitado por construção, e a legibilidade para o usuário
   vale mais que o centavo de variação.
 
+- Temperatura fixada em 0.2: este é um relatório, não um texto criativo. Duas leituras da mesma
+  carteira inalterada devem dizer a mesma coisa — variar o texto a cada clique faz o usuário
+  desconfiar do número, não achar o texto interessante.
+- `max_tokens` é obrigatório e explícito: sem ele a Cloudflare aplica um default baixo e corta o
+  JSON no meio de uma string, e o driver recusa por "formato inválido" — sintoma que não aponta
+  para o tamanho.
+
 ### Neutras
 - A cota reinicia à **meia-noite de São Paulo**, não em UTC. O app roda em UTC, então contar o dia com
   `today()` zeraria a cota às 21h — no meio do expediente de quem paga por ela.
@@ -83,6 +90,9 @@ rota). Ambas ficam registradas para medição.
   a flag. Duas colunas dizendo a mesma coisa acabam divergindo.
 - Com 10 análises/dia e o modelo padrão (~88 neurônios por análise), **cerca de 11 unidades no limite
   máximo ainda cabem na cota gratuita** de 10.000 neurônios/dia da Cloudflare.
+- Os rótulos dos segmentos ("Alto valor", "Recorrentes", "Inativos") são deliberadamente sóbrios.
+  "Campeões" e "Sumidos" são os termos de manual de marketing, mas esta tela é um relatório que o
+  dono do negócio pode imprimir e mostrar ao contador.
 - A permissão `ia.analisar` é separada de `ia.ver`: gerar gasta cota da unidade, consultar o resultado
   guardado não.
 

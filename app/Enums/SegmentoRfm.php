@@ -9,6 +9,10 @@ namespace App\Enums;
  *
  * Quem decide o segmento e o SQL, nao o modelo de IA: a inteligencia mora aqui, e a IA
  * so nomeia, explica e sugere acao em cima do que ja foi classificado.
+ *
+ * Os rotulos sao deliberadamente sobrios. "Campeoes" e "Sumidos" sao os termos de manual
+ * de marketing, mas esta tela e um relatorio que o dono do negocio pode imprimir e mostrar
+ * ao contador: nomenclatura de apresentacao vale mais que jargao simpatico.
  */
 enum SegmentoRfm: string
 {
@@ -22,24 +26,24 @@ enum SegmentoRfm: string
     public function label(): string
     {
         return match ($this) {
-            self::Campeao => 'Campeões',
-            self::Fiel => 'Fiéis',
-            self::Novo => 'Novos',
+            self::Campeao => 'Alto valor',
+            self::Fiel => 'Recorrentes',
+            self::Novo => 'Recém-conquistados',
             self::EmRisco => 'Em risco',
-            self::Sumido => 'Sumidos',
-            self::Neutro => 'Ocasionais',
+            self::Sumido => 'Inativos',
+            self::Neutro => 'Eventuais',
         };
     }
 
     public function descricao(): string
     {
         return match ($this) {
-            self::Campeao => 'Compram muito e compraram há pouco tempo.',
-            self::Fiel => 'Compram com regularidade e seguem ativos.',
-            self::Novo => 'Compraram uma vez, recentemente.',
-            self::EmRisco => 'Eram frequentes e pararam de aparecer.',
-            self::Sumido => 'Sem compras há bastante tempo.',
-            self::Neutro => 'Compram de vez em quando, sem padrão claro.',
+            self::Campeao => 'Compram com frequência, gastam acima da média e seguem ativos.',
+            self::Fiel => 'Retornam com regularidade e mantêm o faturamento previsível.',
+            self::Novo => 'Primeira compra recente — ainda não há histórico para avaliar.',
+            self::EmRisco => 'Eram frequentes e pararam de retornar. Receita ameaçada.',
+            self::Sumido => 'Sem compras há muito tempo. Provavelmente já perdidos.',
+            self::Neutro => 'Compram esporadicamente, sem padrão definido.',
         };
     }
 

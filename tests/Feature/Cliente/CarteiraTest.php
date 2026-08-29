@@ -118,7 +118,7 @@ class CarteiraTest extends TestCase
             'resumo' => 'Sua carteira esta concentrada em poucos clientes.',
             'pontos_fortes' => ['Ticket medio saudavel'],
             'alertas' => ['Muitos sumidos'],
-            'acoes' => ['Ligar para os em risco'],
+            'sugestoes' => ['Ligar para os em risco'],
         ];
 
         $this->postJson(route('clientes.carteira.analisar'))
@@ -179,6 +179,27 @@ class CarteiraTest extends TestCase
         $this->postJson(route('clientes.carteira.analisar'))
             ->assertStatus(422)
             ->assertJson(['ok' => false, 'motivo' => 'indisponivel']);
+    }
+
+    /**
+     * Sem este aviso o usuario ve um texto antigo sem pista de que envelheceu — e nao entende
+     * por que um clique volta instantaneo e outro demora dez segundos.
+     */
+    public function test_tela_avisa_quando_a_carteira_mudou_desde_a_ultima_analise(): void
+    {
+        $this->semearCarteira();
+        $this->postJson(route('clientes.carteira.analisar'))->assertOk();
+
+        $this->get(route('clientes.carteira'))
+            ->assertOk()
+            ->assertDontSee('A carteira mudou desde esta leitura');
+
+        // Uma venda nova muda os segmentos, logo muda o hash do pedido.
+        $this->semearCarteira(3);
+
+        $this->get(route('clientes.carteira'))
+            ->assertOk()
+            ->assertSee('A carteira mudou desde esta leitura');
     }
 
     public function test_usuario_sem_permissao_recebe_403(): void

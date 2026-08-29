@@ -24,7 +24,7 @@ class AnalisarCarteiraAction
     /** Abaixo disso a analise vira texto generico e cobra igual — melhor nem chamar. */
     public const MINIMO_CLIENTES = 5;
 
-    private const VERSAO_PROMPT = 'v3';
+    private const VERSAO_PROMPT = 'v4';
 
     public function __construct(
         private readonly SegmentacaoRfmService $rfm,
@@ -42,12 +42,21 @@ class AnalisarCarteiraAction
             );
         }
 
-        return $this->analises->analisar($empresa, TipoAnalise::CarteiraRfm, new PedidoIa(
+        return $this->analises->analisar($empresa, TipoAnalise::CarteiraRfm, $this->montarPedido($carteira));
+    }
+
+    /**
+     * Publico porque a TELA tambem precisa dele — nao para chamar o modelo, mas para comparar
+     * o hash de hoje com o da analise guardada e avisar quando a carteira mudou desde entao.
+     */
+    public function montarPedido(array $carteira): PedidoIa
+    {
+        return new PedidoIa(
             instrucoes: $this->instrucoes(),
             dados: $this->payload($carteira),
             schema: $this->schema(),
             versaoPrompt: self::VERSAO_PROMPT,
-        ));
+        );
     }
 
     private function instrucoes(): string
@@ -62,21 +71,22 @@ class AnalisarCarteiraAction
 
         Formato:
         - `resumo`: UMA frase com o que mais chama atencao nesta carteira.
-        - `pontos_fortes`, `alertas`, `acoes`: 2 a 3 itens cada.
+        - `pontos_fortes`, `alertas`, `sugestoes`: exatamente 3 itens cada.
         - Cada item e uma frase COMPLETA, de 12 a 30 palavras, que cita o segmento de que fala.
           Fragmentos soltos como "Contate" ou "Concentracao de receita" NAO servem.
         - Em `alertas`, aponte RISCO: receita concentrada em poucos clientes, gente valiosa
           deixando de vir, base parada.
-        - Em `acoes`, comece por um verbo no imperativo e diga o que fazer nesta semana. Nada de
-          "e importante analisar" ou "e importante monitorar": isso nao e uma acao.
+        - Em `sugestoes`, comece por um verbo no imperativo e diga o que fazer nesta semana. Nada
+          de "e importante analisar" ou "e importante monitorar": isso nao e uma sugestao.
+        - Ordene os itens do mais relevante para o menos relevante.
 
         Exemplos SO do nivel de detalhe esperado. Os numeros abaixo sao inventados e nao tem
         relacao com os seus: use exclusivamente os valores que voce recebeu.
         - alerta bom: "Os 47 clientes ocasionais respondem por cerca de R$ 28.000, mas voltam
           menos de duas vezes por ano."
         - alerta ruim: "Concentracao de receita."
-        - acao boa: "Ligue esta semana para os 47 ocasionais oferecendo um horario de volta."
-        - acao ruim: "Contate os clientes."
+        - sugestao boa: "Ligue esta semana para os 47 eventuais oferecendo um horario de volta."
+        - sugestao ruim: "Contate os clientes."
 
         Regras rigidas:
         - Portugues do Brasil, direto e sem jargao. O leitor nao sabe o que e "RFM".
@@ -137,9 +147,9 @@ class AnalisarCarteiraAction
                 'resumo' => ['type' => 'string'],
                 'pontos_fortes' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'alertas' => ['type' => 'array', 'items' => ['type' => 'string']],
-                'acoes' => ['type' => 'array', 'items' => ['type' => 'string']],
+                'sugestoes' => ['type' => 'array', 'items' => ['type' => 'string']],
             ],
-            'required' => ['resumo', 'pontos_fortes', 'alertas', 'acoes'],
+            'required' => ['resumo', 'pontos_fortes', 'alertas', 'sugestoes'],
         ];
     }
 }

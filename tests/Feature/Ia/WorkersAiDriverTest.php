@@ -31,6 +31,7 @@ class WorkersAiDriverTest extends TestCase
             'ia.drivers.workers_ai.modelo' => '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
             'ia.drivers.workers_ai.url_base' => 'https://api.cloudflare.com/client/v4',
             'ia.max_tokens' => 1500,
+            'ia.temperatura' => 0.2,
         ]);
     }
 
@@ -55,7 +56,11 @@ class WorkersAiDriverTest extends TestCase
      * de uma string. O driver entao recusava por "formato invalido" e o sintoma nao apontava
      * para o tamanho. Nao apareceu com prompt curto; apareceu na primeira carteira real.
      */
-    public function test_envia_max_tokens_e_o_schema_pedido(): void
+    /**
+     * Temperatura baixa nao e detalhe: este e um relatorio, nao um texto criativo. Duas
+     * leituras da mesma carteira devem dizer a mesma coisa, senao o usuario desconfia do numero.
+     */
+    public function test_envia_max_tokens_temperatura_e_o_schema_pedido(): void
     {
         Http::fake([self::URL => Http::response([
             'result' => ['response' => ['resumo' => 'ok'], 'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5]],
@@ -66,6 +71,7 @@ class WorkersAiDriverTest extends TestCase
 
         Http::assertSent(function ($request): bool {
             return $request['max_tokens'] === 1500
+                && $request['temperature'] === 0.2
                 && $request['response_format']['type'] === 'json_schema'
                 && isset($request['response_format']['json_schema']['properties']['resumo'])
                 && $request->hasHeader('Authorization', 'Bearer token-teste');

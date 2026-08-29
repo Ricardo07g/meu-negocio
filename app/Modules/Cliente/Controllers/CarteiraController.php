@@ -41,13 +41,15 @@ class CarteiraController extends Controller
             $this->authorize('viewAny', Cliente::class);
 
             $carteira = $this->rfm->segmentar();
+            $ultima = $this->ultimaAnalise();
 
             return view('cliente::carteira', [
                 'carteira' => $carteira,
                 'iaDisponivel' => $this->analises->disponivel(),
                 'iaAnalisesHoje' => $this->analises->analisesDoDia(),
                 'iaLimite' => $this->analises->limiteDoDia(),
-                'ultimaAnalise' => $this->ultimaAnalise(),
+                'ultimaAnalise' => $ultima,
+                'analiseDesatualizada' => $this->desatualizada($ultima, $carteira),
                 'minimoClientes' => AnalisarCarteiraAction::MINIMO_CLIENTES,
             ]);
         } catch (\Throwable $e) {
@@ -96,6 +98,24 @@ class CarteiraController extends Controller
 
             return $this->recusar('indisponivel', 'Nao foi possivel gerar a analise agora.');
         }
+    }
+
+    /**
+     * A analise guardada ainda corresponde a carteira de hoje?
+     *
+     * Compara o hash do pedido atual com o da ultima analise. Sem esse aviso o usuario ve um
+     * texto antigo sem pista nenhuma de que ele envelheceu — e nao entende por que um clique
+     * volta instantaneo e outro demora dez segundos.
+     */
+    private function desatualizada(?AnaliseIa $ultima, array $carteira): bool
+    {
+        if ($ultima === null) {
+            return false;
+        }
+
+        $pedido = app(AnalisarCarteiraAction::class)->montarPedido($carteira);
+
+        return $ultima->hash_entrada !== $this->analises->hashDoPedido($pedido);
     }
 
     private function recusar(string $motivo, string $mensagem, int $status = 422): JsonResponse

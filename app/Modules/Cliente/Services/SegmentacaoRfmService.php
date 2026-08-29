@@ -151,9 +151,8 @@ class SegmentacaoRfmService
 
                 $r = $this->pontuar($dias, self::FAIXAS_RECENCIA, menorEhMelhor: true);
                 $f = $this->pontuar($linha['compras'], self::FAIXAS_FREQUENCIA);
-                $m = $mediaPorCliente > 0
-                    ? $this->pontuar($linha['valor'] / $mediaPorCliente, self::FAIXAS_VALOR)
-                    : 1;
+                $razao = $mediaPorCliente > 0 ? $linha['valor'] / $mediaPorCliente : 0.0;
+                $m = $this->pontuar($razao, self::FAIXAS_VALOR);
 
                 /** @var array<string, mixed> $classificado */
                 $classificado = [
@@ -165,6 +164,10 @@ class SegmentacaoRfmService
                     'r' => $r,
                     'f' => $f,
                     'm' => $m,
+                    // Quanto o cliente gasta em relacao a media da base. E a unica das tres
+                    // dimensoes que a tabela nao mostra crua, e "2,4x a media" se le sozinho —
+                    // ao contrario de uma nota "4" que exige legenda.
+                    'razao_valor' => round($razao, 2),
                     'segmento' => $this->segmento($r, $f, $linha['compras']),
                 ];
 

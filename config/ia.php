@@ -28,6 +28,16 @@ return [
     'max_tokens' => (int) env('IA_MAX_TOKENS', 1500),
 
     /*
+     * Temperatura baixa de proposito.
+     *
+     * Este nao e um caso de uso criativo: e um relatorio. Duas leituras da mesma carteira
+     * inalterada devem dizer a mesma coisa — variar o texto a cada clique faz o usuario
+     * desconfiar do numero, nao achar o texto interessante. Zero deixa alguns modelos
+     * repetitivos demais, entao 0.2 e o meio-termo.
+     */
+    'temperatura' => (float) env('IA_TEMPERATURA', 0.2),
+
+    /*
      * Fuso do "dia" da cota. O app roda em UTC (config/app.php), entao contar a cota com
      * `today()` cru a zeraria as 21h de Brasilia — no meio do expediente do lojista, que
      * nao entenderia o que aconteceu. O dia da cota e o dia DELE.

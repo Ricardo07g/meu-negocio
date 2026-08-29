@@ -58,6 +58,7 @@ class GeminiIa implements Ia
                         'responseMimeType' => 'application/json',
                         'responseSchema' => $pedido->schema,
                         'maxOutputTokens' => (int) config('ia.max_tokens'),
+                        'temperature' => (float) config('ia.temperatura'),
                     ],
                 ]);
         } catch (Throwable $e) {

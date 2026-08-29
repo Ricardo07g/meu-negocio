@@ -144,6 +144,15 @@ class AnaliseService
         ];
     }
 
+    /**
+     * Hash do pedido, para a tela saber se a analise guardada ainda corresponde a carteira
+     * de hoje. Sem isso o usuario ve um texto antigo sem nenhuma pista de que ele envelheceu.
+     */
+    public function hashDoPedido(PedidoIa $pedido): string
+    {
+        return $this->hash($pedido);
+    }
+
     /** A feature aparece na tela? Precisa de licenca com cota E de provedor configurado. */
     public function disponivel(): bool
     {
