@@ -57,6 +57,7 @@ class GeminiIa implements Ia
                     'generationConfig' => [
                         'responseMimeType' => 'application/json',
                         'responseSchema' => $pedido->schema,
+                        'maxOutputTokens' => (int) config('ia.max_tokens'),
                     ],
                 ]);
         } catch (Throwable $e) {

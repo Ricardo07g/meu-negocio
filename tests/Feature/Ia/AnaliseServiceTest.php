@@ -73,6 +73,27 @@ class AnaliseServiceTest extends TestCase
         $this->assertSame(1, AnaliseIa::count());
     }
 
+    /**
+     * Regressao: o hash cobria dados+versao+modelo, mas nao o texto do prompt — editar as
+     * instrucoes sem lembrar de bumpar `versaoPrompt` a mao servia resultado velho em silencio.
+     * E o mesmo "alguem vai esquecer" que motivou nao invalidar cache por evento de venda.
+     */
+    public function test_mudar_o_texto_do_prompt_invalida_o_cache(): void
+    {
+        ['empresa' => $empresa] = $this->criarRedeAutenticada();
+        $service = app(AnaliseService::class);
+        $dados = ['segmentos' => ['campeao' => 3]];
+
+        $service->analisar($empresa, TipoAnalise::CarteiraRfm, new PedidoIa(
+            instrucoes: 'Seja breve.', dados: $dados, schema: ['type' => 'object'],
+        ));
+        $service->analisar($empresa, TipoAnalise::CarteiraRfm, new PedidoIa(
+            instrucoes: 'Seja breve e cite os numeros.', dados: $dados, schema: ['type' => 'object'],
+        ));
+
+        $this->assertSame(2, FakeIa::$chamadas, 'prompt diferente e analise diferente');
+    }
+
     public function test_payload_diferente_gera_nova_analise(): void
     {
         ['empresa' => $empresa] = $this->criarRedeAutenticada();

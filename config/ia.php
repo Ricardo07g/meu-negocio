@@ -18,6 +18,16 @@ return [
     'timeout' => (int) env('IA_TIMEOUT', 30),
 
     /*
+     * Teto de tokens da resposta.
+     *
+     * **Obrigatorio, nao opcional.** Sem isso a Cloudflare aplica um default baixo e corta o
+     * JSON no meio de uma string — o driver entao recusa por "formato invalido", e o sintoma
+     * nao aponta para o tamanho. Passou despercebido com prompt curto e so apareceu no
+     * payload real da carteira.
+     */
+    'max_tokens' => (int) env('IA_MAX_TOKENS', 1500),
+
+    /*
      * Fuso do "dia" da cota. O app roda em UTC (config/app.php), entao contar a cota com
      * `today()` cru a zeraria as 21h de Brasilia — no meio do expediente do lojista, que
      * nao entenderia o que aconteceu. O dia da cota e o dia DELE.

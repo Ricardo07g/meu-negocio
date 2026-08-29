@@ -160,15 +160,24 @@ class AnaliseService
     /**
      * A chave do cache.
      *
-     * Inclui modelo e versao do prompt de proposito: trocar qualquer um dos dois muda a
-     * resposta esperada, entao deve invalidar o que estava guardado. O que NAO entra aqui
-     * e data crua — o payload chega ja classificado justamente para o hash so mudar quando
-     * o negocio mudou, e nao a cada virada de dia.
+     * Entra tudo que muda a resposta esperada: os dados, o **texto das instrucoes**, o schema,
+     * o modelo e a versao do prompt.
+     *
+     * As instrucoes entram por licao aprendida: com o hash so sobre dados+versao+modelo, editar
+     * o prompt sem lembrar de bumpar `versaoPrompt` a mao servia resultado velho em silencio —
+     * o mesmo "alguem vai esquecer" que motivou nao invalidar cache por evento de venda.
+     * `versaoPrompt` continua existindo, mas como rotulo legivel no historico; a correcao nao
+     * depende mais de ninguem lembrar dele.
+     *
+     * O que NAO entra e data crua: o payload chega ja classificado justamente para o hash so
+     * mudar quando o negocio mudou, e nao a cada virada de dia.
      */
     private function hash(PedidoIa $pedido): string
     {
         return hash('sha256', json_encode([
             'dados' => $pedido->dados,
+            'instrucoes' => $pedido->instrucoes,
+            'schema' => $pedido->schema,
             'versao' => $pedido->versaoPrompt,
             'modelo' => $this->ia->modelo(),
         ], JSON_UNESCAPED_UNICODE) ?: '');

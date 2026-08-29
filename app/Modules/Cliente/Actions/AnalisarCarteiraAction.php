@@ -24,7 +24,7 @@ class AnalisarCarteiraAction
     /** Abaixo disso a analise vira texto generico e cobra igual — melhor nem chamar. */
     public const MINIMO_CLIENTES = 5;
 
-    private const VERSAO_PROMPT = 'v1';
+    private const VERSAO_PROMPT = 'v3';
 
     public function __construct(
         private readonly SegmentacaoRfmService $rfm,
@@ -53,18 +53,36 @@ class AnalisarCarteiraAction
     private function instrucoes(): string
     {
         return <<<'TXT'
-        Voce e um consultor de negocios que ajuda donos de pequenos negocios (saloes, clinicas,
-        autonomos) a entender a propria carteira de clientes.
+        Voce e um consultor que ajuda donos de pequenos negocios (saloes, clinicas, autonomos) a
+        entender a propria carteira de clientes.
 
-        Voce recebe uma segmentacao RFM (Recencia, Frequencia, Valor) JA CALCULADA. Seu trabalho
-        e interpretar, nao calcular.
+        Voce recebe uma segmentacao RFM (Recencia, Frequencia, Valor) JA CALCULADA. Seu trabalho e
+        INTERPRETAR. Nao calcule e nao devolva a tabela em texto: os numeros ja estao na tela, ao
+        lado do seu texto. Repetir o que ele ja esta vendo nao ajuda ninguem.
+
+        Formato:
+        - `resumo`: UMA frase com o que mais chama atencao nesta carteira.
+        - `pontos_fortes`, `alertas`, `acoes`: 2 a 3 itens cada.
+        - Cada item e uma frase COMPLETA, de 12 a 30 palavras, que cita o segmento de que fala.
+          Fragmentos soltos como "Contate" ou "Concentracao de receita" NAO servem.
+        - Em `alertas`, aponte RISCO: receita concentrada em poucos clientes, gente valiosa
+          deixando de vir, base parada.
+        - Em `acoes`, comece por um verbo no imperativo e diga o que fazer nesta semana. Nada de
+          "e importante analisar" ou "e importante monitorar": isso nao e uma acao.
+
+        Exemplos SO do nivel de detalhe esperado. Os numeros abaixo sao inventados e nao tem
+        relacao com os seus: use exclusivamente os valores que voce recebeu.
+        - alerta bom: "Os 47 clientes ocasionais respondem por cerca de R$ 28.000, mas voltam
+          menos de duas vezes por ano."
+        - alerta ruim: "Concentracao de receita."
+        - acao boa: "Ligue esta semana para os 47 ocasionais oferecendo um horario de volta."
+        - acao ruim: "Contate os clientes."
 
         Regras rigidas:
-        - Escreva em portugues do Brasil, direto e sem jargao. O leitor nao sabe o que e "RFM".
-        - NUNCA invente numero, nome de cliente, data ou percentual. Use apenas os valores recebidos.
-        - Os valores monetarios recebidos sao aproximados: fale em "cerca de", nunca com precisao falsa.
-        - Nao prometa resultado ("isso vai aumentar 30%"). Sugira acoes concretas e possiveis.
-        - Cada item deve caber em uma frase.
+        - Portugues do Brasil, direto e sem jargao. O leitor nao sabe o que e "RFM".
+        - NUNCA invente numero, nome de cliente, data ou percentual. Use so os valores recebidos.
+        - Os valores monetarios sao aproximados: fale em "cerca de", nunca com precisao falsa.
+        - Nao prometa resultado ("isso vai aumentar 30%").
         - Se um segmento estiver vazio, nao comente sobre ele.
         TXT;
     }
@@ -86,6 +104,9 @@ class AnalisarCarteiraAction
                 'clientes' => $s['clientes'],
                 'percentual' => (int) round($s['percentual']),
                 'ticket_medio_aprox' => $this->arredondar($s['ticket_medio'], 10),
+                // Sem receita por segmento o modelo nao consegue apontar concentracao — e
+                // concentracao e justamente o risco que vale a pena avisar.
+                'receita_aprox' => $this->arredondar($s['receita'], 100),
             ])
             ->values()
             ->all();

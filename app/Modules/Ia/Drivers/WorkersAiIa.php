@@ -60,6 +60,7 @@ class WorkersAiIa implements Ia
                         'type' => 'json_schema',
                         'json_schema' => $pedido->schema,
                     ],
+                    'max_tokens' => (int) config('ia.max_tokens'),
                 ]);
         } catch (Throwable $e) {
             Log::warning('Workers AI: falha de rede na analise.', ['exception' => $e]);
@@ -123,6 +124,15 @@ class WorkersAiIa implements Ia
 
             if (is_array($decodificado)) {
                 return $decodificado;
+            }
+
+            // JSON que comeca certo e nao fecha e quase sempre truncamento por max_tokens.
+            // Dizer isso poupa quem estiver depurando de procurar erro de schema.
+            if (str_starts_with(ltrim($resposta), '{')) {
+                throw new IaIndisponivelException(
+                    'a resposta veio cortada (provavel estouro de max_tokens; atual: '
+                    .config('ia.max_tokens').')'
+                );
             }
         }
 
