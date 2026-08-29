@@ -24,6 +24,7 @@
         ['icone' => 'feather-shopping-bag', 'nome' => 'Vendas', 'inclui' => true],
         ['icone' => 'feather-archive', 'nome' => 'Estoque', 'inclui' => (bool) $plano?->tem_estoque],
         ['icone' => 'feather-dollar-sign', 'nome' => 'Financeiro (Pagamentos / Despesas / Caixa)', 'inclui' => (bool) $plano?->tem_financeiro],
+        ['icone' => 'feather-zap', 'nome' => 'Analise da carteira por IA', 'inclui' => (bool) $plano?->temIa()],
     ];
 
     $assentosUsados = $empresaVigente?->contarUsuarios() ?? 0;
@@ -205,6 +206,58 @@
     </div>
 
     <div class="row g-3">
+        {{-- Consumo de IA: o acumulado do mes. O numero do dia fica ao lado do botao que o gasta. --}}
+        @if ($iaLimite > 0 && $iaMes !== null)
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0"><i class="feather-zap me-2"></i>Uso da análise por IA</h5>
+                    </div>
+                    <div class="card-body">
+                        @php
+                            $percIa = $iaLimite > 0 ? min(100, (int) round($iaConsumoHoje / $iaLimite * 100)) : 0;
+                        @endphp
+
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fs-12 text-muted">Cota de hoje</span>
+                            <span class="fs-12 fw-semibold">
+                                {{ number_format($iaConsumoHoje, 0, ',', '.') }} / {{ number_format($iaLimite, 0, ',', '.') }} tokens
+                            </span>
+                        </div>
+                        <div class="progress mb-4" style="height: 6px;" role="progressbar"
+                             aria-valuenow="{{ $percIa }}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar {{ $percIa >= 100 ? 'bg-warning' : 'bg-primary' }}" style="width: {{ $percIa }}%"></div>
+                        </div>
+
+                        <div class="row text-center">
+                            <div class="col-6 col-lg-3 mb-2">
+                                <p class="text-muted fs-12 mb-1">Análises no mês</p>
+                                <h5 class="mb-0">{{ $iaMes['analises'] }}</h5>
+                            </div>
+                            <div class="col-6 col-lg-3 mb-2">
+                                <p class="text-muted fs-12 mb-1">Reaproveitadas do cache</p>
+                                <h5 class="mb-0">{{ $iaMes['reaproveitamentos'] }}</h5>
+                            </div>
+                            <div class="col-6 col-lg-3 mb-2">
+                                <p class="text-muted fs-12 mb-1">Economia por cache</p>
+                                <h5 class="mb-0 text-success">{{ $iaMes['taxa_cache'] }}%</h5>
+                            </div>
+                            <div class="col-6 col-lg-3 mb-2">
+                                <p class="text-muted fs-12 mb-1">Tokens no mês</p>
+                                <h5 class="mb-0">{{ number_format($iaMes['tokens'], 0, ',', '.') }}</h5>
+                            </div>
+                        </div>
+
+                        <p class="text-muted fs-12 mb-0 mt-2">
+                            <i class="feather-info me-1"></i>
+                            A cota é por unidade e reinicia todo dia à meia-noite. Análises repetidas sobre uma carteira
+                            que não mudou são reaproveitadas e não consomem cota.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Recursos inclusos --}}
         <div class="col-lg-6">
             <div class="card stretch stretch-full">

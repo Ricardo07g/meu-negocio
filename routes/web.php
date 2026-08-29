@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Modules\Agenda\Controllers\AgendaController;
 use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController};
 use App\Modules\Caixa\Controllers\CaixaController;
-use App\Modules\Cliente\Controllers\ClienteController;
+use App\Modules\Cliente\Controllers\{CarteiraController, ClienteController};
 use App\Modules\Conta\Controllers\ContaController;
 use App\Modules\Dashboard\Controllers\DashboardController;
 use App\Modules\Despesa\Controllers\{CategoriaDespesaController, DespesaController};
@@ -81,6 +81,11 @@ Route::middleware(['auth', 'verificar.rede'])->group(function () {
 
         // Clientes
         Route::get('clientes/buscar', [ClienteController::class, 'buscar'])->name('clientes.buscar');
+        // Antes do resource: senao `clientes/{cliente}` engoliria "carteira".
+        Route::get('clientes/carteira', [CarteiraController::class, 'index'])->name('clientes.carteira');
+        Route::post('clientes/carteira/analisar', [CarteiraController::class, 'analisar'])
+            ->middleware('throttle:10,1')
+            ->name('clientes.carteira.analisar');
         Route::resource('clientes', ClienteController::class);
 
         // Servicos
