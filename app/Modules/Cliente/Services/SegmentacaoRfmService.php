@@ -51,6 +51,8 @@ class SegmentacaoRfmService
      *     total_clientes: int,
      *     clientes_com_compra: int,
      *     clientes_sem_compra: int,
+     *     clientes_com_whatsapp: int,
+     *     clientes_com_email: int,
      *     receita_total: float,
      *     ticket_medio: float,
      *     segmentos: array<int, array{chave: string, label: string, cor: string, descricao: string, clientes: int, percentual: float, receita: float, ticket_medio: float}>,
@@ -64,6 +66,11 @@ class SegmentacaoRfmService
         $compras = $this->agregarCompras($desde);
         $totalClientes = Cliente::query()->count();
 
+        // Sem saber por onde da para falar com o cliente, qualquer sugestao de canal e chute:
+        // recomendar e-mail a quem so tem telefone nao ajuda ninguem.
+        $comWhatsapp = Cliente::query()->where('telefone_whatsapp', true)->count();
+        $comEmail = Cliente::query()->whereNotNull('email')->where('email', '!=', '')->count();
+
         $receitaTotal = (float) $compras->sum('valor');
         $mediaPorCliente = $compras->isEmpty() ? 0.0 : $receitaTotal / $compras->count();
 
@@ -74,6 +81,8 @@ class SegmentacaoRfmService
             'total_clientes' => $totalClientes,
             'clientes_com_compra' => $clientes->count(),
             'clientes_sem_compra' => max(0, $totalClientes - $clientes->count()),
+            'clientes_com_whatsapp' => $comWhatsapp,
+            'clientes_com_email' => $comEmail,
             'receita_total' => round($receitaTotal, 2),
             'ticket_medio' => $clientes->isEmpty() ? 0.0 : round($receitaTotal / $clientes->count(), 2),
             'segmentos' => $this->resumirSegmentos($clientes),

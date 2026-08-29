@@ -38,12 +38,12 @@ enum SegmentoRfm: string
     public function descricao(): string
     {
         return match ($this) {
-            self::Campeao => 'Compram com frequência, gastam acima da média e seguem ativos.',
-            self::Fiel => 'Retornam com regularidade e mantêm o faturamento previsível.',
-            self::Novo => 'Primeira compra recente — ainda não há histórico para avaliar.',
-            self::EmRisco => 'Eram frequentes e pararam de retornar. Receita ameaçada.',
-            self::Sumido => 'Sem compras há muito tempo. Provavelmente já perdidos.',
-            self::Neutro => 'Compram esporadicamente, sem padrão definido.',
+            self::Campeao => 'Compram com frequência e gastam acima da média. Sustentam o faturamento.',
+            self::Fiel => 'Retornam com regularidade e tornam a receita previsível.',
+            self::Novo => 'Primeira compra recente. É a janela para transformá-los em recorrentes.',
+            self::EmRisco => 'Eram frequentes e deixaram de voltar. É aqui que há mais receita a recuperar.',
+            self::Sumido => 'Sem compras há bastante tempo. Retomar exige um motivo forte para voltar.',
+            self::Neutro => 'Compram de vez em quando. Há espaço para criar regularidade.',
         };
     }
 

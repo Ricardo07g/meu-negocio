@@ -90,6 +90,12 @@ rota). Ambas ficam registradas para medição.
   a flag. Duas colunas dizendo a mesma coisa acabam divergindo.
 - Com 10 análises/dia e o modelo padrão (~88 neurônios por análise), **cerca de 11 unidades no limite
   máximo ainda cabem na cota gratuita** de 10.000 neurônios/dia da Cloudflare.
+- A viabilidade de cada canal (WhatsApp, e-mail, balcão) é **calculada no PHP** e entregue pronta
+  como `usar: true/false`. Pedir ao modelo que conclua "1 e-mail cadastrado em 47 clientes significa
+  não sugerir e-mail" é pedir raciocínio numérico — exatamente o que ele faz mal e o que esta
+  arquitetura tira dele. Sem isso ele recomendava disparo de e-mail para uma base sem e-mail.
+- As descrições de segmento falam de **oportunidade, nunca de ameaça**: cliente que parou de vir é
+  receita a recuperar, não risco a conter. A diferença muda o que o leitor faz depois de ler.
 - Os rótulos dos segmentos ("Alto valor", "Recorrentes", "Inativos") são deliberadamente sóbrios.
   "Campeões" e "Sumidos" são os termos de manual de marketing, mas esta tela é um relatório que o
   dono do negócio pode imprimir e mostrar ao contador.

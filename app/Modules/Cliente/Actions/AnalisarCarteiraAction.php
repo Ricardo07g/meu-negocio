@@ -24,7 +24,10 @@ class AnalisarCarteiraAction
     /** Abaixo disso a analise vira texto generico e cobra igual — melhor nem chamar. */
     public const MINIMO_CLIENTES = 5;
 
-    private const VERSAO_PROMPT = 'v4';
+    /** Cobertura minima para um canal valer uma acao de segmento. */
+    private const COBERTURA_MINIMA_CANAL = 0.3;
+
+    private const VERSAO_PROMPT = 'v8';
 
     public function __construct(
         private readonly SegmentacaoRfmService $rfm,
@@ -70,7 +73,12 @@ class AnalisarCarteiraAction
         lado do seu texto. Repetir o que ele ja esta vendo nao ajuda ninguem.
 
         Formato:
-        - `resumo`: UMA frase com o que mais chama atencao nesta carteira.
+        - `resumo`: UMA frase com a leitura mais importante — a conclusao que muda a decisao de
+          quem esta lendo. NAO repita totais ("a carteira tem 47 clientes e R$ 9.800") nem diga
+          generalidades ("a distribuicao e desigual"): isso nao ajuda ninguem a decidir nada.
+          Exemplo do nivel esperado, com numeros inventados: "Quase metade da sua receita esta
+          em gente que parou de vir, entao recuperar parte disso rende mais que buscar cliente
+          novo.".
         - `pontos_fortes`, `alertas`, `sugestoes`: exatamente 3 itens cada.
         - Cada item e uma frase COMPLETA, de 12 a 30 palavras, que cita o segmento de que fala.
           Fragmentos soltos como "Contate" ou "Concentracao de receita" NAO servem.
@@ -78,14 +86,31 @@ class AnalisarCarteiraAction
           deixando de vir, base parada.
         - Em `sugestoes`, comece por um verbo no imperativo e diga o que fazer nesta semana. Nada
           de "e importante analisar" ou "e importante monitorar": isso nao e uma sugestao.
-        - Ordene os itens do mais relevante para o menos relevante.
+        - Ordene os itens do mais relevante para o menos relevante. **A primeira sugestao tem de
+          atacar o grupo com mais receita em jogo** entre os que precisam de acao (em risco,
+          inativos, eventuais) — nao adianta comecar por um grupo de R$ 100 quando ha um de
+          R$ 3.000 parado. Nenhum grupo fica de fora por falta de canal: se `no_balcao` nao serve
+          para ele, use WhatsApp.
+
+        Canais — regra dura:
+        - Em `canais` voce recebe cada canal com `usar: true` ou `usar: false`. **Use SOMENTE os
+          que estao com `usar: true`.** Um canal com `usar: false` nao tem contato cadastrado
+          suficiente: sugerir por ele e mandar o leitor fazer algo impossivel.
+        - `no_balcao` significa falar com a pessoa no proximo atendimento — logo, so serve para
+          quem ainda aparece (alto valor, recorrentes, recem-conquistados, eventuais). Nao use
+          para "em risco" nem "inativos": eles nao vao aparecer, e por isso estao nesse grupo.
+        - **Nunca recomende telefonema.** Para grupo grande soa invasivo e ninguem faz.
+        - Nao sugira redes sociais: post nao alcanca um segmento especifico, alcanca quem passar.
+        - Varie o verbo entre as tres sugestoes. Tres itens com o mesmo verbo e sinal de que voce
+          nao pensou em cada um.
 
         Exemplos SO do nivel de detalhe esperado. Os numeros abaixo sao inventados e nao tem
         relacao com os seus: use exclusivamente os valores que voce recebeu.
         - alerta bom: "Os 47 clientes ocasionais respondem por cerca de R$ 28.000, mas voltam
           menos de duas vezes por ano."
         - alerta ruim: "Concentracao de receita."
-        - sugestao boa: "Ligue esta semana para os 47 eventuais oferecendo um horario de volta."
+        - sugestao boa: "Mande uma mensagem no WhatsApp aos 47 eventuais com uma condicao de
+          retorno valida ate o fim do mes."
         - sugestao ruim: "Contate os clientes."
 
         Regras rigidas:
@@ -126,10 +151,35 @@ class AnalisarCarteiraAction
             'total_clientes' => $carteira['total_clientes'],
             'clientes_com_compra' => $carteira['clientes_com_compra'],
             'clientes_sem_compra' => $carteira['clientes_sem_compra'],
+            'canais' => $this->canais($carteira),
             'receita_periodo_aprox' => $this->arredondar($carteira['receita_total'], 100),
             'ticket_medio_aprox' => $this->arredondar($carteira['ticket_medio'], 10),
             'moeda' => 'BRL',
             'segmentos' => $segmentos,
+        ];
+    }
+
+    /**
+     * Quais canais valem uma acao de segmento.
+     *
+     * A **decisao** vai pronta, so a contagem. Pedir ao modelo que conclua "1 e-mail em 47
+     * clientes significa nao sugerir e-mail" e pedir raciocinio numerico — justamente o que ele
+     * faz mal e o que esta arquitetura tira dele. A conta e do PHP; o texto e dele.
+     */
+    private function canais(array $carteira): array
+    {
+        $base = max(1, $carteira['total_clientes']);
+
+        return [
+            'whatsapp' => [
+                'clientes' => $carteira['clientes_com_whatsapp'],
+                'usar' => $carteira['clientes_com_whatsapp'] / $base >= self::COBERTURA_MINIMA_CANAL,
+            ],
+            'email' => [
+                'clientes' => $carteira['clientes_com_email'],
+                'usar' => $carteira['clientes_com_email'] / $base >= self::COBERTURA_MINIMA_CANAL,
+            ],
+            'no_balcao' => ['clientes' => $carteira['total_clientes'], 'usar' => true],
         ];
     }
 
