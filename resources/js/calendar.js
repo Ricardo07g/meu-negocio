@@ -60,6 +60,10 @@ document.addEventListener('DOMContentLoaded', function () {
             weekGridFooterExceed: (quantos) => `+${quantos} mais`,
             monthMoreClose: () => 'Fechar',
             collapseBtnTitle: () => 'Recolher',
+            // A regua de horas vinha em 12h americano ("8 am", "12 pm"). Aqui
+            // hora e 24h — e o expediente na barra lateral ja fala essa lingua.
+            timegridDisplayPrimaryTime: ({ time }) => `${String(time.getHours()).padStart(2, '0')}:00`,
+            timegridNowIndicatorLabel: ({ time }) => time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         },
     });
 

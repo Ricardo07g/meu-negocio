@@ -256,7 +256,7 @@ class AgendaController extends Controller
             // no lugar do 8–21 que estava fixo no JS.
             $empresaDaAgenda = $empresaId ?? (int) $request->user()->empresa_id;
             [$horaInicial, $horaFinal] = $this->expediente->janelaDoCalendario((int) $empresaDaAgenda);
-            $resumoExpediente = $this->expediente->resumo((int) $empresaDaAgenda);
+            $resumoExpediente = $this->expediente->resumoPorDia((int) $empresaDaAgenda);
             $podeForcarHorario = $request->user()->can('agendamento.forcar_horario');
 
             return view('agenda::index', compact(
