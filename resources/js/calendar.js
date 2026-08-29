@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', function () {
     let atendenteCalendars = [];
     let eventosCache = [];
 
+    // O Toast UI rotula os dias em ingles por padrao ("Mon", "Tue", ...) e nao
+    // olha o locale do navegador. O array comeca no DOMINGO — indice 0 e domingo
+    // mesmo com `startDayOfWeek: 1`, que so gira a exibicao.
+    const DIAS_DA_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
     const calendar = new Calendar(calendarEl, {
         defaultView: 'week',
         isReadOnly: false,
@@ -33,6 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
         useDetailPopup: false,
         week: {
             startDayOfWeek: 1,
+            dayNames: DIAS_DA_SEMANA,
             hourStart: Number.isFinite(horaInicial) ? horaInicial : 8,
             hourEnd: Number.isFinite(horaFinal) ? horaFinal : 21,
             taskView: false,
@@ -40,12 +46,20 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         month: {
             startDayOfWeek: 1,
+            dayNames: DIAS_DA_SEMANA,
         },
         template: {
             time(event) {
                 const start = new Date(event.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 return `<strong>${start}</strong> ${event.title}`;
             },
+            // O que a biblioteca escreve sozinha, em ingles: o "N more" dos dias
+            // cheios (mes e semana) e o popup que ele abre.
+            monthGridHeaderExceed: (quantos) => `+${quantos} mais`,
+            monthGridFooterExceed: (quantos) => `+${quantos} mais`,
+            weekGridFooterExceed: (quantos) => `+${quantos} mais`,
+            monthMoreClose: () => 'Fechar',
+            collapseBtnTitle: () => 'Recolher',
         },
     });
 
