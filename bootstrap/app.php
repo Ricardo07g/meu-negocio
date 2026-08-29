@@ -6,6 +6,7 @@ use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException,
 use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, VerificarEmpresa, VerificarPlano, VerificarRede, VerificarTurnstile};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
 use App\Modules\Conta\Console\LimparExportacoes;
+use App\Modules\Ia\Console\TestarIa;
 use App\Modules\Tenant\Console\ExpirarTrial;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\{Exceptions, Middleware};
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         LimparRascunhosArquivo::class,
         LimparExportacoes::class,
         ExpirarTrial::class,
+        TestarIa::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // Railway (e afins) terminam o TLS no proxy e encaminham via HTTP.

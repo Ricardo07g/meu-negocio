@@ -26,15 +26,17 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 2,
                 'tem_estoque' => false,
                 'tem_financeiro' => false,
+                'limite_tokens_ia_dia' => 0,
             ],
             [
                 'slug' => Plano::PRO,
                 'nome' => 'Pro',
                 'preco_por_licenca' => 79.90,
-                'descricao' => 'Licenca completa por unidade: estoque, financeiro e mais usuarios.',
+                'descricao' => 'Licenca completa por unidade: estoque, financeiro, analise por IA e mais usuarios.',
                 'max_usuarios' => 15,
                 'tem_estoque' => true,
                 'tem_financeiro' => true,
+                'limite_tokens_ia_dia' => 50000,
             ],
         ];
 

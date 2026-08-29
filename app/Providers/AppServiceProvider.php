@@ -18,6 +18,10 @@ use App\Modules\Estoque\Models\MovimentoEstoque;
 use App\Modules\Estoque\Policies\MovimentoEstoquePolicy;
 use App\Modules\FormaPagamento\Models\FormaPagamento;
 use App\Modules\FormaPagamento\Policies\FormaPagamentoPolicy;
+use App\Modules\Ia\Contracts\Ia;
+use App\Modules\Ia\Drivers\{FakeIa, GeminiIa, WorkersAiIa};
+use App\Modules\Ia\Models\AnaliseIa;
+use App\Modules\Ia\Policies\AnaliseIaPolicy;
 use App\Modules\Pagamento\Models\Pagamento;
 use App\Modules\Pagamento\Policies\PagamentoPolicy;
 use App\Modules\PerfilAcesso\Policies\PerfilAcessoPolicy;
@@ -44,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected array $policies = [
         Agendamento::class => AgendamentoPolicy::class,
+        AnaliseIa::class => AnaliseIaPolicy::class,
         Caixa::class => CaixaPolicy::class,
         CategoriaDespesa::class => CategoriaDespesaPolicy::class,
         CategoriaProduto::class => CategoriaProdutoPolicy::class,
@@ -65,7 +70,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        //
+        // Provedor de IA por config. Trocar de modelo e trocar `IA_DRIVER` — nenhum
+        // service, tela ou teste conhece o provedor, so o contrato.
+        $this->app->bind(Ia::class, fn (): Ia => match ((string) config('ia.driver')) {
+            'gemini' => new GeminiIa,
+            'fake' => new FakeIa,
+            default => new WorkersAiIa,
+        });
     }
 
     public function boot(): void

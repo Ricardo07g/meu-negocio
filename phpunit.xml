@@ -39,6 +39,8 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- A suite nunca toca a rede: driver de IA falso, sem credencial, sem provedor. -->
+        <env name="IA_DRIVER" value="fake"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>
