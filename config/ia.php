@@ -33,8 +33,10 @@ return [
          * Cloudflare Workers AI — driver padrao.
          *
          * Reaproveita a conta Cloudflare que o projeto ja usa (R2, Turnstile, cron):
-         * `IA_CF_ACCOUNT_ID` e o mesmo valor de `R2_ACCOUNT_ID`. O token precisa da
-         * permissao "Workers AI: Read".
+         * `IA_CF_ACCOUNT_ID` e o mesmo valor de `R2_ACCOUNT_ID`. O token precisa de
+         * "Workers AI - Read" **e** "Workers AI - Edit" — rodar inferencia conta como
+         * escrita no modelo de permissoes da Cloudflare. O botao "Use REST API" no painel
+         * do Workers AI gera um token ja com as duas.
          *
          * Suporta JSON schema via `response_format`, mas — ao contrario do Gemini — a
          * Cloudflare NAO garante aderencia a schemas complexos: quando o modelo nao
