@@ -68,6 +68,15 @@
                         </a>
                     </li>
                     @endcan
+                    {{-- Carteira de clientes (segmentacao RFM; a leitura por IA e opcional) --}}
+                    @can('cliente.ver')
+                    <li class="nxl-item">
+                        <a href="{{ route('clientes.carteira') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-pie-chart"></i></span>
+                            <span class="nxl-mtext">Carteira</span>
+                        </a>
+                    </li>
+                    @endcan
                     {{-- Produtos --}}
                     @can('produto.ver')
                     <li class="nxl-item">

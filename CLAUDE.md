@@ -73,7 +73,9 @@ Agenda (agendamento e operacao, venda e financeiro: cobranca na finalizacao — 
 da unidade + encaixe autorizado — ADR-0019),
 Pagamento, Despesa, Estoque, Produto, Venda (VendaEtapas + VendaProduto), FormaPagamento
 (formas por empresa + recebiveis de cartao — ADR-0009), Caixa, Dashboard,
-Assinatura (licenca por empresa + trial de 15 dias renovavel, so Admin ve — ADR-0013), Arquivo (uploads genericos —
+Assinatura (licenca por empresa + trial de 15 dias renovavel, so Admin ve — ADR-0013),
+**Ia** (analise por IA com driver trocavel, cache por hash e cota diaria por empresa — ADR-0021;
+primeira consumidora: carteira RFM em `clientes/carteira`), Arquivo (uploads genericos —
 imagens/PDFs via trait `TemArquivos`, storage R2 — ADR-0008; imagens normalizadas em WebP — ADR-0015).
 -> dominio de cada modulo em `.claude/rules/modulos/{modulo}.md` (lazy).
 
@@ -83,7 +85,7 @@ venda_produto_itens, **pagamentos, parcelas_pagamento, baixas_pagamento**, **des
 parcelas_despesa, baixas_despesa, categorias_despesa**, produtos, categorias_produto,
 movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **recebiveis**,
 **contas**, **lancamentos**, **exportacoes**, **faturas**, **horarios_atendimento**,
-**arquivos** (polimorfica).
+**arquivos** (polimorfica), **analises_ia** (polimorfica; cache + historico + razao de consumo de IA).
 -> convencoes de migration em `.claude/rules/banco-de-dados.md` e skill `criar-migration`.
 
 ## Traits
@@ -105,6 +107,13 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   nunca SMTP — o Railway descarta conexao SMTP em silencio e o request pendura ate o timeout
   (ADR-0020). Dev usa `log`, testes usam `array`. Ha um unico email no sistema: o link de
   redefinicao de senha. Remetente precisa de dominio verificado (DKIM/SPF/MX de retorno).
+- **IA**: um contrato (`App\Modules\Ia\Contracts\Ia`) com drivers trocaveis por `IA_DRIVER` —
+  **Workers AI** (padrao), **Gemini** (escape hatch) e **Fake** (a suite, fixado em `phpunit.xml`).
+  **Desligada sem credencial**, no molde do Turnstile. Regra inegociavel: **o SQL calcula, o modelo
+  so redige** — o payload chega ja classificado e arredondado, o que tambem mantem o hash do cache
+  estavel. **Franquia diaria de ANALISES** (nao tokens) por empresa em
+  `planos.limite_analises_ia_dia` (10 no Pro), resetando no fuso de Sao Paulo (o app roda em UTC).
+  Cache hit e erro do provedor **nao** consomem franquia. ADR-0021.
 - **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
   POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
   widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.
@@ -129,12 +138,13 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **803 testes** (2826 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **841 testes** (2934 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
   validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro) e o
-  agendador HTTP.
+  agendador HTTP, e a analise por IA (cache por hash, cota diaria, degradacao com provedor
+  desligado e segmentacao RFM).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -150,7 +160,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (20 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (21 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

@@ -53,6 +53,9 @@ class PermissaoSeeder extends Seeder
             'papel.ver', 'papel.criar', 'papel.editar', 'papel.excluir',
             // Plano
             'plano.ver', 'plano.alterar',
+            // Analise por IA — 'analisar' e separada de 'ver' porque gasta cota da unidade:
+            // consultar o resultado guardado nao e o mesmo que mandar rodar de novo.
+            'ia.ver', 'ia.analisar',
         ];
 
         foreach ($permissoes as $permissao) {

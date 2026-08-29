@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $max_usuarios
  * @property bool $tem_estoque
  * @property bool $tem_financeiro
+ * @property int $limite_analises_ia_dia
  */
 class Plano extends Model
 {
@@ -37,6 +38,7 @@ class Plano extends Model
         'max_usuarios',
         'tem_estoque',
         'tem_financeiro',
+        'limite_analises_ia_dia',
     ];
 
     protected function casts(): array
@@ -45,7 +47,20 @@ class Plano extends Model
             'preco_por_licenca' => 'decimal:2',
             'tem_estoque' => 'boolean',
             'tem_financeiro' => 'boolean',
+            'limite_analises_ia_dia' => 'integer',
         ];
+    }
+
+    /**
+     * A licenca da analises por IA?
+     *
+     * Deriva da franquia em vez de uma coluna `tem_ia` ao lado: duas colunas dizendo a mesma
+     * coisa e uma delas ficando desatualizada. `0` ja e inequivoco — e mantem a convencao
+     * do projeto de que todo limite e finito.
+     */
+    public function temIa(): bool
+    {
+        return $this->limite_analises_ia_dia > 0;
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗
