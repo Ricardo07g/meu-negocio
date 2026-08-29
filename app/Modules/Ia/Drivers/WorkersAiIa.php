@@ -73,7 +73,14 @@ class WorkersAiIa implements Ia
                 'corpo' => $resposta->json('errors'),
             ]);
 
-            throw new IaIndisponivelException("o provedor respondeu {$resposta->status()}");
+            // O texto do provedor entra na mensagem porque o erro mais provavel aqui e
+            // "este modelo nao suporta json_schema" — e sem ele o diagnostico vira
+            // adivinhacao na hora de experimentar outro modelo.
+            throw new IaIndisponivelException(trim(sprintf(
+                'o provedor respondeu %d %s',
+                $resposta->status(),
+                $this->primeiroErro($resposta->json('errors')),
+            )));
         }
 
         $duracao = (int) (microtime(true) * 1000) - $inicio;
@@ -85,6 +92,20 @@ class WorkersAiIa implements Ia
             modelo: $this->modelo(),
             duracaoMs: $duracao,
         );
+    }
+
+    /** Primeira mensagem util do array de erros da Cloudflare, quando houver. */
+    private function primeiroErro(mixed $erros): string
+    {
+        if (! is_array($erros) || $erros === []) {
+            return '';
+        }
+
+        $primeiro = reset($erros);
+
+        return is_array($primeiro) && isset($primeiro['message'])
+            ? '— '.(string) $primeiro['message']
+            : '';
     }
 
     /**

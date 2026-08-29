@@ -19,13 +19,19 @@ use Illuminate\Console\Command;
  */
 class TestarIa extends Command
 {
-    protected $signature = 'ia:testar';
+    protected $signature = 'ia:testar {--modelo= : Testa outro modelo sem mexer no .env}';
 
     protected $description = 'Faz uma chamada real ao provedor de IA e mostra resposta, tokens, custo e latencia.';
 
     public function handle(Ia $ia): int
     {
         $driver = (string) config('ia.driver');
+
+        // Override em memoria: os drivers leem `modelo()` do config a cada chamada, entao
+        // isto basta para experimentar um modelo alternativo sem editar o .env.
+        if ($modelo = $this->option('modelo')) {
+            config(["ia.drivers.{$driver}.modelo" => $modelo]);
+        }
 
         $this->line("Driver: <info>{$driver}</info>");
         $this->line("Modelo: <info>{$ia->modelo()}</info>");
