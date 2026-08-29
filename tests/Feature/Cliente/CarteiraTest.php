@@ -66,7 +66,8 @@ class CarteiraTest extends TestCase
             ->assertOk()
             ->assertSee('Segmentos')
             ->assertSee('Cliente 1')
-            ->assertSee('Analisar com IA');
+            ->assertSee('Analisar com IA')
+            ->assertSee('0 de 10 análises hoje');
     }
 
     /**
@@ -158,7 +159,7 @@ class CarteiraTest extends TestCase
     public function test_cota_estourada_devolve_motivo_cota(): void
     {
         $this->semearCarteira();
-        Plano::where('slug', Plano::PRO)->update(['limite_tokens_ia_dia' => 100]);
+        Plano::where('slug', Plano::PRO)->update(['limite_analises_ia_dia' => 1]);
 
         $this->postJson(route('clientes.carteira.analisar'))->assertOk();
 

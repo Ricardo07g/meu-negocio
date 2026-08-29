@@ -10,8 +10,8 @@
 @section('content')
     @php
         $temBase = $carteira['clientes_com_compra'] > 0;
-        $restante = max(0, $iaLimite - $iaConsumo);
-        $percentualCota = $iaLimite > 0 ? min(100, (int) round($iaConsumo / $iaLimite * 100)) : 0;
+        $restante = max(0, $iaLimite - $iaAnalisesHoje);
+        $percentualCota = $iaLimite > 0 ? min(100, (int) round($iaAnalisesHoje / $iaLimite * 100)) : 0;
     @endphp
 
     {{-- Resumo da carteira: sai do SQL, nao depende de IA. --}}
@@ -51,7 +51,7 @@
                 <div class="d-flex align-items-center gap-3">
                     {{-- O consumo fica ao lado do botao de proposito: e nesse instante que o numero importa. --}}
                     <span class="text-muted fs-12" id="ia-consumo-rotulo">
-                        {{ number_format($iaConsumo, 0, ',', '.') }} de {{ number_format($iaLimite, 0, ',', '.') }} tokens hoje
+                        {{ $iaAnalisesHoje }} de {{ $iaLimite }} análises hoje
                     </span>
                     <button type="button" class="btn btn-primary" id="btn-analisar-ia"
                             @disabled($restante <= 0 || ! $temBase)>
@@ -82,7 +82,10 @@
                 @if ($restante <= 0)
                     <div class="alert alert-warning d-flex align-items-center" role="alert">
                         <i class="feather-alert-triangle me-2"></i>
-                        <div>Você usou toda a cota de análise de hoje. Ela é renovada amanhã.</div>
+                        <div>
+                            Você usou as {{ $iaLimite }} análises de hoje. A franquia é renovada amanhã —
+                            e reanalisar uma carteira que não mudou não consome nova análise.
+                        </div>
                     </div>
                 @elseif (! $temBase)
                     <div class="alert alert-light border d-flex align-items-center" role="alert">
@@ -246,14 +249,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    function atualizarConsumo(consumo, limite) {
+    function atualizarConsumo(analisesHoje, limite) {
         var rotulo = document.getElementById('ia-consumo-rotulo');
         if (rotulo) {
-            rotulo.textContent = consumo.toLocaleString('pt-BR') + ' de ' + limite.toLocaleString('pt-BR') + ' tokens hoje';
+            rotulo.textContent = analisesHoje + ' de ' + limite + ' análises hoje';
         }
         var barra = document.getElementById('ia-consumo-barra');
         if (barra && limite > 0) {
-            barra.style.width = Math.min(100, Math.round(consumo / limite * 100)) + '%';
+            barra.style.width = Math.min(100, Math.round(analisesHoje / limite * 100)) + '%';
         }
     }
 
@@ -273,7 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function (r) { return r.json().then(function (d) { return d; }); })
         .then(function (dados) {
-            atualizarConsumo(dados.consumo || 0, dados.limite || 0);
+            atualizarConsumo(dados.analisesHoje || 0, dados.limite || 0);
 
             if (!dados.ok) {
                 // Quatro motivos distintos, quatro mensagens. "Algo deu errado" nao ajuda ninguem.

@@ -215,14 +215,12 @@
                     </div>
                     <div class="card-body">
                         @php
-                            $percIa = $iaLimite > 0 ? min(100, (int) round($iaConsumoHoje / $iaLimite * 100)) : 0;
+                            $percIa = $iaLimite > 0 ? min(100, (int) round($iaAnalisesHoje / $iaLimite * 100)) : 0;
                         @endphp
 
                         <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="fs-12 text-muted">Cota de hoje</span>
-                            <span class="fs-12 fw-semibold">
-                                {{ number_format($iaConsumoHoje, 0, ',', '.') }} / {{ number_format($iaLimite, 0, ',', '.') }} tokens
-                            </span>
+                            <span class="fs-12 text-muted">Análises de hoje</span>
+                            <span class="fs-12 fw-semibold">{{ $iaAnalisesHoje }} / {{ $iaLimite }}</span>
                         </div>
                         <div class="progress mb-4" style="height: 6px;" role="progressbar"
                              aria-valuenow="{{ $percIa }}" aria-valuemin="0" aria-valuemax="100">
@@ -243,15 +241,15 @@
                                 <h5 class="mb-0 text-success">{{ $iaMes['taxa_cache'] }}%</h5>
                             </div>
                             <div class="col-6 col-lg-3 mb-2">
-                                <p class="text-muted fs-12 mb-1">Tokens no mês</p>
+                                <p class="text-muted fs-12 mb-1">Tokens consumidos no mês</p>
                                 <h5 class="mb-0">{{ number_format($iaMes['tokens'], 0, ',', '.') }}</h5>
                             </div>
                         </div>
 
                         <p class="text-muted fs-12 mb-0 mt-2">
                             <i class="feather-info me-1"></i>
-                            A cota é por unidade e reinicia todo dia à meia-noite. Análises repetidas sobre uma carteira
-                            que não mudou são reaproveitadas e não consomem cota.
+                            A franquia é por unidade e reinicia todo dia à meia-noite. Análises repetidas sobre uma
+                            carteira que não mudou são reaproveitadas do cache: não consomem franquia nem geram custo.
                         </p>
                     </div>
                 </div>

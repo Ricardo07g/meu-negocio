@@ -45,7 +45,7 @@ class CarteiraController extends Controller
             return view('cliente::carteira', [
                 'carteira' => $carteira,
                 'iaDisponivel' => $this->analises->disponivel(),
-                'iaConsumo' => $this->analises->consumoDoDia(),
+                'iaAnalisesHoje' => $this->analises->analisesDoDia(),
                 'iaLimite' => $this->analises->limiteDoDia(),
                 'ultimaAnalise' => $this->ultimaAnalise(),
                 'minimoClientes' => AnalisarCarteiraAction::MINIMO_CLIENTES,
@@ -80,7 +80,7 @@ class CarteiraController extends Controller
                 'resultado' => $analise->resultado,
                 'reaproveitada' => $analise->reaproveitacoes > 0,
                 'geradaEm' => $analise->created_at?->format('d/m/Y H:i'),
-                'consumo' => $this->analises->consumoDoDia(),
+                'analisesHoje' => $this->analises->analisesDoDia(),
                 'limite' => $this->analises->limiteDoDia(),
             ]);
         } catch (DadosInsuficientesException $e) {
@@ -104,7 +104,7 @@ class CarteiraController extends Controller
             'ok' => false,
             'motivo' => $motivo,
             'mensagem' => $mensagem,
-            'consumo' => $this->analises->consumoDoDia(),
+            'analisesHoje' => $this->analises->analisesDoDia(),
             'limite' => $this->analises->limiteDoDia(),
         ], $status);
     }

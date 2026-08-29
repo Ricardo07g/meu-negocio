@@ -26,7 +26,7 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 2,
                 'tem_estoque' => false,
                 'tem_financeiro' => false,
-                'limite_tokens_ia_dia' => 0,
+                'limite_analises_ia_dia' => 0,
             ],
             [
                 'slug' => Plano::PRO,
@@ -36,7 +36,7 @@ class PlanoSeeder extends Seeder
                 'max_usuarios' => 15,
                 'tem_estoque' => true,
                 'tem_financeiro' => true,
-                'limite_tokens_ia_dia' => 50000,
+                'limite_analises_ia_dia' => 10,
             ],
         ];
 

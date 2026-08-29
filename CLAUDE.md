@@ -111,8 +111,9 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   **Workers AI** (padrao), **Gemini** (escape hatch) e **Fake** (a suite, fixado em `phpunit.xml`).
   **Desligada sem credencial**, no molde do Turnstile. Regra inegociavel: **o SQL calcula, o modelo
   so redige** — o payload chega ja classificado e arredondado, o que tambem mantem o hash do cache
-  estavel. Cota diaria por empresa em `planos.limite_tokens_ia_dia`, resetando no fuso de Sao Paulo
-  (o app roda em UTC). ADR-0021.
+  estavel. **Franquia diaria de ANALISES** (nao tokens) por empresa em
+  `planos.limite_analises_ia_dia` (10 no Pro), resetando no fuso de Sao Paulo (o app roda em UTC).
+  Cache hit e erro do provedor **nao** consomem franquia. ADR-0021.
 - **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
   POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
   widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.

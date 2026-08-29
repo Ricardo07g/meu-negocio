@@ -88,8 +88,8 @@ class AnaliseServiceTest extends TestCase
     public function test_cota_estourada_recusa_registra_e_nao_chama_o_provedor(): void
     {
         ['empresa' => $empresa] = $this->criarRedeAutenticada();
-        // Cota menor que o consumo de uma chamada: a primeira passa, a segunda bate no teto.
-        Plano::where('slug', Plano::PRO)->update(['limite_tokens_ia_dia' => 100]);
+        // Franquia de uma analise: a primeira passa, a segunda bate no teto.
+        Plano::where('slug', Plano::PRO)->update(['limite_analises_ia_dia' => 1]);
 
         $service = app(AnaliseService::class);
         $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido(['v' => 1]));
@@ -184,10 +184,10 @@ class AnaliseServiceTest extends TestCase
         session(['empresas_atuais' => [$outra['empresa']->id]]);
 
         $this->assertSame(0, AnaliseIa::count(), 'analise de outra rede nao pode vazar');
-        $this->assertSame(0, app(AnaliseService::class)->consumoDoDia());
+        $this->assertSame(0, app(AnaliseService::class)->analisesDoDia());
     }
 
-    public function test_consumo_do_dia_soma_entrada_e_saida_da_empresa(): void
+    public function test_franquia_do_dia_conta_as_analises_realizadas(): void
     {
         ['empresa' => $empresa] = $this->criarRedeAutenticada();
         $service = app(AnaliseService::class);
@@ -195,8 +195,42 @@ class AnaliseServiceTest extends TestCase
         $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido(['v' => 1]));
         $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido(['v' => 2]));
 
-        $this->assertSame(300, $service->consumoDoDia());
-        $this->assertSame(50_000 - 300, $service->restanteDoDia());
+        $this->assertSame(2, $service->analisesDoDia());
+        $this->assertSame(8, $service->restanteDoDia(), 'Pro da 10 analises por dia');
+    }
+
+    /**
+     * A propriedade que torna o botao seguro de clicar: reanalisar uma carteira que nao
+     * mudou nao gasta a franquia do dia, porque o cache hit nao cria linha nova.
+     */
+    public function test_cache_hit_nao_consome_franquia(): void
+    {
+        ['empresa' => $empresa] = $this->criarRedeAutenticada();
+        $service = app(AnaliseService::class);
+
+        $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido());
+        $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido());
+        $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido());
+
+        $this->assertSame(1, $service->analisesDoDia(), 'tres cliques, uma analise gasta');
+        $this->assertSame(9, $service->restanteDoDia());
+    }
+
+    /** Falha do provedor e problema nosso: nao pode descontar da franquia do lojista. */
+    public function test_erro_do_provedor_nao_consome_franquia(): void
+    {
+        ['empresa' => $empresa] = $this->criarRedeAutenticada();
+        $service = app(AnaliseService::class);
+        FakeIa::$falharCom = 'timeout';
+
+        try {
+            $service->analisar($empresa, TipoAnalise::CarteiraRfm, $this->pedido());
+        } catch (IaIndisponivelException) {
+            // esperado
+        }
+
+        $this->assertSame(1, AnaliseIa::count(), 'o erro fica registrado para medicao');
+        $this->assertSame(0, $service->analisesDoDia(), 'mas nao desconta da franquia');
     }
 
     public function test_cache_expira_apos_a_janela_de_seguranca(): void

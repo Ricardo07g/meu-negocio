@@ -63,11 +63,11 @@ class AssinaturaController extends Controller
 
         $totalPagoNoAno = (float) $faturas->where('status', 'paga')->sum('valor');
 
-        // Consumo de IA da unidade em contexto: o acumulado do mes mora aqui; o numero do
-        // dia aparece ao lado do proprio botao, que e onde ele muda uma decisao.
+        // Uso de IA da unidade em contexto: o acumulado do mes mora aqui; a franquia do
+        // dia aparece ao lado do proprio botao, que e onde ela muda uma decisao.
         $analises = app(AnaliseService::class);
         $iaLimite = $analises->limiteDoDia();
-        $iaConsumoHoje = $iaLimite > 0 ? $analises->consumoDoDia() : 0;
+        $iaAnalisesHoje = $iaLimite > 0 ? $analises->analisesDoDia() : 0;
         $iaMes = $iaLimite > 0 ? $analises->estatisticasDoMes() : null;
 
         $todosPlanos = Plano::orderBy('preco_por_licenca')->get();
@@ -78,7 +78,7 @@ class AssinaturaController extends Controller
             'rede', 'plano', 'empresaVigente', 'licencas', 'valorMensal',
             'faturaAtual', 'faturas', 'anoSelecionado', 'anosDisponiveis', 'totalPagoNoAno',
             'todosPlanos', 'podeTrocar', 'podeRenovarTeste',
-            'iaLimite', 'iaConsumoHoje', 'iaMes'
+            'iaLimite', 'iaAnalisesHoje', 'iaMes'
         ));
     }
 

@@ -42,8 +42,18 @@ modelo e versão do prompt). Invalidação por listener de "venda nova" exigiria
 produto, venda de etapas, agendamento, baixa e estorno — e o dia que um for esquecido, o cache fica
 velho para sempre sem erro visível.
 
-**5. Cota diária de tokens por empresa,** vinda de `planos.limite_tokens_ia_dia`, somada da própria
-tabela de análises (sem contador paralelo), e **visível ao lado do botão que a gasta**.
+**5. Franquia diária de análises por empresa** (`planos.limite_analises_ia_dia`, 10 no Pro), contada
+da própria tabela (sem contador paralelo) e **visível ao lado do botão que a gasta**.
+
+A unidade é *análise*, não *token*, embora token seja o que custa: "8 de 10 análises hoje" significa
+algo para quem toca um salão, "38.400 de 50.000 tokens" não significa nada. O payload aqui tem
+tamanho previsível (no máximo 6 segmentos), então contar análises é bom procurador do custo. Tokens e
+custo seguem gravados — só não são eles que barram.
+
+Duas coisas **não** consomem franquia, de propósito: **cache hit** (reaproveitar não cria linha, então
+reanalisar carteira que não mudou é grátis — é o que torna o botão seguro de clicar) e **erro do
+provedor** (falha nossa não se cobra do lojista; o laço de retentativa é barrado pelo `throttle` da
+rota). Ambas ficam registradas para medição.
 
 ## Consequências
 
@@ -62,14 +72,17 @@ tabela de análises (sem contador paralelo), e **visível ao lado do botão que 
 - A Cloudflare **não garante** aderência a schemas complexos (devolve erro quando o modelo não
   cumpre), ao contrário do `responseSchema` do Gemini, que é imposto pelo servidor. Por isso o schema
   é achatado e o driver Gemini existe desde o primeiro dia.
-- Recusar em vez de reservar cota deixa a última chamada do dia estourar o teto. Preferimos isso a
-  estimar tokens de saída antes de tê-los: o excesso é limitado a uma chamada.
+- Contar análises em vez de tokens perde precisão de custo: uma análise atípica pesa igual a uma
+  leve. Aceito porque o payload é de tamanho limitado por construção, e a legibilidade para o usuário
+  vale mais que o centavo de variação.
 
 ### Neutras
 - A cota reinicia à **meia-noite de São Paulo**, não em UTC. O app roda em UTC, então contar o dia com
   `today()` zeraria a cota às 21h — no meio do expediente de quem paga por ela.
-- `planos.limite_tokens_ia_dia` é uma coluna só: `0` já significa "sem IA" e `Plano::temIa()` deriva a
-  flag. Duas colunas dizendo a mesma coisa acabam divergindo.
+- `planos.limite_analises_ia_dia` é uma coluna só: `0` já significa "sem IA" e `Plano::temIa()` deriva
+  a flag. Duas colunas dizendo a mesma coisa acabam divergindo.
+- Com 10 análises/dia e o modelo padrão (~88 neurônios por análise), **cerca de 11 unidades no limite
+  máximo ainda cabem na cota gratuita** de 10.000 neurônios/dia da Cloudflare.
 - A permissão `ia.analisar` é separada de `ia.ver`: gerar gasta cota da unidade, consultar o resultado
   guardado não.
 

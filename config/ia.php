@@ -44,9 +44,10 @@ return [
             'account_id' => env('IA_CF_ACCOUNT_ID', env('R2_ACCOUNT_ID')),
             'token' => env('IA_CF_TOKEN'),
             /*
-             * 70B por aderencia ao schema e portugues, nao por preco — custo aqui e troco
-             * (~US$ 0,001 por analise, e a cota interna estoura antes da cota gratis da
-             * Cloudflare). Alternativa ~6x mais barata se precisar de volume:
+             * 70B por aderencia ao schema e portugues, nao por preco — custo aqui e troco:
+             * ~88 neuronios por analise, e com a franquia de 10 analises/dia cabem ~11
+             * unidades no limite dentro da cota gratis de 10.000 neuronios/dia da Cloudflare.
+             * Alternativa ~6x mais barata se precisar de volume:
              * `@cf/meta/llama-3.1-8b-instruct-fp8-fast`.
              */
             'modelo' => env('IA_CF_MODELO', '@cf/meta/llama-3.3-70b-instruct-fp8-fast'),

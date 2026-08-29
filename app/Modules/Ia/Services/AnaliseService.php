@@ -45,7 +45,8 @@ class AnaliseService
 
         if ($this->restanteDoDia($empresaId) <= 0) {
             // A recusa vira linha de proposito: sem isso, "quantas vezes batemos no teto"
-            // seria invisivel — e e justamente o numero que diz se a cota esta bem calibrada.
+            // seria invisivel — e e justamente o numero que diz se a franquia esta bem
+            // calibrada. Ela nao consome franquia (so `ok` conta), so registra a batida.
             $this->registrar($analisavel, $tipo, $hash, $pedido, StatusAnalise::RecusadoCota, empresaId: $empresaId);
 
             throw new PlanoLimiteException('analises por IA no dia');
@@ -75,37 +76,49 @@ class AnaliseService
     // ╚██████╗╚██████╔╝   ██║   ██║  ██║
     //  ╚═════╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝
 
-    /** Tokens ja gastos pela empresa no dia corrente do lojista (inclui erros e recusas). */
-    public function consumoDoDia(?int $empresaId = null): int
+    /**
+     * Analises que a empresa realmente gastou hoje (no dia do lojista).
+     *
+     * Conta so as que chamaram o provedor com sucesso, e isso e deliberado nas duas pontas:
+     *
+     *  - **Cache hit nao conta.** Reaproveitar nao cria linha, entao reanalisar uma carteira
+     *    que nao mudou sai de graca. E a propriedade que torna o botao seguro de clicar.
+     *  - **Erro nao conta.** Cobrar uma analise por uma falha nossa seria injusto; o laco de
+     *    retentativa e barrado pelo `throttle` da rota, nao pela franquia.
+     */
+    public function analisesDoDia(?int $empresaId = null): int
     {
         $empresaId ??= $this->empresaId();
 
-        return (int) AnaliseIa::query()
+        return AnaliseIa::query()
             ->where('empresa_id', $empresaId)
+            ->where('status', StatusAnalise::Ok->value)
             ->doDiaCorrente()
-            ->selectRaw('COALESCE(SUM(tokens_entrada), 0) + COALESCE(SUM(tokens_saida), 0) as total')
-            ->value('total');
+            ->count();
     }
 
-    /** Cota da licenca da empresa em contexto. Zero = plano sem IA. */
+    /** Franquia diaria de analises da licenca em contexto. Zero = plano sem IA. */
     public function limiteDoDia(): int
     {
         $plano = PlanoVigente::resolver();
 
-        return $plano === null ? 0 : (int) $plano->limite_tokens_ia_dia;
+        return $plano === null ? 0 : (int) $plano->limite_analises_ia_dia;
     }
 
     public function restanteDoDia(?int $empresaId = null): int
     {
-        return max(0, $this->limiteDoDia() - $this->consumoDoDia($empresaId));
+        return max(0, $this->limiteDoDia() - $this->analisesDoDia($empresaId));
     }
 
     /**
      * Consumo do mes corrente para a tela de assinatura.
      *
      * `taxa_cache` e a metrica que diz se o desenho esta funcionando: quanto maior, mais
-     * pedidos foram atendidos sem gastar um token — e o cache por hash e justamente o que
-     * torna a feature barata.
+     * pedidos foram atendidos sem gastar franquia nem token — e o cache por hash e justamente
+     * o que torna a feature barata.
+     *
+     * Tokens e custo continuam aqui mesmo nao sendo mais a unidade que barra: sao eles que
+     * dizem se a franquia de analises esta bem calibrada em relacao ao gasto real.
      *
      * @return array{analises: int, reaproveitamentos: int, taxa_cache: int, tokens: int, custo: float}
      */
