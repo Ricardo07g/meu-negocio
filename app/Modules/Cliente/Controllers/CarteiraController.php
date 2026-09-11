@@ -17,6 +17,7 @@ use App\Modules\Tenant\Models\Empresa;
 use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\{JsonResponse, RedirectResponse};
 use Illuminate\View\View;
 
@@ -49,9 +50,10 @@ class CarteiraController extends Controller
             // empty state do Caixa Diario, que ja opera por unidade unica (ME-010 v3).
             if ($empresaId === null) {
                 // `podeVerIa`/`iaDisponivel` vao mesmo sem uso no empty state: o push de JS da
-                // tela mora FORA do `@section`, entao o `@php return; @endphp` nao o alcanca.
+                // tela mora FORA do `@section`, entao nao e alcancado pelo ramo do `@else`.
                 return view('cliente::carteira', [
                     'precisaEscolherUnidade' => true,
+                    'unidades' => $this->unidadesParaEscolha(),
                     'podeVerIa' => false,
                     'iaDisponivel' => false,
                 ]);
@@ -156,6 +158,22 @@ class CarteiraController extends Controller
             'analisesHoje' => $empresaId === null ? 0 : $this->analises->analisesDoDia($empresaId),
             'limite' => $empresaId === null ? 0 : $this->analises->limiteDoDia($empresaId),
         ], $status);
+    }
+
+    /**
+     * Unidades oferecidas no empty state — as do header, ja podadas pelo `VerificarEmpresa`.
+     *
+     * Sai daqui e nao de um `@php` na view: consulta em template contraria o controller fino
+     * do projeto e esconde do teste o que a tela realmente busca.
+     *
+     * @return Collection<int, Empresa>
+     */
+    private function unidadesParaEscolha(): Collection
+    {
+        return Empresa::query()
+            ->whereIn('id', (array) session('empresas_atuais', []))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
     }
 
     /** Ultima analise da unidade, para a tela abrir ja com o texto anterior em vez de vazia. */

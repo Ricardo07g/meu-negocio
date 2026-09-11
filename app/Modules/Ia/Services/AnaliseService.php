@@ -30,10 +30,10 @@ class AnaliseService
      * @throws PlanoLimiteException cota diaria da empresa esgotada
      * @throws IaIndisponivelException provedor desligado, fora do ar ou fora do schema
      */
-    public function analisar(Model $analisavel, TipoAnalise $tipo, PedidoIa $pedido): AnaliseIa
+    public function analisar(Model $analisavel, TipoAnalise $tipo, PedidoIa $pedido, ?int $empresaId = null): AnaliseIa
     {
         $hash = $this->hash($pedido);
-        $empresaId = $this->empresaId();
+        $empresaId ??= $this->empresaDaAnalise($analisavel);
 
         if ($cacheada = $this->buscarNoCache($analisavel, $tipo, $hash, $empresaId)) {
             return $this->reaproveitar($cacheada);
@@ -273,5 +273,29 @@ class AnaliseService
     private function empresaId(): ?int
     {
         return PlanoVigente::empresaId();
+    }
+
+    /**
+     * A unidade dona da cota e do carimbo sai do PROPRIO analisavel sempre que ele souber
+     * dizer qual e.
+     *
+     * Antes vinha de `PlanoVigente::empresaId()`, que tem fallback para a empresa default do
+     * usuario — e foi exatamente esse fallback que produziu o bug da carteira: analisar a
+     * unidade X e carimbar/debitar a Y. Derivando do analisavel, a divergencia deixa de ser
+     * evitada por disciplina do chamador e passa a ser irrepresentavel.
+     *
+     * O contexto so entra quando o analisavel e rede-level (um `Cliente`, por exemplo) e
+     * portanto nao tem unidade para oferecer; nesse caso o chamador pode passar `$empresaId`
+     * explicitamente em `analisar()`.
+     */
+    private function empresaDaAnalise(Model $analisavel): ?int
+    {
+        if ($analisavel instanceof Empresa) {
+            return (int) $analisavel->getKey();
+        }
+
+        $doModelo = $analisavel->getAttribute('empresa_id');
+
+        return $doModelo !== null ? (int) $doModelo : $this->empresaId();
     }
 }

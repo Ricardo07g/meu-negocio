@@ -12,13 +12,6 @@
          numa unidade so. Sem contexto resolvido, pedir a escolha e o unico caminho honesto —
          mesmo empty state do Caixa Diario (ME-010 v3). --}}
     @if ($precisaEscolherUnidade)
-        @php
-            $empresasAtuais = (array) session('empresas_atuais', []);
-            $empresasOpcoes = \App\Modules\Tenant\Models\Empresa::query()
-                ->whereIn('id', $empresasAtuais)
-                ->orderBy('nome')
-                ->get(['id', 'nome']);
-        @endphp
         <div class="card stretch stretch-full empty-state-empresa">
             <div class="card-body text-center py-5">
                 <div class="empty-state-icon d-inline-flex align-items-center justify-content-center mb-3">
@@ -26,13 +19,13 @@
                 </div>
                 <h5 class="mb-2 fw-semibold">Selecione uma unidade para ver a carteira</h5>
                 <p class="text-muted mb-4 mx-auto" style="max-width: 460px;">
-                    A segmentacao usa as vendas, que sao por unidade. Voce tem acesso a {{ count($empresasAtuais) }} unidades — escolha qual delas quer analisar agora.
+                    A segmentação usa as vendas, que são por unidade. Você tem acesso a {{ $unidades->count() }} unidades — escolha qual delas quer analisar agora.
                 </p>
                 <div class="d-flex justify-content-center">
                     <div class="empty-state-picker">
                         <select class="form-select" data-empresa-inline aria-label="Selecionar empresa">
                             <option value="" disabled selected>Escolha uma unidade…</option>
-                            @foreach ($empresasOpcoes as $opcao)
+                            @foreach ($unidades as $opcao)
                                 <option value="{{ $opcao->id }}">{{ $opcao->nome }}</option>
                             @endforeach
                         </select>
