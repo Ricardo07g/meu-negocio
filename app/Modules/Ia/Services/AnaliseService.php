@@ -10,6 +10,7 @@ use App\Modules\Ia\DTOs\{PedidoIa, RespostaIa};
 use App\Modules\Ia\Enums\{StatusAnalise, TipoAnalise};
 use App\Modules\Ia\Exceptions\IaIndisponivelException;
 use App\Modules\Ia\Models\AnaliseIa;
+use App\Modules\Tenant\Models\Empresa;
 use App\Support\PlanoVigente;
 use Illuminate\Database\Eloquent\Model;
 
@@ -32,16 +33,15 @@ class AnaliseService
     public function analisar(Model $analisavel, TipoAnalise $tipo, PedidoIa $pedido): AnaliseIa
     {
         $hash = $this->hash($pedido);
+        $empresaId = $this->empresaId();
 
-        if ($cacheada = $this->buscarNoCache($analisavel, $tipo, $hash)) {
+        if ($cacheada = $this->buscarNoCache($analisavel, $tipo, $hash, $empresaId)) {
             return $this->reaproveitar($cacheada);
         }
 
         if (! $this->ia->estaAtivo()) {
             throw new IaIndisponivelException('provedor nao configurado');
         }
-
-        $empresaId = $this->empresaId();
 
         if ($this->restanteDoDia($empresaId) <= 0) {
             // A recusa vira linha de proposito: sem isso, "quantas vezes batemos no teto"
@@ -97,17 +97,25 @@ class AnaliseService
             ->count();
     }
 
-    /** Franquia diaria de analises da licenca em contexto. Zero = plano sem IA. */
-    public function limiteDoDia(): int
+    /**
+     * Franquia diaria de analises da licenca da unidade. Zero = plano sem IA.
+     *
+     * Recebe a empresa em vez de sempre resolver do contexto para nao correr o risco de
+     * comparar o consumo de uma unidade com a franquia de outra — a licenca e por empresa
+     * (ADR-0013), e duas unidades da mesma rede podem estar em planos diferentes.
+     */
+    public function limiteDoDia(?int $empresaId = null): int
     {
-        $plano = PlanoVigente::resolver();
+        $plano = $empresaId === null
+            ? PlanoVigente::resolver()
+            : Empresa::with('plano')->find($empresaId)?->plano;
 
         return $plano === null ? 0 : (int) $plano->limite_analises_ia_dia;
     }
 
     public function restanteDoDia(?int $empresaId = null): int
     {
-        return max(0, $this->limiteDoDia() - $this->analisesDoDia($empresaId));
+        return max(0, $this->limiteDoDia($empresaId) - $this->analisesDoDia($empresaId));
     }
 
     /**
@@ -154,9 +162,9 @@ class AnaliseService
     }
 
     /** A feature aparece na tela? Precisa de licenca com cota E de provedor configurado. */
-    public function disponivel(): bool
+    public function disponivel(?int $empresaId = null): bool
     {
-        return $this->limiteDoDia() > 0 && $this->ia->estaAtivo();
+        return $this->limiteDoDia($empresaId) > 0 && $this->ia->estaAtivo();
     }
 
     // ██████╗ █████╗  ██████╗██╗  ██╗███████╗
@@ -192,9 +200,16 @@ class AnaliseService
         ], JSON_UNESCAPED_UNICODE) ?: '');
     }
 
-    private function buscarNoCache(Model $analisavel, TipoAnalise $tipo, string $hash): ?AnaliseIa
+    /**
+     * O `empresa_id` explicito e redundante com o global scope enquanto ha usuario logado — e
+     * e essa a condicao que nao da para assumir. Os scopes ficam inertes sem autenticacao
+     * (job de fila, comando agendado), e ai esta consulta ficaria sem barreira nenhuma.
+     * As consultas vizinhas (`analisesDoDia`, `estatisticasDoMes`) ja filtram assim.
+     */
+    private function buscarNoCache(Model $analisavel, TipoAnalise $tipo, string $hash, ?int $empresaId): ?AnaliseIa
     {
         $analise = AnaliseIa::query()
+            ->when($empresaId !== null, fn ($query) => $query->where('empresa_id', $empresaId))
             ->where('analisavel_type', $analisavel->getMorphClass())
             ->where('analisavel_id', $analisavel->getKey())
             ->where('tipo', $tipo->value)

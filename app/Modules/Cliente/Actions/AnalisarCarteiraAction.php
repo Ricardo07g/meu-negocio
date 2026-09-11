@@ -36,7 +36,9 @@ class AnalisarCarteiraAction
 
     public function executar(Empresa $empresa, int $meses = 12): AnaliseIa
     {
-        $carteira = $this->rfm->segmentar($meses);
+        // A MESMA empresa que vira dona da analise e da cota tambem recorta a segmentacao.
+        // Sao a mesma unidade por construcao, nao por coincidencia do estado da sessao.
+        $carteira = $this->rfm->segmentar((int) $empresa->id, $meses);
 
         if ($carteira['clientes_com_compra'] < self::MINIMO_CLIENTES) {
             throw new DadosInsuficientesException(
