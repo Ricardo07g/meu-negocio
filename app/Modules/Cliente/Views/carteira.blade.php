@@ -8,6 +8,71 @@
 @endsection
 
 @section('content')
+    {{-- A carteira e lida por UMA unidade: as vendas sao por empresa e a analise nasce carimbada
+         numa unidade so. Sem contexto resolvido, pedir a escolha e o unico caminho honesto —
+         mesmo empty state do Caixa Diario (ME-010 v3). --}}
+    @if ($precisaEscolherUnidade)
+        <div class="card stretch stretch-full empty-state-empresa">
+            <div class="card-body text-center py-5">
+                <div class="empty-state-icon d-inline-flex align-items-center justify-content-center mb-3">
+                    <i class="feather-users"></i>
+                </div>
+                <h5 class="mb-2 fw-semibold">Selecione uma unidade para ver a carteira</h5>
+                <p class="text-muted mb-4 mx-auto" style="max-width: 460px;">
+                    A segmentação usa as vendas, que são por unidade. Você tem acesso a {{ $unidades->count() }} unidades — escolha qual delas quer analisar agora.
+                </p>
+                <div class="d-flex justify-content-center">
+                    <div class="empty-state-picker">
+                        <select class="form-select" data-empresa-inline aria-label="Selecionar empresa">
+                            <option value="" disabled selected>Escolha uma unidade…</option>
+                            @foreach ($unidades as $opcao)
+                                <option value="{{ $opcao->id }}">{{ $opcao->nome }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @push('css')
+        <style>
+            .empty-state-empresa .empty-state-icon {
+                width: 72px;
+                height: 72px;
+                border-radius: 50%;
+                background: rgba(52, 84, 209, 0.1);
+            }
+            .empty-state-empresa .empty-state-icon i {
+                font-size: 32px;
+                color: #3454d1;
+            }
+            .empty-state-empresa .empty-state-picker {
+                width: 100%;
+                max-width: 320px;
+            }
+        </style>
+        @endpush
+
+        @push('js')
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const empresaInline = document.querySelector('[data-empresa-inline]');
+            if (! empresaInline) return;
+            empresaInline.addEventListener('change', function () {
+                if (! this.value) return;
+                const url = new URL(window.location.href);
+                url.searchParams.set('empresa_id', this.value);
+                window.location.assign(url.toString());
+            });
+        });
+        </script>
+        @endpush
+
+    @else
+    {{-- Nao usa `@php return; @endphp` (o atalho do Caixa Diario): dentro de `@section` ele
+         encerra o metodo sem fechar o buffer de saida da secao, e o PHPUnit marca o teste como
+         risky. O `@else` custa o mesmo e fecha certo. --}}
+
     @php
         $temBase = $carteira['clientes_com_compra'] > 0;
         $restante = max(0, $iaLimite - $iaAnalisesHoje);
@@ -42,6 +107,8 @@
         </div>
     </div>
 
+    {{-- Ler a analise guardada exige `ia.ver`; a segmentacao abaixo, nao. --}}
+    @if ($podeVerIa)
     {{-- Analise por IA: enriquecimento opcional. A pagina vale sem ela. --}}
     <div class="card mb-4">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -143,6 +210,7 @@
             @endif
         </div>
     </div>
+    @endif
 
     {{-- Segmentos --}}
     <div class="card mb-4">
@@ -236,9 +304,10 @@
             </div>
         </div>
     </div>
+    @endif
 @endsection
 
-@if ($iaDisponivel)
+@if ($podeVerIa && $iaDisponivel)
 @push('js')
 <script>
 document.addEventListener('DOMContentLoaded', function () {

@@ -21,6 +21,11 @@ use Illuminate\Support\Collection;
  * as vendas sao por empresa. As agregacoes saem de VendaProduto/VendaEtapas — logo, ja
  * filtradas pelo `EmpresaTrait` — e os clientes vem pela rede, mesma assimetria que o
  * `DashboardService` documenta em `totalClientes()`.
+ *
+ * A empresa vem por PARAMETRO, nao do ambiente. Confiar so no global scope produzia um
+ * resultado que dependia do estado da sessao: com duas unidades no header e nenhuma
+ * escolhida, o scope agregava as duas enquanto o resto do fluxo (cota, carimbo da analise)
+ * resolvia uma so — a segmentacao descrevia A+B e era gravada como se fosse de A.
  */
 class SegmentacaoRfmService
 {
@@ -59,11 +64,11 @@ class SegmentacaoRfmService
      *     clientes: Collection<int, array<string, mixed>>
      * }
      */
-    public function segmentar(int $meses = 12): array
+    public function segmentar(?int $empresaId = null, int $meses = 12): array
     {
         $desde = CarbonImmutable::now()->subMonths($meses)->startOfDay();
 
-        $compras = $this->agregarCompras($desde);
+        $compras = $this->agregarCompras($desde, $empresaId);
         $totalClientes = Cliente::query()->count();
 
         // Sem saber por onde da para falar com o cliente, qualquer sugestao de canal e chute:
@@ -101,9 +106,13 @@ class SegmentacaoRfmService
      * Duas fontes de venda somadas por cliente. Vendas canceladas ficam de fora — cliente
      * nao vira campeao por uma compra que foi desfeita.
      *
+     * O `where('empresa_id')` explicito e redundante com o global scope no caminho normal, e
+     * de proposito: e ele que garante o recorte quando o scope nao ajuda — sessao com mais de
+     * uma unidade, ou nenhum usuario autenticado (job, comando).
+     *
      * @return Collection<int, array{cliente_id: int, compras: int, valor: float, ultima: CarbonImmutable}>
      */
-    private function agregarCompras(CarbonImmutable $desde): Collection
+    private function agregarCompras(CarbonImmutable $desde, ?int $empresaId): Collection
     {
         $porCliente = [];
 
@@ -117,6 +126,7 @@ class SegmentacaoRfmService
 
         foreach ($fontes as $fonte) {
             $linhas = $fonte
+                ->when($empresaId !== null, fn ($query) => $query->where('empresa_id', $empresaId))
                 ->where('data', '>=', $desde->toDateString())
                 ->groupBy('cliente_id')
                 ->selectRaw('cliente_id, COUNT(*) as compras, SUM(valor_total) as valor, MAX(data) as ultima')

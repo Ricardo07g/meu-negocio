@@ -13,9 +13,11 @@ use App\Modules\Ia\Enums\{StatusAnalise, TipoAnalise};
 use App\Modules\Ia\Exceptions\{DadosInsuficientesException, IaIndisponivelException};
 use App\Modules\Ia\Models\AnaliseIa;
 use App\Modules\Ia\Services\AnaliseService;
-use App\Support\PlanoVigente;
+use App\Modules\Tenant\Models\Empresa;
+use App\Support\ContextoEmpresa;
 use App\Traits\TratamentoErros;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\{JsonResponse, RedirectResponse};
 use Illuminate\View\View;
 
@@ -40,14 +42,37 @@ class CarteiraController extends Controller
         try {
             $this->authorize('viewAny', Cliente::class);
 
-            $carteira = $this->rfm->segmentar();
-            $ultima = $this->ultimaAnalise();
+            $empresaId = ContextoEmpresa::resolver();
+
+            // Sem UMA unidade resolvida a carteira nao tem recorte: o global scope agregaria
+            // todas as unidades do header enquanto a cota e o carimbo da analise resolvem uma
+            // so. Em vez de escolher no lugar do usuario, a tela pede a escolha — mesmo
+            // empty state do Caixa Diario, que ja opera por unidade unica (ME-010 v3).
+            if ($empresaId === null) {
+                // `podeVerIa`/`iaDisponivel` vao mesmo sem uso no empty state: o push de JS da
+                // tela mora FORA do `@section`, entao nao e alcancado pelo ramo do `@else`.
+                return view('cliente::carteira', [
+                    'precisaEscolherUnidade' => true,
+                    'unidades' => $this->unidadesParaEscolha(),
+                    'podeVerIa' => false,
+                    'iaDisponivel' => false,
+                ]);
+            }
+
+            // Ler a analise guardada nao e o mesmo que mandar rodar outra (ADR-0021): quem
+            // nao tem `ia.ver` enxerga a segmentacao, que e SQL, mas nao o texto do modelo.
+            $podeVerIa = auth()->user()?->can('viewAny', AnaliseIa::class) ?? false;
+
+            $carteira = $this->rfm->segmentar($empresaId);
+            $ultima = $podeVerIa ? $this->ultimaAnalise($empresaId) : null;
 
             return view('cliente::carteira', [
+                'precisaEscolherUnidade' => false,
                 'carteira' => $carteira,
-                'iaDisponivel' => $this->analises->disponivel(),
-                'iaAnalisesHoje' => $this->analises->analisesDoDia(),
-                'iaLimite' => $this->analises->limiteDoDia(),
+                'podeVerIa' => $podeVerIa,
+                'iaDisponivel' => $this->analises->disponivel($empresaId),
+                'iaAnalisesHoje' => $this->analises->analisesDoDia($empresaId),
+                'iaLimite' => $this->analises->limiteDoDia($empresaId),
                 'ultimaAnalise' => $ultima,
                 'analiseDesatualizada' => $this->desatualizada($ultima, $carteira),
                 'minimoClientes' => AnalisarCarteiraAction::MINIMO_CLIENTES,
@@ -69,10 +94,14 @@ class CarteiraController extends Controller
         try {
             $this->authorize('create', AnaliseIa::class);
 
-            $empresa = PlanoVigente::empresa();
+            // Nao usa o fallback de `PlanoVigente` (empresa default do usuario) de proposito:
+            // ele resolvia UMA unidade enquanto a segmentacao lia varias, e a analise nascia
+            // carimbada numa empresa descrevendo a carteira de outras.
+            $empresaId = ContextoEmpresa::resolver();
+            $empresa = $empresaId === null ? null : Empresa::with('plano')->find($empresaId);
 
             if ($empresa === null) {
-                return $this->recusar('desligado', 'Selecione uma unidade para analisar a carteira.');
+                return $this->recusar('unidade', 'Selecione uma unidade para analisar a carteira.');
             }
 
             $analise = $analisar->executar($empresa);
@@ -82,8 +111,8 @@ class CarteiraController extends Controller
                 'resultado' => $analise->resultado,
                 'reaproveitada' => $analise->reaproveitacoes > 0,
                 'geradaEm' => $analise->created_at?->format('d/m/Y H:i'),
-                'analisesHoje' => $this->analises->analisesDoDia(),
-                'limite' => $this->analises->limiteDoDia(),
+                'analisesHoje' => $this->analises->analisesDoDia($empresaId),
+                'limite' => $this->analises->limiteDoDia($empresaId),
             ]);
         } catch (DadosInsuficientesException $e) {
             return $this->recusar('sem_dados', $e->getMessage());
@@ -120,24 +149,36 @@ class CarteiraController extends Controller
 
     private function recusar(string $motivo, string $mensagem, int $status = 422): JsonResponse
     {
+        $empresaId = ContextoEmpresa::resolver();
+
         return response()->json([
             'ok' => false,
             'motivo' => $motivo,
             'mensagem' => $mensagem,
-            'analisesHoje' => $this->analises->analisesDoDia(),
-            'limite' => $this->analises->limiteDoDia(),
+            'analisesHoje' => $empresaId === null ? 0 : $this->analises->analisesDoDia($empresaId),
+            'limite' => $empresaId === null ? 0 : $this->analises->limiteDoDia($empresaId),
         ], $status);
     }
 
-    /** Ultima analise da unidade, para a tela abrir ja com o texto anterior em vez de vazia. */
-    private function ultimaAnalise(): ?AnaliseIa
+    /**
+     * Unidades oferecidas no empty state — as do header, ja podadas pelo `VerificarEmpresa`.
+     *
+     * Sai daqui e nao de um `@php` na view: consulta em template contraria o controller fino
+     * do projeto e esconde do teste o que a tela realmente busca.
+     *
+     * @return Collection<int, Empresa>
+     */
+    private function unidadesParaEscolha(): Collection
     {
-        $empresaId = PlanoVigente::empresaId();
+        return Empresa::query()
+            ->whereIn('id', (array) session('empresas_atuais', []))
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+    }
 
-        if ($empresaId === null) {
-            return null;
-        }
-
+    /** Ultima analise da unidade, para a tela abrir ja com o texto anterior em vez de vazia. */
+    private function ultimaAnalise(int $empresaId): ?AnaliseIa
+    {
         return AnaliseIa::query()
             ->where('empresa_id', $empresaId)
             ->where('tipo', TipoAnalise::CarteiraRfm->value)
