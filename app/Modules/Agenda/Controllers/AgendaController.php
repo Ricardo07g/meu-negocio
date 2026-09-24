@@ -103,7 +103,10 @@ class AgendaController extends Controller
                 'events' => $eventos->values(),
             ]);
         } catch (\Throwable $e) {
-            return response()->json(['calendars' => [], 'events' => [], 'message' => $e->getMessage()], 500);
+            // Pelo tratarErro, como o resto do controller: antes este catch
+            // engolia tudo num 500 — inclusive o 403 de quem nao pode ver a
+            // agenda — sem logar nada e devolvendo a mensagem crua da excecao.
+            return $this->tratarErro($e, 'Erro ao carregar eventos da agenda');
         }
     }
 

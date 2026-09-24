@@ -66,8 +66,14 @@ document.addEventListener('DOMContentLoaded', function () {
             collapseBtnTitle: () => 'Recolher',
             // A regua de horas vinha em 12h americano ("8 am", "12 pm"). Aqui
             // hora e 24h — e o expediente na barra lateral ja fala essa lingua.
+            //
+            // Nesses templates `time` e um TZDate do Toast UI, NAO um Date: tem
+            // getHours()/getMinutes(), mas nao toLocale*(). Um override do rotulo
+            // da linha do "agora" chamava toLocaleTimeString — o render lancava
+            // sempre que o horario atual estava na grade, e a agenda congelava na
+            // semana corrente (setas mudavam o titulo, a grade nao). O padrao da
+            // biblioteca para esse rotulo ja e "HH:mm", entao ele fica sem override.
             timegridDisplayPrimaryTime: ({ time }) => `${String(time.getHours()).padStart(2, '0')}:00`,
-            timegridNowIndicatorLabel: ({ time }) => time.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         },
     });
 
