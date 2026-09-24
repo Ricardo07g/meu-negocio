@@ -10,12 +10,20 @@
  * suite verde. Teste HTTP nao pega — o endpoint sempre funcionou.
  *
  * Uso (no HOST, nao no container — precisa de Chrome + puppeteer-core):
- *   NODE_PATH=$(npm root -g) node .claude/skills/validar-implementacao/scripts/clique-agenda.cjs
+ *   NODE_PATH=$(npm root -g) node .claude/skills/validar-implementacao/scripts/clique-agenda.cjs [--navegacao]
  *
  * Env: BASE_URL (default http://localhost:8080), MN_EMAIL, MN_PASSWORD, CHROME_BIN.
  *
  * Nao roda no CI: o workflow e so PHP, sem navegador. E porta manual, como o smoke.
  * Sai != 0 se o clique nao gerar o POST de criacao.
+ *
+ * Com `--navegacao`, testa outra coisa: as setas de semana. O relogio do
+ * navegador e fixado as 10:30 de hoje — dentro do expediente, com a linha do
+ * "agora" visivel. Era exatamente ai que um template do Toast UI chamava
+ * `toLocaleTimeString()` num TZDate, o render lancava e a grade congelava na
+ * semana corrente: o titulo mudava, os dias e os atendimentos nao. Fora do
+ * expediente (a noite, quando alguem testava) a linha nao aparecia e o bug
+ * sumia. Sai != 0 se houver erro de pagina ou se a grade nao acompanhar as setas.
  */
 const fs = require('fs');
 const puppeteer = require('puppeteer-core');
@@ -48,7 +56,29 @@ async function escolherNaLista(page, inputId, texto) {
     return true;
 }
 
+/** Cabecalho de dias da grade: e ele que prova que a semana andou, nao o titulo. */
+const diasDaGrade = (page) => page.$$eval('.toastui-calendar-day-name-item', (els) => els.map((e) => e.textContent.trim()).join(' | '));
+
+async function navegacao(page, consoleErros) {
+    await page.goto(`${BASE}/agenda`, { waitUntil: 'networkidle2' });
+    await esperar(800);
+
+    const passos = [{ passo: 'inicial', dias: await diasDaGrade(page), agoraVisivel: !!(await page.$('.toastui-calendar-timegrid-now-indicator')) }];
+
+    for (const [botao, rotulo] of [['#cal-next', 'proxima'], ['#cal-next', 'proxima'], ['#cal-prev', 'anterior'], ['#cal-today', 'hoje']]) {
+        await page.click(botao);
+        await esperar(900);
+        passos.push({ passo: rotulo, titulo: await page.$eval('#cal-range', (e) => e.textContent), dias: await diasDaGrade(page) });
+    }
+
+    const [inicial, prox1, prox2, anterior, hoje] = passos;
+    const andou = prox1.dias !== inicial.dias && prox2.dias !== prox1.dias && anterior.dias === prox1.dias && hoje.dias === inicial.dias;
+
+    return { passos, consoleErros, ok: andou && inicial.agoraVisivel && consoleErros.length === 0 };
+}
+
 (async () => {
+    const modoNavegacao = process.argv.includes('--navegacao');
     const browser = await puppeteer.launch({
         executablePath: resolveChrome(),
         headless: 'new',
@@ -56,6 +86,21 @@ async function escolherNaLista(page, inputId, texto) {
         defaultViewport: { width: 1400, height: 950 },
     });
     const page = await browser.newPage();
+
+    if (modoNavegacao) {
+        // Relogio adiantado/atrasado para as 10:30 de hoje, preservando a data.
+        await page.evaluateOnNewDocument(() => {
+            const alvo = new Date();
+            alvo.setHours(10, 30, 0, 0);
+            const delta = alvo.getTime() - Date.now();
+            const DateReal = Date;
+            // eslint-disable-next-line no-global-assign
+            Date = class extends DateReal {
+                constructor(...args) { super(...(args.length ? args : [DateReal.now() + delta])); }
+                static now() { return DateReal.now() + delta; }
+            };
+        });
+    }
 
     const posts = [];
     const consoleErros = [];
@@ -70,6 +115,13 @@ async function escolherNaLista(page, inputId, texto) {
         page.waitForNavigation({ waitUntil: 'networkidle2' }),
         page.click('button[type=submit]'),
     ]);
+
+    if (modoNavegacao) {
+        const r = await navegacao(page, consoleErros);
+        console.log(JSON.stringify(r, null, 2));
+        await browser.close();
+        process.exit(r.ok ? 0 : 1);
+    }
 
     await page.goto(`${BASE}/agenda`, { waitUntil: 'networkidle2' });
 

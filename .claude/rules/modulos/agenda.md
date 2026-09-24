@@ -55,6 +55,12 @@ agendamento sem titulo **nao** aparece na listagem de Vendas, e finalizar exige 
   ele nao tem `action` nem `method`, "Agendar" virava GET nativo para a propria URL: nada criado,
   nada no console, suite verde. Quem mexer aqui valida com
   `node .claude/skills/validar-implementacao/scripts/clique-agenda.cjs`.
+- **Templates do Toast UI recebem TZDate, nao Date**: `timegrid*` recebe `{ time }` com
+  `getHours()`/`getMinutes()`/`toDate()`, mas **sem** `toLocale*()`. Um override do rotulo do "agora"
+  chamando `toLocaleTimeString` fazia o render lancar sempre que o horario atual estava na grade — a
+  agenda congelava na semana corrente (titulo mudava, dias/eventos nao). So acontecia DENTRO do
+  expediente, entao testar a noite nao reproduzia. `CalendarioTemplatesTest` barra no CI;
+  `clique-agenda.cjs --navegacao` fixa o relogio as 10:30 e prova pelo clique.
 - **`required` nos campos de busca nao protege nada**: ele esta nos inputs de texto do autocomplete,
   e os ids vao em `<input type="hidden">` — onde `required` e inerte por especificacao. A guarda de
   "escolha na lista" mora no handler de submit.
