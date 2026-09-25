@@ -94,7 +94,7 @@ quitada, e `Pagamento::recalcularStatus()`. Defesa em profundidade: controller s
 `session('empresa_criacao_atual', $parcela->empresa_id)` no try e `forget()` no finally.
 
 ## Ciclo do caixa (diario: abrir -> movimentar -> fechar)
-`CaixaController::index?data=YYYY-MM-DD` navega por dia; **1 caixa por empresa/dia**, permite
+`CaixaController::index?data=YYYY-MM-DD`; as setas saltam para o dia com movimento mais proximo (caixa ou baixa); **1 caixa por empresa/dia**, permite
 retroativo. O caixa e a **sessao da conta-caixa** (`caixas.conta_id` -> conta `eh_caixa_padrao`).
 Abertura `CaixaService::abrir` recusa se ja existe caixa na data. Os movimentos sao `Lancamento`
 (ligados por `caixa_id`): credito/debito automaticos por baixa de Pagamento/Despesa e estorno,
