@@ -60,7 +60,7 @@ O caixa diario virou a **sessao da conta-caixa** (`caixas.conta_id` aponta para 
     gaveta** tem `Lancamento` a reverter: contra-lancamento de debito (`categoria = estorno`) na mesma
     conta/caixa (bloqueia se o caixa de origem estiver fechado). Cartao/pix/banco nao tem lancamento —
     nada a reverter, so a marca.
-- `CaixaController` — `index` (navegacao por `?data=YYYY-MM-DD`, passa `$movimentacoes` (timeline),
+- `CaixaController` — `index` (`?data=YYYY-MM-DD`; setas via `NavegacaoCaixaService`, passa `$movimentacoes` (timeline),
   `$resumo` (por forma) e os totais/saldo da gaveta), `store` (abrir), `show` (redirect p/ index na
   data), `fechar`, `reabrir`, `sangria`, `reforco`, `recebimentos` (por periodo).
 - **`MovimentacaoDiaService`** (leitura) — **`doDia(string $dia)`**: a timeline "Movimentacoes do dia"
@@ -91,6 +91,13 @@ O caixa diario virou a **sessao da conta-caixa** (`caixas.conta_id` aponta para 
   Tenancy pela EmpresaTrait (a tela ja resolve a empresa unica). Na tela do Caixa vive como a **aba
   "Por forma"** da timeline (`_resumo_forma.blade.php`); tambem alimenta `caixas.recebimentos`
   (por periodo) via `porPeriodo`.
+- **`NavegacaoCaixaService`** (leitura) — `anterior(dia)`/`proximo(dia)`: as setas do Caixa Diario
+  saltam para o dia com MOVIMENTO mais proximo, nao para o dia vizinho. Movimento = uniao de `Caixa.data`
+  (aberto ou fechado), `BaixaPagamento.data`, `BaixaPagamento.estornado_em` e `BaixaDespesa.data` —
+  **nao so caixa**, porque venda no cartao/pix nao exige caixa (ADR-0011) e esse dia nao pode sumir da
+  navegacao. `proximo` sem nada adiante cai em **hoje** (onde se abre o caixa); em hoje, null (seta
+  desabilitada). Tenancy pelos global scopes — travado por `NavegacaoCaixaTest`. Um seletor de data
+  na tela cobre o dia vazio (caixa retroativo).
 - DTOs `AbrirCaixaData`, `FecharCaixaData`, `MovimentoCaixaData`, `ReabrirCaixaData`. Requests
   homonimos. Policy `CaixaPolicy` (permissoes **`financeiro.ver/criar/editar`** — note o prefixo
   `financeiro`, nao `caixa`).

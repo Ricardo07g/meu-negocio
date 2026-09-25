@@ -9,7 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Caixa\DTOs\{AbrirCaixaData, FecharCaixaData, MovimentoCaixaData, ReabrirCaixaData};
 use App\Modules\Caixa\Models\Caixa;
 use App\Modules\Caixa\Requests\{AbrirCaixaRequest, FecharCaixaRequest, MovimentoCaixaRequest, ReabrirCaixaRequest};
-use App\Modules\Caixa\Services\{CaixaService, MovimentacaoDiaService, ResumoDiaService};
+use App\Modules\Caixa\Services\{CaixaService, MovimentacaoDiaService, NavegacaoCaixaService, ResumoDiaService};
 use App\Traits\TratamentoErros;
 use Carbon\Carbon;
 use Illuminate\Http\{RedirectResponse, Request};
@@ -23,6 +23,7 @@ class CaixaController extends Controller
         private CaixaService $service,
         private ResumoDiaService $resumoDia,
         private MovimentacaoDiaService $movimentacaoDia,
+        private NavegacaoCaixaService $navegacao,
     ) {}
 
     public function index(Request $request): View|RedirectResponse
@@ -66,9 +67,15 @@ class CaixaController extends Controller
             // Mesmo dia, visao agregada por forma (aba "Por forma" da timeline).
             $resumo = $this->resumoDia->porForma($data);
 
+            // As setas saltam para o dia com movimento mais proximo (caixa ou
+            // baixa), nao para o dia vizinho. Null = seta desabilitada.
+            $dia = $dataSelecionada->toDateString();
+            $dataAnterior = $this->navegacao->anterior($dia);
+            $dataProxima = $this->navegacao->proximo($dia);
+
             return view('caixa::index', compact(
                 'caixa', 'dataSelecionada', 'totalEntradas', 'totalSaidas', 'totalReforcos', 'saldoAtual',
-                'resumo', 'movimentacoes'
+                'resumo', 'movimentacoes', 'dataAnterior', 'dataProxima'
             ));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar caixa');

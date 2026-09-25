@@ -112,10 +112,10 @@
 
     @include('partials.filtro-empresa-listagem', ['permiteTodas' => false])
 
-    {{-- Navegacao por data --}}
+    {{-- Navegacao: as setas ($dataAnterior/$dataProxima, do controller) saltam
+         para o dia com movimento mais proximo — caixa OU baixa, porque venda no
+         cartao nao exige caixa (ADR-0011). Null = nao ha para onde ir. --}}
     @php
-        $dataAnterior = $dataSelecionada->copy()->subDay()->toDateString();
-        $dataProxima = $dataSelecionada->copy()->addDay()->toDateString();
         $ehHoje = $dataSelecionada->isToday();
         $ehFuturo = $dataSelecionada->isFuture();
     @endphp
@@ -143,12 +143,26 @@
     <div class="card stretch stretch-full mb-4">
         <div class="card-body py-3">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ route('caixas.index', ['data' => $dataAnterior]) }}" class="btn btn-primary btn-sm py-3">
-                    <i class="feather-chevron-left"></i>
-                </a>
+                @if($dataAnterior)
+                    <a href="{{ route('caixas.index', ['data' => $dataAnterior]) }}" class="btn btn-primary btn-sm py-3"
+                       title="Movimento anterior: {{ \Illuminate\Support\Carbon::parse($dataAnterior)->format('d/m/Y') }}">
+                        <i class="feather-chevron-left"></i>
+                    </a>
+                @else
+                    <button type="button" class="btn btn-primary btn-sm py-3" disabled title="Nenhum movimento anterior">
+                        <i class="feather-chevron-left"></i>
+                    </button>
+                @endif
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center">
                     <h5 class="mb-0">{{ $dataSelecionada->format('d/m/Y') }}</h5>
+                    {{-- Ir direto a um dia qualquer: as setas so param onde ha movimento,
+                         e abrir caixa retroativo pede chegar num dia vazio. --}}
+                    <form method="GET" action="{{ route('caixas.index') }}" class="m-0" data-sem-loading>
+                        <input type="date" name="data" class="form-control form-control-sm" aria-label="Ir para a data"
+                               value="{{ $dataSelecionada->toDateString() }}" max="{{ today()->toDateString() }}"
+                               onchange="this.form.submit()">
+                    </form>
                     @if($ehHoje)
                         <span class="badge bg-primary">Hoje</span>
                     @endif
@@ -157,9 +171,16 @@
                     @endif
                 </div>
 
-                <a href="{{ route('caixas.index', ['data' => $dataProxima]) }}" class="btn btn-primary btn-sm py-3">
-                    <i class="feather-chevron-right"></i>
-                </a>
+                @if($dataProxima)
+                    <a href="{{ route('caixas.index', ['data' => $dataProxima]) }}" class="btn btn-primary btn-sm py-3"
+                       title="Próximo movimento: {{ \Illuminate\Support\Carbon::parse($dataProxima)->format('d/m/Y') }}">
+                        <i class="feather-chevron-right"></i>
+                    </a>
+                @else
+                    <button type="button" class="btn btn-primary btn-sm py-3" disabled title="Nenhum movimento posterior">
+                        <i class="feather-chevron-right"></i>
+                    </button>
+                @endif
             </div>
         </div>
     </div>

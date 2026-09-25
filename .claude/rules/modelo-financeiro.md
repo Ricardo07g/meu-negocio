@@ -69,7 +69,8 @@ de caixa fechado preservado). Cartao/pix/banco nao tem lancamento — nada a rev
 devolvido e agendamentos cancelados pelo `VendaService`.
 
 ## Caixa Diario
-Navegacao prev/next por dia (`?data=YYYY-MM-DD`), 1 caixa por empresa/dia, permite retroativo.
+Navegacao prev/next salta para o dia com movimento mais proximo (caixa ou baixa —
+`NavegacaoCaixaService`) + seletor de data (`?data=YYYY-MM-DD`); 1 caixa por empresa/dia, permite retroativo.
 Reabertura via `ReabrirCaixaData`/`ReabrirCaixaRequest`. O caixa e a **sessao da conta-caixa**
 (`caixas.conta_id`); sangria/reforco criam um `Lancamento` (`categoria` `sangria`/`reforco`).
 
