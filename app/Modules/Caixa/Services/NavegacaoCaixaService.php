@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Caixa\Services;
 
 use App\Modules\Caixa\Models\{BaixaDespesa, BaixaPagamento, Caixa};
-use Illuminate\Database\Eloquent\{Builder};
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /**
