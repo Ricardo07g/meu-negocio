@@ -29,7 +29,8 @@ class RegistroTest extends TestCase
             'empresa' => 'Estudio Maria',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        // Loga, mas para na confirmacao de e-mail ate clicar no link (ADR-0022).
+        $response->assertRedirect(route('verificacao.aviso'));
 
         $this->assertAuthenticated();
 
