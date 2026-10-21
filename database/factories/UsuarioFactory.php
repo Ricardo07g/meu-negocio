@@ -22,6 +22,7 @@ class UsuarioFactory extends Factory
             'empresa_id' => fn (array $attrs) => EmpresaFactory::new()->state(['rede_id' => $attrs['rede_id']]),
             'nome' => fake('pt_BR')->name(),
             'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'ativo' => true,
             'atende' => false,
@@ -31,6 +32,11 @@ class UsuarioFactory extends Factory
     public function inativo(): static
     {
         return $this->state(fn () => ['ativo' => false]);
+    }
+
+    public function naoVerificado(): static
+    {
+        return $this->state(fn () => ['email_verified_at' => null]);
     }
 
     public function atendente(): static

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Agenda\Controllers\AgendaController;
-use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController};
+use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController, VerificacaoEmailController};
 use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\{CarteiraController, ClienteController};
 use App\Modules\Conta\Controllers\ContaController;
@@ -41,8 +41,19 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Rotas autenticadas com verificacao de rede
-Route::middleware(['auth', 'verificar.rede'])->group(function () {
+// Confirmacao de e-mail (ADR-0022): fora do `verified`, senao quem nao confirmou nunca chegaria aqui
+Route::middleware('auth')->group(function () {
+    Route::get('verificar-email', [VerificacaoEmailController::class, 'aviso'])->name('verificacao.aviso');
+    Route::get('verificar-email/{id}/{hash}', [VerificacaoEmailController::class, 'verificar'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verificacao.verificar');
+    Route::post('verificar-email/reenviar', [VerificacaoEmailController::class, 'reenviar'])
+        ->middleware('throttle:6,1')
+        ->name('verificacao.reenviar');
+});
+
+// Rotas autenticadas com verificacao de rede (e de e-mail confirmado)
+Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede'])->group(function () {
 
     // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
     Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');

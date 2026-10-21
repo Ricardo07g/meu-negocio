@@ -45,8 +45,14 @@ class RegistrarController extends Controller
 
             $usuario = $rede->getRelation('usuarioCriado');
             Auth::login($usuario);
+            $request->session()->regenerate();
 
-            return redirect()->route('dashboard');
+            // Fora da transacao do RedeService: o link so sai para um cadastro que
+            // existe de fato. Falha do provedor nao derruba o registro — o usuario
+            // reenvia pela tela de confirmacao (ADR-0022).
+            $usuario->enviarVerificacaoSemFalhar();
+
+            return redirect()->route('verificacao.aviso');
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao registrar conta');
         }

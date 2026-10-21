@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Models;
 
 use App\Modules\Arquivo\Contracts\PossuiArquivos;
-use App\Modules\Auth\Mail\RecuperacaoSenhaMailable;
+use App\Modules\Auth\Mail\{RecuperacaoSenhaMailable, VerificacaoEmailMailable};
 use App\Modules\Tenant\Models\Empresa;
 use App\Traits\{RedeTrait, TemArquivos};
+use Illuminate\Auth\MustVerifyEmail as VerificaEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\{Builder, Collection, SoftDeletes};
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, BelongsToMany};
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\{Log, Mail, URL};
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -22,6 +24,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int|null $empresa_id
  * @property string $nome
  * @property string $email
+ * @property Carbon|null $email_verified_at
  * @property string $password
  * @property bool $ativo
  * @property bool $atende
@@ -32,9 +35,9 @@ use Spatie\Permission\Traits\HasRoles;
  * @property-read Collection<int, Empresa> $empresas
  * @property-read Empresa|null $empresa
  */
-class Usuario extends Authenticatable implements PossuiArquivos
+class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
 {
-    use HasRoles, Notifiable, RedeTrait, SoftDeletes, TemArquivos;
+    use HasRoles, Notifiable, RedeTrait, SoftDeletes, TemArquivos, VerificaEmail;
 
     protected $table = 'usuarios';
 
@@ -56,6 +59,7 @@ class Usuario extends Authenticatable implements PossuiArquivos
     protected function casts(): array
     {
         return [
+            'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'ativo' => 'boolean',
             'atende' => 'boolean',
@@ -70,6 +74,52 @@ class Usuario extends Authenticatable implements PossuiArquivos
     public function sendPasswordResetNotification($token): void
     {
         Mail::to($this->email)->send(new RecuperacaoSenhaMailable($token, $this->email));
+    }
+
+    /**
+     * Mesmo motivo do reset: Mailable com branding em vez da notification default.
+     * Sincrono — em producao a fila e `sync` de qualquer forma (ADR-0016).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $url = URL::temporarySignedRoute(
+            'verificacao.verificar',
+            now()->addMinutes(60),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
+        );
+
+        Mail::to($this->email)->send(new VerificacaoEmailMailable($url, $this->nome));
+    }
+
+    /**
+     * Troca de e-mail derruba a verificacao e reenvia o link: o endereco novo
+     * nunca foi provado. Chamado depois do save (Perfil e edicao pelo Admin).
+     */
+    public function revalidarEmailSeAlterado(): void
+    {
+        if (! $this->wasChanged('email')) {
+            return;
+        }
+
+        $this->forceFill(['email_verified_at' => null])->save();
+        $this->enviarVerificacaoSemFalhar();
+    }
+
+    /**
+     * Envia o link sem deixar uma falha do provedor derrubar o fluxo que o chamou
+     * (registro, criacao de usuario). O usuario reenvia pela tela de confirmacao.
+     */
+    public function enviarVerificacaoSemFalhar(): void
+    {
+        try {
+            $this->sendEmailVerificationNotification();
+        } catch (\Throwable $e) {
+            Log::error('Falha ao enviar o link de verificacao de e-mail', [
+                'usuario_id' => $this->getKey(),
+                'exception' => $e::class,
+                'mensagem' => $e->getMessage(),
+            ]);
+        }
     }
 
     // ██████╗ ███████╗██╗      █████╗ ████████╗██╗ ██████╗ ███╗   ██╗███████╗

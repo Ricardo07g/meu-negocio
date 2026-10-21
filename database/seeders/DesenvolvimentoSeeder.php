@@ -191,6 +191,9 @@ class DesenvolvimentoSeeder extends Seeder
                 'atende' => false,
             ],
         );
+        // Usuarios da demo ja nascem com e-mail confirmado (ADR-0022): ninguem
+        // recebe o link, e sem isso o login pararia na tela de confirmacao.
+        $this->admin->markEmailAsVerified();
         $this->admin->syncRoles([$adminRole]);
 
         // Atendentes da demo recebem o papel Admin para que a navegacao funcione
@@ -215,6 +218,7 @@ class DesenvolvimentoSeeder extends Seeder
                     'atende' => true,
                 ],
             );
+            $atendente->markEmailAsVerified();
             $atendente->syncRoles([$adminRole]);
 
             // Distribuicao: atendente 1 -> todas; atendente 2 -> Central+Norte;
@@ -301,6 +305,7 @@ class DesenvolvimentoSeeder extends Seeder
                     'atende' => $papel === 'Profissional',
                 ],
             );
+            $usuario->markEmailAsVerified();
             $usuario->syncRoles([$role]);
             $usuario->empresas()->sync($pivot);
         }

@@ -26,9 +26,16 @@ class UsuarioService
         return Usuario::findOrFail($id);
     }
 
+    /**
+     * Usuario criado pelo Admin tambem confirma o e-mail (ADR-0022). O envio fica
+     * aqui, e nao na Action, porque a Action tambem serve o registro e os seeders.
+     */
     public function criar(Rede $rede, UsuarioData $data): Usuario
     {
-        return $this->criarUsuario->executar($rede, $data);
+        $usuario = $this->criarUsuario->executar($rede, $data);
+        $usuario->enviarVerificacaoSemFalhar();
+
+        return $usuario;
     }
 
     public function atualizar(Usuario $usuario, UsuarioData $data): Usuario
@@ -55,6 +62,7 @@ class UsuarioService
         }
 
         $usuario->update($campos);
+        $usuario->revalidarEmailSeAlterado();
 
         if ($data->papel) {
             $usuario->syncRoles([$data->papel]);
