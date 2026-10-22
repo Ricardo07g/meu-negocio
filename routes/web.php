@@ -41,14 +41,15 @@ Route::middleware('guest')->group(function () {
 
 Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Confirmacao de e-mail (ADR-0022): fora do `verified`, senao quem nao confirmou nunca chegaria aqui
+// Confirmacao de e-mail (ADR-0022): fora do `verified`, senao quem nao confirmou nunca chegaria aqui.
+// Prefixo no throttle: sem ele a chave e so o usuario, e reenvio + link somavam no mesmo balde.
 Route::middleware('auth')->group(function () {
     Route::get('verificar-email', [VerificacaoEmailController::class, 'aviso'])->name('verificacao.aviso');
     Route::get('verificar-email/{id}/{hash}', [VerificacaoEmailController::class, 'verificar'])
-        ->middleware(['signed', 'throttle:6,1'])
+        ->middleware(['signed', 'throttle:6,1,verificacao-link'])
         ->name('verificacao.verificar');
     Route::post('verificar-email/reenviar', [VerificacaoEmailController::class, 'reenviar'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,verificacao-reenvio')
         ->name('verificacao.reenviar');
 });
 

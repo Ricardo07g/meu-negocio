@@ -255,4 +255,23 @@ class VerificacaoEmailTest extends TestCase
                 && str_contains($html, e($contexto['usuario']->nome));
         });
     }
+
+    /**
+     * O `throttle:6,1` numerico usa so o usuario como chave: reenvio e link
+     * somavam no mesmo balde, e quem reenviou algumas vezes levava 429 ao
+     * finalmente clicar no link. Cada rota tem o proprio balde.
+     */
+    public function test_reenviar_ate_o_limite_nao_bloqueia_o_link(): void
+    {
+        Mail::fake();
+        $contexto = $this->redeComAdminNaoVerificado();
+        $this->actingAs($contexto['usuario']);
+
+        for ($i = 0; $i < 6; $i++) {
+            $this->post(route('verificacao.reenviar'))->assertRedirect();
+        }
+
+        $this->get($this->linkDeVerificacao($contexto['usuario']))->assertRedirect(route('dashboard'));
+        $this->assertNotNull($contexto['usuario']->refresh()->email_verified_at);
+    }
 }
