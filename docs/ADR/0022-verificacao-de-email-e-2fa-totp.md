@@ -52,6 +52,13 @@ negócios — vazar uma senha reaproveitada expõe tudo isso.
 - Segredo e códigos de recuperação **criptografados no banco** (casts `encrypted`), fora do
   `toArray()` e do activitylog. Código TOTP usado uma vez não vale de novo (anti-replay).
 - Disponível em **todos os planos**: segurança não fica atrás de pagamento.
+- **Limites, revisados no code review.** O desafio tem um **teto de 5 erros por pendência**, e
+  estourar devolve ao login. Essa é a proteção contra força bruta distribuída: o throttle por IP
+  sozinho se renovava a cada IP novo. Configurar, gerar códigos e desativar pedem a senha e têm
+  balde próprio de throttle (prefixo). O `throttle:N,1` numérico do Laravel usa só usuário/IP como
+  chave, então rotas diferentes somavam juntas, e um erro de digitação na configuração já dava 429.
+  Verificar e consumir código acontece com a linha do usuário travada (`lockForUpdate`), para que
+  duas requisições simultâneas não aceitem o mesmo código.
 
 ## Consequências
 

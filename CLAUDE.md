@@ -115,7 +115,7 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
 - **2FA** (ADR-0022): app autenticador (TOTP, `pragmarx/google2fa` + QR SVG do `bacon/bacon-qr-code`,
   sem Fortify). Opcional por usuario (aba Seguranca do Meu Perfil); o Admin pode exigir na rede
   (`redes.exigir_2fa` + middleware `exigir.2fa`). Login em duas etapas: senha certa so cria uma
-  pendencia de 5 min — autentica apos o codigo do app ou de recuperacao. Regra em
+  pendencia de 5 min (teto de 5 erros) — autentica apos o codigo do app ou de recuperacao. Regra em
   `App\Modules\Auth\Services\DoisFatoresService`.
 - **IA**: um contrato (`App\Modules\Ia\Contracts\Ia`) com drivers trocaveis por `IA_DRIVER` —
   **Workers AI** (padrao), **Gemini** (escape hatch) e **Fake** (a suite, fixado em `phpunit.xml`).
@@ -148,7 +148,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **939 testes** (3237 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **953 testes** (3283 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
