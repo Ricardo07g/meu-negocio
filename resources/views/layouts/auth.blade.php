@@ -25,7 +25,8 @@
                     <a href="{{ route('home') }}" class="position-absolute translate-middle top-0 start-50 shadow-lg d-inline-block" style="border-radius:14px;line-height:0;" title="Voltar ao site" aria-label="Voltar para a página inicial">
                         @include('partials.logo-mark', ['size' => 52])
                     </a>
-                    <div class="card-body p-sm-5">
+                    {{-- pt-5 no celular: o logo invade o topo do card e cobria titulo longo e flash. --}}
+                    <div class="card-body pt-5 p-sm-5">
                         {{-- Flash das telas de autenticacao. Mora no layout porque o
                              destino da mensagem nem sempre e a tela que a criou: a
                              redefinicao de senha termina com um redirect para o
