@@ -6,7 +6,7 @@ namespace App\Modules\Usuario\Models;
 
 use App\Modules\Arquivo\Contracts\PossuiArquivos;
 use App\Modules\Auth\Mail\{RecuperacaoSenhaMailable, VerificacaoEmailMailable};
-use App\Modules\Tenant\Models\Empresa;
+use App\Modules\Tenant\Models\{Empresa, Rede};
 use App\Traits\{RedeTrait, TemArquivos};
 use Illuminate\Auth\MustVerifyEmail as VerificaEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -25,6 +25,10 @@ use Spatie\Permission\Traits\HasRoles;
  * @property string $nome
  * @property string $email
  * @property Carbon|null $email_verified_at
+ * @property string|null $two_factor_secret
+ * @property array<int, string>|null $two_factor_recovery_codes
+ * @property Carbon|null $two_factor_confirmed_at
+ * @property int|null $two_factor_ultimo_passo
  * @property string $password
  * @property bool $ativo
  * @property bool $atende
@@ -34,6 +38,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property Carbon|null $deleted_at
  * @property-read Collection<int, Empresa> $empresas
  * @property-read Empresa|null $empresa
+ * @property-read Rede|null $rede
  */
 class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
 {
@@ -54,6 +59,8 @@ class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
 
     protected function casts(): array
@@ -61,6 +68,10 @@ class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
+            'two_factor_ultimo_passo' => 'integer',
             'ativo' => 'boolean',
             'atende' => 'boolean',
         ];
@@ -188,6 +199,13 @@ class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
      * operacoes sobre entidades transacionais (Agendamento, Venda, Caixa,
      * Pagamento, Despesa).
      */
+    /** 2FA so vale depois de confirmado com um codigo do app (ADR-0022). */
+    public function temDoisFatoresAtivo(): bool
+    {
+        // Atributo cru: so conferir presenca, sem descriptografar o segredo a cada linha da listagem.
+        return ($this->attributes['two_factor_secret'] ?? null) !== null && $this->two_factor_confirmed_at !== null;
+    }
+
     public function podeAcessarEmpresa(?int $empresaId): bool
     {
         if ($empresaId === null) {

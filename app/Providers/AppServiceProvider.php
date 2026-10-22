@@ -29,14 +29,16 @@ use App\Modules\Produto\Models\{CategoriaProduto, Produto};
 use App\Modules\Produto\Policies\{CategoriaProdutoPolicy, ProdutoPolicy};
 use App\Modules\Servico\Models\Servico;
 use App\Modules\Servico\Policies\ServicoPolicy;
-use App\Modules\Tenant\Models\{Empresa, Fatura};
-use App\Modules\Tenant\Policies\{EmpresaPolicy, FaturaPolicy};
+use App\Modules\Tenant\Models\{Empresa, Fatura, Rede};
+use App\Modules\Tenant\Policies\{EmpresaPolicy, FaturaPolicy, RedePolicy};
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Policies\{VendaEtapasPolicy, VendaProdutoPolicy};
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\{Gate, Route};
+use Illuminate\Support\Facades\{Gate, RateLimiter, Route};
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
 
@@ -61,6 +63,7 @@ class AppServiceProvider extends ServiceProvider
         MovimentoEstoque::class => MovimentoEstoquePolicy::class,
         Pagamento::class => PagamentoPolicy::class,
         Produto::class => ProdutoPolicy::class,
+        Rede::class => RedePolicy::class,
         Role::class => PerfilAcessoPolicy::class,
         Servico::class => ServicoPolicy::class,
         Usuario::class => UsuarioPolicy::class,
@@ -91,5 +94,10 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Paginator::useBootstrapFive();
+
+        // Desafio do 2FA (ADR-0022): balde proprio por IP. O `throttle:5,1` numerico
+        // e compartilhado entre rotas, entao login + 4 codigos errados davam 429 antes
+        // do teto da pendencia (PendenciaDoisFatores), que e a protecao de verdade.
+        RateLimiter::for('dois-fatores', fn (Request $request) => Limit::perMinute(10)->by('2fa|'.$request->ip()));
     }
 }
