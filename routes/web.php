@@ -32,7 +32,7 @@ Route::middleware('guest')->group(function () {
 
     // Segunda etapa do login (ADR-0022): a senha ja foi conferida, mas o usuario ainda NAO esta logado
     Route::get('login/dois-fatores', [DesafioDoisFatoresController::class, 'mostrar'])->name('login.dois-fatores');
-    Route::post('login/dois-fatores', [DesafioDoisFatoresController::class, 'verificar'])->middleware('throttle:5,1');
+    Route::post('login/dois-fatores', [DesafioDoisFatoresController::class, 'verificar'])->middleware('throttle:dois-fatores');
 
     // Recuperacao de senha
     Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
@@ -49,10 +49,10 @@ Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->n
 Route::middleware('auth')->group(function () {
     Route::get('verificar-email', [VerificacaoEmailController::class, 'aviso'])->name('verificacao.aviso');
     Route::get('verificar-email/{id}/{hash}', [VerificacaoEmailController::class, 'verificar'])
-        ->middleware(['signed', 'throttle:6,1'])
+        ->middleware(['signed', 'throttle:6,1,verificacao-link'])
         ->name('verificacao.verificar');
     Route::post('verificar-email/reenviar', [VerificacaoEmailController::class, 'reenviar'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,verificacao-reenvio')
         ->name('verificacao.reenviar');
 });
 
@@ -65,12 +65,21 @@ Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede', 'exig
     Route::post('perfil/senha', [PerfilController::class, 'atualizarSenha'])->name('perfil.senha');
 
     // 2FA self-service (aba Seguranca) — liberado pelo exigir.2fa via `perfil.*`
-    Route::post('perfil/dois-fatores', [DoisFatoresController::class, 'iniciar'])->name('perfil.dois-fatores.iniciar');
+    // Acoes que conferem a senha tem limite proprio: sem ele, viram oraculo de forca bruta.
+    // O 3o parametro do throttle (prefixo) separa os baldes — sem ele, a chave e so o
+    // usuario e todas as rotas somam juntas (configurar com um erro ja dava 429).
+    Route::post('perfil/dois-fatores', [DoisFatoresController::class, 'iniciar'])
+        ->middleware('throttle:5,1,2fa-iniciar')
+        ->name('perfil.dois-fatores.iniciar');
     Route::post('perfil/dois-fatores/confirmar', [DoisFatoresController::class, 'confirmar'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:10,1,2fa-confirmar')
         ->name('perfil.dois-fatores.confirmar');
-    Route::post('perfil/dois-fatores/codigos', [DoisFatoresController::class, 'regenerarCodigos'])->name('perfil.dois-fatores.codigos');
-    Route::delete('perfil/dois-fatores', [DoisFatoresController::class, 'desativar'])->name('perfil.dois-fatores.desativar');
+    Route::post('perfil/dois-fatores/codigos', [DoisFatoresController::class, 'regenerarCodigos'])
+        ->middleware('throttle:5,1,2fa-codigos')
+        ->name('perfil.dois-fatores.codigos');
+    Route::delete('perfil/dois-fatores', [DoisFatoresController::class, 'desativar'])
+        ->middleware('throttle:5,1,2fa-desativar')
+        ->name('perfil.dois-fatores.desativar');
 
     // Rotas que necessitam empresa
     Route::middleware(['verificar.empresa', 'aplicar.contexto.empresa'])->group(function () {

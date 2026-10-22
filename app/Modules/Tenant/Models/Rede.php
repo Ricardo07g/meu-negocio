@@ -33,7 +33,6 @@ class Rede extends Model
     protected $fillable = [
         'nome',
         'status',
-        'exigir_2fa',
     ];
 
     protected function casts(): array

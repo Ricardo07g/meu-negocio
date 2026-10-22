@@ -202,7 +202,8 @@ class Usuario extends Authenticatable implements MustVerifyEmail, PossuiArquivos
     /** 2FA so vale depois de confirmado com um codigo do app (ADR-0022). */
     public function temDoisFatoresAtivo(): bool
     {
-        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
+        // Atributo cru: so conferir presenca, sem descriptografar o segredo a cada linha da listagem.
+        return ($this->attributes['two_factor_secret'] ?? null) !== null && $this->two_factor_confirmed_at !== null;
     }
 
     public function podeAcessarEmpresa(?int $empresaId): bool

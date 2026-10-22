@@ -6,6 +6,7 @@ namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\LoginRequest;
+use App\Modules\Auth\Support\PendenciaDoisFatores;
 use App\Modules\Usuario\Models\Usuario;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\{RedirectResponse, Request};
@@ -48,12 +49,16 @@ class LoginController extends Controller
 
             Auth::getProvider()->rehashPasswordIfRequired($usuario, $credentials);
 
+            $pendencia = new PendenciaDoisFatores($request->session());
+
             if ($usuario->temDoisFatoresAtivo()) {
-                DesafioDoisFatoresController::registrarPendencia($request, $usuario);
+                $pendencia->registrar($usuario);
 
                 return redirect()->route('login.dois-fatores');
             }
 
+            // Pendencia de outra conta no mesmo navegador nao sobrevive a um login completo.
+            $pendencia->descartar();
             Auth::login($usuario);
             $request->session()->regenerate();
 

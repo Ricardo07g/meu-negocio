@@ -40,13 +40,14 @@
 
     <div class="row g-4">
         <div class="col-md-6">
-            <form action="{{ route('perfil.dois-fatores.codigos') }}" method="POST" class="border rounded p-3 h-100">
+            {{-- Cada form le o proprio error bag (SenhaDoisFatoresRequest): o erro aparece onde a senha foi digitada. --}}
+            <form action="{{ route('perfil.dois-fatores.codigos') }}" method="POST" class="border rounded p-3 h-100" data-form-2fa="codigos">
                 @csrf
                 <p class="fw-semibold mb-1">Gerar novos códigos</p>
                 <p class="fs-12 text-muted">Os códigos atuais deixam de valer.</p>
-                <input type="password" name="senha_2fa" class="form-control mb-3 @error('senha_2fa') is-invalid @enderror"
+                <input type="password" name="senha_2fa" class="form-control mb-3 @error('senha_2fa', 'codigos') is-invalid @enderror"
                        placeholder="Sua senha" autocomplete="current-password" required>
-                @error('senha_2fa') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
+                @error('senha_2fa', 'codigos') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
                 <button type="submit" class="btn btn-light w-100"><i class="feather-refresh-cw me-2"></i>Gerar novos códigos</button>
             </form>
         </div>
@@ -57,13 +58,14 @@
                     <p class="fs-12 text-muted mb-0">Sua rede exige a verificação em duas etapas, então ela não pode ser desativada.</p>
                 </div>
             @else
-                <form action="{{ route('perfil.dois-fatores.desativar') }}" method="POST" class="border rounded p-3 h-100"
+                <form action="{{ route('perfil.dois-fatores.desativar') }}" method="POST" class="border rounded p-3 h-100" data-form-2fa="desativar"
                       data-confirm="Desativar a verificação em duas etapas? Sua conta volta a depender só da senha.">
                     @csrf @method('DELETE')
                     <p class="fw-semibold mb-1">Desativar</p>
                     <p class="fs-12 text-muted">O login volta a pedir só a senha.</p>
-                    <input type="password" name="senha_2fa" class="form-control mb-3 @error('senha_2fa') is-invalid @enderror"
+                    <input type="password" name="senha_2fa" class="form-control mb-3 @error('senha_2fa', 'desativar') is-invalid @enderror"
                            placeholder="Sua senha" autocomplete="current-password" required>
+                    @error('senha_2fa', 'desativar') <div class="invalid-feedback mb-3">{{ $message }}</div> @enderror
                     <button type="submit" class="btn btn-outline-danger w-100"><i class="feather-shield-off me-2"></i>Desativar</button>
                 </form>
             @endif
@@ -87,7 +89,7 @@
         </div>
     </div>
 
-    <form action="{{ route('perfil.dois-fatores.confirmar') }}" method="POST">
+    <form action="{{ route('perfil.dois-fatores.confirmar') }}" method="POST" data-form-2fa="confirmar">
         @csrf
         <div class="row g-3 align-items-start">
             <div class="col-md-6">
@@ -107,8 +109,17 @@
         </div>
     @endif
 
-    <form action="{{ route('perfil.dois-fatores.iniciar') }}" method="POST">
+    <form action="{{ route('perfil.dois-fatores.iniciar') }}" method="POST" data-form-2fa="iniciar">
         @csrf
-        <button type="submit" class="btn btn-primary"><i class="feather-shield me-2"></i>Configurar verificação em duas etapas</button>
+        <div class="row g-3 align-items-start">
+            <div class="col-md-6">
+                <input type="password" name="senha_2fa" class="form-control @error('senha_2fa', 'iniciar') is-invalid @enderror"
+                       placeholder="Confirme sua senha" autocomplete="current-password" required>
+                @error('senha_2fa', 'iniciar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary w-100"><i class="feather-shield me-2"></i>Configurar verificação em duas etapas</button>
+            </div>
+        </div>
     </form>
 @endif

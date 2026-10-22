@@ -8,14 +8,27 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Desativar o 2FA ou gerar novos codigos de recuperacao exige a senha atual:
- * uma sessao esquecida aberta nao basta para derrubar o segundo fator.
+ * Iniciar, desativar o 2FA ou gerar novos codigos exige a senha atual: uma
+ * sessao esquecida aberta nao basta para mexer no segundo fator.
  *
  * O campo e `senha_2fa`, e nao `senha_atual`, para o erro abrir a aba
- * Seguranca e nao a aba Alterar senha do perfil.
+ * Seguranca e nao a aba Alterar senha do perfil. Cada acao tem o proprio
+ * error bag — os forms ficam lado a lado e o erro precisa aparecer no certo.
  */
 class SenhaDoisFatoresRequest extends FormRequest
 {
+    /** @var array<string, string> rota => error bag */
+    private const BAGS = [
+        'perfil.dois-fatores.iniciar' => 'iniciar',
+        'perfil.dois-fatores.codigos' => 'codigos',
+        'perfil.dois-fatores.desativar' => 'desativar',
+    ];
+
+    protected function prepareForValidation(): void
+    {
+        $this->errorBag = self::BAGS[$this->route()?->getName()] ?? 'default';
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;

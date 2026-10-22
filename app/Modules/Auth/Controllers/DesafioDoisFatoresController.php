@@ -7,7 +7,7 @@ namespace App\Modules\Auth\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\DesafioDoisFatoresRequest;
 use App\Modules\Auth\Services\DoisFatoresService;
-use App\Modules\Usuario\Models\Usuario;
+use App\Modules\Auth\Support\PendenciaDoisFatores;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Auth;
@@ -15,33 +15,21 @@ use Illuminate\View\View;
 
 /**
  * Segunda etapa do login (ADR-0022). O usuario chega aqui com a senha ja
- * conferida, mas DESLOGADO: so existe uma pendencia na sessao, com prazo.
+ * conferida, mas DESLOGADO: so existe uma pendencia na sessao.
  */
 class DesafioDoisFatoresController extends Controller
 {
     use TratamentoErros;
 
-    private const CHAVE = 'login.dois_fatores';
-
-    private const MINUTOS_PARA_RESPONDER = 5;
-
     public function __construct(
         private DoisFatoresService $service,
     ) {}
 
-    public static function registrarPendencia(Request $request, Usuario $usuario): void
-    {
-        $request->session()->put(self::CHAVE, [
-            'id' => $usuario->getKey(),
-            'expira' => now()->addMinutes(self::MINUTOS_PARA_RESPONDER)->getTimestamp(),
-        ]);
-    }
-
     public function mostrar(Request $request): View|RedirectResponse
     {
         try {
-            if ($this->usuarioPendente($request) === null) {
-                return $this->voltarAoLogin($request);
+            if ($this->pendencia($request)->usuario() === null) {
+                return $this->voltarAoLogin($request, 'Sua verificação expirou. Entre com email e senha novamente.');
             }
 
             return view('auth::dois-fatores');
@@ -53,10 +41,11 @@ class DesafioDoisFatoresController extends Controller
     public function verificar(DesafioDoisFatoresRequest $request): RedirectResponse
     {
         try {
-            $usuario = $this->usuarioPendente($request);
+            $pendencia = $this->pendencia($request);
+            $usuario = $pendencia->usuario();
 
             if ($usuario === null) {
-                return $this->voltarAoLogin($request);
+                return $this->voltarAoLogin($request, 'Sua verificação expirou. Entre com email e senha novamente.');
             }
 
             $recuperacao = $request->filled('codigo_recuperacao');
@@ -66,12 +55,14 @@ class DesafioDoisFatoresController extends Controller
                 : $this->service->verificarCodigo($usuario, (string) $request->input('codigo'));
 
             if (! $valido) {
-                $campo = $recuperacao ? 'codigo_recuperacao' : 'codigo';
+                if (! $pendencia->registrarErro()) {
+                    return $this->voltarAoLogin($request, 'Muitas tentativas inválidas. Entre com email e senha novamente.');
+                }
 
-                return back()->withErrors([$campo => 'Código inválido.']);
+                return back()->withErrors([$recuperacao ? 'codigo_recuperacao' : 'codigo' => 'Código inválido.']);
             }
 
-            $request->session()->forget(self::CHAVE);
+            $pendencia->descartar();
             Auth::login($usuario);
             $request->session()->regenerate();
 
@@ -81,27 +72,15 @@ class DesafioDoisFatoresController extends Controller
         }
     }
 
-    /**
-     * Pendencia valida = dentro do prazo, usuario ainda ativo e com 2FA ainda
-     * ligado (o Admin pode ter redefinido no meio do caminho).
-     */
-    private function usuarioPendente(Request $request): ?Usuario
+    private function pendencia(Request $request): PendenciaDoisFatores
     {
-        $pendencia = $request->session()->get(self::CHAVE);
-
-        if (! is_array($pendencia) || ($pendencia['expira'] ?? 0) < now()->getTimestamp()) {
-            return null;
-        }
-
-        $usuario = Usuario::find($pendencia['id'] ?? null);
-
-        return ($usuario !== null && $usuario->ativo && $usuario->temDoisFatoresAtivo()) ? $usuario : null;
+        return new PendenciaDoisFatores($request->session());
     }
 
-    private function voltarAoLogin(Request $request): RedirectResponse
+    private function voltarAoLogin(Request $request, string $mensagem): RedirectResponse
     {
-        $request->session()->forget(self::CHAVE);
+        $this->pendencia($request)->descartar();
 
-        return redirect()->route('login')->with('erro', 'Sua verificação expirou. Entre com email e senha novamente.');
+        return redirect()->route('login')->with('erro', $mensagem);
     }
 }

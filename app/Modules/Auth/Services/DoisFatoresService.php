@@ -11,6 +11,7 @@ use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -86,43 +87,77 @@ class DoisFatoresService
     {
         $codigo = preg_replace('/\D/', '', $codigo) ?? '';
 
-        if ($usuario->two_factor_secret === null || strlen($codigo) !== 6) {
+        if (strlen($codigo) !== 6) {
             return false;
         }
 
-        $passo = $this->google2fa->verifyKeyNewer(
-            $usuario->two_factor_secret,
-            $codigo,
-            $usuario->two_factor_ultimo_passo ?? 0,
-            self::JANELA,
-        );
+        return $this->comUsuarioTravado($usuario, function (Usuario $atual) use ($codigo): bool {
+            if ($atual->two_factor_secret === null) {
+                return false;
+            }
 
-        if ($passo === false || $passo === true) {
-            return false;
-        }
+            $passo = $this->google2fa->verifyKeyNewer(
+                $atual->two_factor_secret,
+                $codigo,
+                $atual->two_factor_ultimo_passo ?? 0,
+                self::JANELA,
+            );
 
-        $usuario->forceFill(['two_factor_ultimo_passo' => $passo])->save();
+            if ($passo === false || $passo === true) {
+                return false;
+            }
 
-        return true;
+            $atual->forceFill(['two_factor_ultimo_passo' => $passo])->save();
+
+            return true;
+        });
     }
 
     /** Cada codigo de recuperacao vale uma unica vez. */
     public function usarCodigoRecuperacao(Usuario $usuario, string $codigo): bool
     {
-        $hashes = $usuario->two_factor_recovery_codes ?? [];
         $alvo = $this->hash($codigo);
 
-        foreach ($hashes as $indice => $hash) {
-            if (hash_equals($hash, $alvo)) {
-                unset($hashes[$indice]);
-                $usuario->forceFill(['two_factor_recovery_codes' => array_values($hashes)])->save();
-                $this->registrar($usuario, 'Código de recuperação usado no login');
+        $usado = $this->comUsuarioTravado($usuario, function (Usuario $atual) use ($alvo): bool {
+            $hashes = $atual->two_factor_recovery_codes ?? [];
 
-                return true;
+            foreach ($hashes as $indice => $hash) {
+                if (hash_equals($hash, $alvo)) {
+                    unset($hashes[$indice]);
+                    $atual->forceFill(['two_factor_recovery_codes' => array_values($hashes)])->save();
+
+                    return true;
+                }
             }
+
+            return false;
+        });
+
+        if ($usado) {
+            $this->registrar($usuario, 'Código de recuperação usado no login');
         }
 
-        return false;
+        return $usado;
+    }
+
+    /**
+     * Le e grava o estado do 2FA com a linha travada. Duas requisicoes simultaneas
+     * carregam o usuario antes de qualquer uma gravar; sem reler sob lock, a
+     * segunda decidiria com o estado velho e aceitaria o mesmo codigo.
+     *
+     * @param  \Closure(Usuario): bool  $acao
+     */
+    private function comUsuarioTravado(Usuario $usuario, \Closure $acao): bool
+    {
+        return DB::transaction(function () use ($usuario, $acao): bool {
+            $atual = Usuario::query()->lockForUpdate()->findOrFail($usuario->getKey());
+            $resultado = $acao($atual);
+
+            // Devolve o estado gravado a instancia de quem chamou.
+            $usuario->setRawAttributes($atual->getAttributes(), true);
+
+            return $resultado;
+        });
     }
 
     /**
@@ -170,7 +205,8 @@ class DoisFatoresService
             return;
         }
 
-        $rede->update(['exigir_2fa' => $exigir]);
+        // Fora do $fillable da Rede de proposito: politica de seguranca nao entra por mass-assignment.
+        $rede->forceFill(['exigir_2fa' => $exigir])->save();
 
         activity()
             ->performedOn($rede)

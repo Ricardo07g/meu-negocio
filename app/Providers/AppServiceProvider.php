@@ -35,8 +35,10 @@ use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Policies\{VendaEtapasPolicy, VendaProdutoPolicy};
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\{Gate, Route};
+use Illuminate\Support\Facades\{Gate, RateLimiter, Route};
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
 
@@ -92,5 +94,10 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Paginator::useBootstrapFive();
+
+        // Desafio do 2FA (ADR-0022): balde proprio por IP. O `throttle:5,1` numerico
+        // e compartilhado entre rotas, entao login + 4 codigos errados davam 429 antes
+        // do teto da pendencia (PendenciaDoisFatores), que e a protecao de verdade.
+        RateLimiter::for('dois-fatores', fn (Request $request) => Limit::perMinute(10)->by('2fa|'.$request->ip()));
     }
 }

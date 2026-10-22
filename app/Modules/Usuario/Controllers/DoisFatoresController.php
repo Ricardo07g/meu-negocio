@@ -9,7 +9,7 @@ use App\Modules\Auth\Services\DoisFatoresService;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\{ConfirmarDoisFatoresRequest, ExigirDoisFatoresRequest, SenhaDoisFatoresRequest};
 use App\Traits\TratamentoErros;
-use Illuminate\Http\{RedirectResponse, Request};
+use Illuminate\Http\{RedirectResponse};
 
 /**
  * 2FA (ADR-0022): self-service na aba Seguranca do Meu Perfil + as duas
@@ -23,7 +23,7 @@ class DoisFatoresController extends Controller
         private DoisFatoresService $service,
     ) {}
 
-    public function iniciar(Request $request): RedirectResponse
+    public function iniciar(SenhaDoisFatoresRequest $request): RedirectResponse
     {
         try {
             $this->service->iniciar($request->user());
