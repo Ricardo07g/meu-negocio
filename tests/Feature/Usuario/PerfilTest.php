@@ -32,12 +32,26 @@ class PerfilTest extends TestCase
             'email' => 'ricardo.novo@teste.com',
         ]);
 
-        $response->assertRedirect(route('perfil.index'));
+        // E-mail novo precisa ser confirmado antes de seguir usando o sistema (ADR-0022).
+        $response->assertRedirect(route('verificacao.aviso'));
         $response->assertSessionHas('sucesso');
 
         $contexto['usuario']->refresh();
         $this->assertSame('Ricardo Atualizado', $contexto['usuario']->nome);
         $this->assertSame('ricardo.novo@teste.com', $contexto['usuario']->email);
+        $this->assertNull($contexto['usuario']->email_verified_at);
+    }
+
+    public function test_atualizar_so_o_nome_mantem_o_email_verificado(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+
+        $this->post(route('perfil.atualizar'), [
+            'nome' => 'So o Nome',
+            'email' => $contexto['usuario']->email,
+        ])->assertRedirect(route('perfil.index'));
+
+        $this->assertNotNull($contexto['usuario']->refresh()->email_verified_at);
     }
 
     public function test_trocar_senha_exige_senha_atual_correta(): void

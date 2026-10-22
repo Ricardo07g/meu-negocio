@@ -105,8 +105,13 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   submit foi cancelado (respeita o `data-confirm` do SweetAlert).
 - **Email**: producao envia pela **API HTTPS do Resend** (`MAIL_MAILER=resend` + `RESEND_API_KEY`),
   nunca SMTP — o Railway descarta conexao SMTP em silencio e o request pendura ate o timeout
-  (ADR-0020). Dev usa `log`, testes usam `array`. Ha um unico email no sistema: o link de
-  redefinicao de senha. Remetente precisa de dominio verificado (DKIM/SPF/MX de retorno).
+  (ADR-0020). Dev usa `log`, testes usam `array`. Ha dois emails no sistema: o link de
+  redefinicao de senha e o de **confirmacao de e-mail**. Remetente precisa de dominio verificado
+  (DKIM/SPF/MX de retorno).
+- **Verificacao de e-mail** (ADR-0022): `Usuario` e `MustVerifyEmail`; `verified:verificacao.aviso`
+  no grupo autenticado inteiro — sem confirmar, so a tela de aviso. Vale para o registro **e** para
+  usuario criado pelo Admin; trocar o e-mail zera a verificacao. Seeders, factory e `CriaTenant`
+  criam usuarios ja verificados.
 - **IA**: um contrato (`App\Modules\Ia\Contracts\Ia`) com drivers trocaveis por `IA_DRIVER` —
   **Workers AI** (padrao), **Gemini** (escape hatch) e **Fake** (a suite, fixado em `phpunit.xml`).
   **Desligada sem credencial**, no molde do Turnstile. Regra inegociavel: **o SQL calcula, o modelo
@@ -138,11 +143,12 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **841 testes** (2934 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **901 testes** (3096 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
-  validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro) e o
+  validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro), verificacao
+  de e-mail (link assinado, expirado, adulterado e de outro usuario) e o
   agendador HTTP, e a analise por IA (cache por hash, cota diaria, degradacao com provedor
   desligado e segmentacao RFM).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
@@ -160,7 +166,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (21 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (22 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---

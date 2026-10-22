@@ -35,7 +35,13 @@ class PerfilController extends Controller
         try {
             $usuario = $request->user();
             $usuario->update($request->safe()->only(['nome', 'email']));
+            $usuario->revalidarEmailSeAlterado();
             $this->sincronizarImagem($usuario, $request);
+
+            if (! $usuario->hasVerifiedEmail()) {
+                return redirect()->route('verificacao.aviso')
+                    ->with('sucesso', 'Perfil atualizado. Confirme o novo e-mail pelo link que enviamos.');
+            }
 
             return redirect()->route('perfil.index')->with('sucesso', 'Perfil atualizado com sucesso.');
         } catch (\Throwable $e) {

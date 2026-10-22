@@ -83,6 +83,9 @@ class TrialSeeder extends Seeder
             ),
         );
 
+        // O registro real mandaria o link; aqui ninguem o recebe (ADR-0022).
+        $rede->getRelation('usuarioCriado')->markEmailAsVerified();
+
         return Empresa::with('plano')->where('rede_id', $rede->id)->firstOrFail();
     }
 }
