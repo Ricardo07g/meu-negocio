@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Usuario;
 
+use App\Modules\Tenant\Models\Rede;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\DoisFatores;
 use Tests\TestCase;
@@ -64,7 +65,7 @@ class ExigirDoisFatoresTest extends TestCase
     public function test_com_exigencia_quem_nao_configurou_e_levado_ao_perfil(): void
     {
         $contexto = $this->criarRede();
-        $contexto['rede']->update(['exigir_2fa' => true]);
+        $contexto['rede']->forceFill(['exigir_2fa' => true])->save();
         $funcionario = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa']);
         $this->actingAs($funcionario);
 
@@ -72,7 +73,7 @@ class ExigirDoisFatoresTest extends TestCase
         $this->get(route('perfil.index', ['aba' => 'seguranca']))->assertOk()->assertSee('Sua rede exige');
 
         // Configurando pelo caminho liberado, o sistema abre.
-        $this->post(route('perfil.dois-fatores.iniciar'))->assertRedirect();
+        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password'])->assertRedirect();
         $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($funcionario)]);
 
         $this->get(route('dashboard'))->assertOk();
@@ -82,7 +83,7 @@ class ExigirDoisFatoresTest extends TestCase
     {
         $contexto = $this->criarRedeAutenticada();
         $this->ativarDoisFatores($contexto['usuario']);
-        $contexto['rede']->update(['exigir_2fa' => true]);
+        $contexto['rede']->forceFill(['exigir_2fa' => true])->save();
 
         $this->get(route('dashboard'))->assertOk();
     }
@@ -133,5 +134,13 @@ class ExigirDoisFatoresTest extends TestCase
 
         $this->post(route('usuarios.redefinir-2fa', $contexto['usuario']))->assertForbidden();
         $this->assertTrue($contexto['usuario']->refresh()->temDoisFatoresAtivo());
+    }
+
+    /** Defesa em profundidade: a politica de seguranca nao entra por mass-assignment. */
+    public function test_exigencia_nao_entra_por_mass_assignment(): void
+    {
+        $rede = (new Rede)->fill(['nome' => 'X', 'exigir_2fa' => true]);
+
+        $this->assertNull($rede->exigir_2fa);
     }
 }

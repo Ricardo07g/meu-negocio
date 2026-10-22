@@ -149,17 +149,103 @@ class DoisFatoresLoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_desafio_respeita_o_limite_por_minuto(): void
+    /**
+     * Login e desafio dividiam o balde de 5/min por IP do throttle: senha + 4
+     * codigos errados ja davam 429 cru, antes da mensagem do teto da pendencia.
+     */
+    public function test_quatro_erros_no_mesmo_ip_ainda_permitem_acertar(): void
     {
         $usuario = $this->criarRede()['usuario'];
         $this->ativarDoisFatores($usuario);
         $this->entrarComSenha($usuario);
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i < 4; $i++) {
+            $this->errarCodigo($usuario, '127.0.0.1');
+        }
+
+        $this->post(route('login.dois-fatores'), ['codigo' => $this->codigoAtual($usuario)])
+            ->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($usuario);
+    }
+
+    /** Teto da pendencia estourado no mesmo IP: mensagem amigavel, nao 429. */
+    public function test_cinco_erros_no_mesmo_ip_voltam_ao_login_com_aviso(): void
+    {
+        $usuario = $this->criarRede()['usuario'];
+        $this->ativarDoisFatores($usuario);
+        $this->entrarComSenha($usuario);
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->errarCodigo($usuario, '127.0.0.1');
+        }
+
+        $errado = $this->codigoAtual($usuario) === '000000' ? '111111' : '000000';
+        $this->post(route('login.dois-fatores'), ['codigo' => $errado])
+            ->assertRedirect(route('login'))
+            ->assertSessionHas('erro', 'Muitas tentativas inválidas. Entre com email e senha novamente.');
+        $this->assertGuest();
+    }
+
+    /** O desafio ainda tem limite por IP (balde proprio, 10/min) contra rajada. */
+    public function test_desafio_respeita_o_limite_por_minuto(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
             $this->post(route('login.dois-fatores'), ['codigo' => '000000']);
         }
 
-        $this->post(route('login.dois-fatores'), ['codigo' => $this->codigoAtual($usuario)])->assertStatus(429);
+        $this->post(route('login.dois-fatores'), ['codigo' => '000000'])->assertStatus(429);
+    }
+
+    private function errarCodigo(Usuario $usuario, string $ip): void
+    {
+        $errado = $this->codigoAtual($usuario) === '000000' ? '111111' : '000000';
+        $this->withServerVariables(['REMOTE_ADDR' => $ip])->post(route('login.dois-fatores'), ['codigo' => $errado]);
+    }
+
+    /**
+     * O throttle e por IP: trocar de IP renovava as tentativas. O limite precisa
+     * ser da pendencia — estourou, volta ao login (e ao Turnstile).
+     */
+    public function test_pendencia_cai_apos_cinco_erros_mesmo_trocando_de_ip(): void
+    {
+        $usuario = $this->criarRede()['usuario'];
+        $this->ativarDoisFatores($usuario);
+        $this->entrarComSenha($usuario);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $this->errarCodigo($usuario, "10.0.0.{$i}");
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.99'])
+            ->post(route('login.dois-fatores'), ['codigo' => $this->codigoAtual($usuario)])
+            ->assertRedirect(route('login'));
         $this->assertGuest();
+    }
+
+    public function test_quatro_erros_ainda_permitem_acertar(): void
+    {
+        $usuario = $this->criarRede()['usuario'];
+        $this->ativarDoisFatores($usuario);
+        $this->entrarComSenha($usuario);
+
+        for ($i = 1; $i <= 4; $i++) {
+            $this->errarCodigo($usuario, "10.0.1.{$i}");
+        }
+
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.99'])
+            ->post(route('login.dois-fatores'), ['codigo' => $this->codigoAtual($usuario)])
+            ->assertRedirect(route('dashboard'));
+        $this->assertAuthenticatedAs($usuario);
+    }
+
+    /** Pendencia de outra conta nao sobrevive a um login completo no mesmo navegador. */
+    public function test_login_sem_2fa_descarta_pendencia_anterior(): void
+    {
+        $comDoisFatores = $this->criarRede()['usuario'];
+        $this->ativarDoisFatores($comDoisFatores);
+        $semDoisFatores = $this->criarRede()['usuario'];
+
+        $this->entrarComSenha($comDoisFatores)->assertSessionHas('login.dois_fatores');
+        $this->entrarComSenha($semDoisFatores)->assertSessionMissing('login.dois_fatores');
     }
 }
