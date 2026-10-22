@@ -59,6 +59,18 @@ class UsuarioPolicy
         return $empresasDoAlvo->contains(fn ($id) => $usuario->podeAcessarEmpresa((int) $id));
     }
 
+    /**
+     * Zerar o 2FA de outro usuario (perdeu o celular) desliga um fator de
+     * autenticacao dele: so o Admin, so dentro da rede, e nunca de si mesmo —
+     * o proprio 2FA se desliga no Meu Perfil, com senha.
+     */
+    public function redefinirDoisFatores(Usuario $usuario, Usuario $alvo): bool
+    {
+        return $usuario->rede_id === $alvo->rede_id
+            && $usuario->id !== $alvo->id
+            && $usuario->hasRole('Admin');
+    }
+
     public function delete(Usuario $usuario, Usuario $alvo): bool
     {
         return $usuario->rede_id === $alvo->rede_id

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Agenda\Controllers\AgendaController;
-use App\Modules\Auth\Controllers\{EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController, VerificacaoEmailController};
+use App\Modules\Auth\Controllers\{DesafioDoisFatoresController, EsqueciSenhaController, LoginController, RedefinirSenhaController, RegistrarController, VerificacaoEmailController};
 use App\Modules\Caixa\Controllers\CaixaController;
 use App\Modules\Cliente\Controllers\{CarteiraController, ClienteController};
 use App\Modules\Conta\Controllers\ContaController;
@@ -16,7 +16,7 @@ use App\Modules\PerfilAcesso\Controllers\PerfilAcessoController;
 use App\Modules\Produto\Controllers\{CategoriaProdutoController, ProdutoArquivoController, ProdutoController};
 use App\Modules\Servico\Controllers\ServicoController;
 use App\Modules\Tenant\Controllers\{AssinaturaController, EmpresaController};
-use App\Modules\Usuario\Controllers\{PerfilController, UsuarioController};
+use App\Modules\Usuario\Controllers\{DoisFatoresController, PerfilController, UsuarioController};
 use App\Modules\Venda\Controllers\VendaController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +29,10 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [LoginController::class, 'login'])->middleware(['throttle:5,1', 'turnstile']);
     Route::get('registrar', [RegistrarController::class, 'showRegistrationForm'])->name('registrar');
     Route::post('registrar', [RegistrarController::class, 'register'])->middleware(['throttle:5,1', 'turnstile']);
+
+    // Segunda etapa do login (ADR-0022): a senha ja foi conferida, mas o usuario ainda NAO esta logado
+    Route::get('login/dois-fatores', [DesafioDoisFatoresController::class, 'mostrar'])->name('login.dois-fatores');
+    Route::post('login/dois-fatores', [DesafioDoisFatoresController::class, 'verificar'])->middleware('throttle:5,1');
 
     // Recuperacao de senha
     Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
@@ -53,12 +57,20 @@ Route::middleware('auth')->group(function () {
 });
 
 // Rotas autenticadas com verificacao de rede (e de e-mail confirmado)
-Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede'])->group(function () {
+Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede', 'exigir.2fa'])->group(function () {
 
     // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
     Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');
     Route::post('perfil', [PerfilController::class, 'atualizar'])->name('perfil.atualizar');
     Route::post('perfil/senha', [PerfilController::class, 'atualizarSenha'])->name('perfil.senha');
+
+    // 2FA self-service (aba Seguranca) — liberado pelo exigir.2fa via `perfil.*`
+    Route::post('perfil/dois-fatores', [DoisFatoresController::class, 'iniciar'])->name('perfil.dois-fatores.iniciar');
+    Route::post('perfil/dois-fatores/confirmar', [DoisFatoresController::class, 'confirmar'])
+        ->middleware('throttle:10,1')
+        ->name('perfil.dois-fatores.confirmar');
+    Route::post('perfil/dois-fatores/codigos', [DoisFatoresController::class, 'regenerarCodigos'])->name('perfil.dois-fatores.codigos');
+    Route::delete('perfil/dois-fatores', [DoisFatoresController::class, 'desativar'])->name('perfil.dois-fatores.desativar');
 
     // Rotas que necessitam empresa
     Route::middleware(['verificar.empresa', 'aplicar.contexto.empresa'])->group(function () {
@@ -177,6 +189,8 @@ Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede'])->gro
         // Contratar/cancelar unidade e ato comercial do operador (painel de superusuario,
         // futuro; hoje `php artisan empresa:contratar`). O tenant so consulta e edita cadastro.
         Route::resource('empresas', EmpresaController::class)->only(['index', 'edit', 'update']);
+        Route::patch('rede/exigir-2fa', [DoisFatoresController::class, 'exigir'])->name('rede.exigir-2fa');
+        Route::post('usuarios/{usuario}/redefinir-2fa', [DoisFatoresController::class, 'redefinir'])->name('usuarios.redefinir-2fa');
         Route::resource('usuarios', UsuarioController::class)->except(['show']);
         Route::resource('perfis-acesso', PerfilAcessoController::class)->parameters(['perfis-acesso' => 'perfil_acesso']);
         Route::get('minha-assinatura', [AssinaturaController::class, 'index'])->name('assinatura.index');

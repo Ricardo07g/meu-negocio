@@ -10,7 +10,12 @@
     @php
         // Mantem a aba "Alterar senha" aberta apos erro de validacao especifico
         // de senha, e a aba "Dados pessoais" no caso default ou em erro de nome/email.
-        $abaSenha = $errors->hasAny(['senha_atual', 'password']);
+        //
+        // A aba Seguranca (2FA) abre por `?aba=seguranca` — destino de todos os
+        // redirects do 2FA e do middleware exigir.2fa — ou por erro dos seus campos.
+        $abaSeguranca = request('aba') === 'seguranca' || $errors->hasAny(['codigo', 'senha_2fa']);
+        $abaSenha = ! $abaSeguranca && $errors->hasAny(['senha_atual', 'password']);
+        $abaDados = ! $abaSeguranca && ! $abaSenha;
 
         // Voltar: lista de usuarios (se tem permissao) ou dashboard.
         $rotaVoltar = auth()->user()->can('usuario.ver') ? route('usuarios.index') : route('dashboard');
@@ -81,7 +86,7 @@
                 <div class="card-header p-0">
                     <ul class="nav nav-tabs flex-wrap w-100 text-center" id="perfilTabs" role="tablist">
                         <li class="nav-item flex-fill border-top" role="presentation">
-                            <a href="javascript:void(0);" class="nav-link {{ $abaSenha ? '' : 'active' }}" data-bs-toggle="tab" data-bs-target="#dadosTab" role="tab">
+                            <a href="javascript:void(0);" class="nav-link {{ $abaDados ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#dadosTab" role="tab">
                                 <i class="feather-user me-2"></i>Dados pessoais
                             </a>
                         </li>
@@ -90,11 +95,16 @@
                                 <i class="feather-lock me-2"></i>Alterar senha
                             </a>
                         </li>
+                        <li class="nav-item flex-fill border-top" role="presentation">
+                            <a href="javascript:void(0);" class="nav-link {{ $abaSeguranca ? 'active' : '' }}" data-bs-toggle="tab" data-bs-target="#segurancaTab" role="tab">
+                                <i class="feather-shield me-2"></i>Segurança
+                            </a>
+                        </li>
                     </ul>
                 </div>
                 <div class="tab-content">
                     {{-- Aba Dados pessoais --}}
-                    <div class="tab-pane fade {{ $abaSenha ? '' : 'show active' }} p-4" id="dadosTab" role="tabpanel">
+                    <div class="tab-pane fade {{ $abaDados ? 'show active' : '' }} p-4" id="dadosTab" role="tabpanel">
                         <form action="{{ route('perfil.atualizar') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="row mb-4">
@@ -146,6 +156,11 @@
                             <x-form-botoes salvarTexto="Alterar senha"
                                            salvarIcone="feather-lock" />
                         </form>
+                    </div>
+
+                    {{-- Aba Seguranca: verificacao em duas etapas (ADR-0022) --}}
+                    <div class="tab-pane fade {{ $abaSeguranca ? 'show active' : '' }} p-4" id="segurancaTab" role="tabpanel">
+                        @include('usuario::_dois-fatores')
                     </div>
                 </div>
             </div>
