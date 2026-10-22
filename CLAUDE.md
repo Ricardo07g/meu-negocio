@@ -112,6 +112,11 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   no grupo autenticado inteiro — sem confirmar, so a tela de aviso. Vale para o registro **e** para
   usuario criado pelo Admin; trocar o e-mail zera a verificacao. Seeders, factory e `CriaTenant`
   criam usuarios ja verificados.
+- **2FA** (ADR-0022): app autenticador (TOTP, `pragmarx/google2fa` + QR SVG do `bacon/bacon-qr-code`,
+  sem Fortify). Opcional por usuario (aba Seguranca do Meu Perfil); o Admin pode exigir na rede
+  (`redes.exigir_2fa` + middleware `exigir.2fa`). Login em duas etapas: senha certa so cria uma
+  pendencia de 5 min — autentica apos o codigo do app ou de recuperacao. Regra em
+  `App\Modules\Auth\Services\DoisFatoresService`.
 - **IA**: um contrato (`App\Modules\Ia\Contracts\Ia`) com drivers trocaveis por `IA_DRIVER` —
   **Workers AI** (padrao), **Gemini** (escape hatch) e **Fake** (a suite, fixado em `phpunit.xml`).
   **Desligada sem credencial**, no molde do Turnstile. Regra inegociavel: **o SQL calcula, o modelo
@@ -143,12 +148,13 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **901 testes** (3096 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **939 testes** (3237 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
   validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro), verificacao
-  de e-mail (link assinado, expirado, adulterado e de outro usuario) e o
+  de e-mail (link assinado, expirado, adulterado e de outro usuario), 2FA (desafio, anti-replay,
+  codigo de recuperacao, exigencia da rede, alcada e isolamento do Admin) e o
   agendador HTTP, e a analise por IA (cache por hash, cota diaria, degradacao com provedor
   desligado e segmentacao RFM).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
