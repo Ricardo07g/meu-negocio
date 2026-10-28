@@ -60,7 +60,16 @@ negócios — vazar uma senha reaproveitada expõe tudo isso.
 - **2FA de Admin só o suporte redefine.** O Admin redefine pela tela o 2FA de quem não é Admin
   (celular perdido). O de outro Admin, não: junto com trocar e-mail e senha, seria tomar a conta de
   quem manda na rede. O suporte (operador do SaaS) usa `php artisan usuarios:redefinir-2fa {email}
-  --motivo="..."`, com confirmação, e o motivo vai para a auditoria.
+  --motivo="..." [--operador=...]`, com confirmação. O log fica sem autor (quem agiu não foi o
+  usuário), com o motivo e o operador nas propriedades. Pelo mesmo motivo, **Admin não rebaixa
+  outro Admin que tem 2FA** (`UsuarioPolicy::alterarPapel`): sem isso, o caminho
+  rebaixar → redefinir (já não-Admin) → promover de novo contornaria a regra. A tela trava o campo
+  de perfil e orienta o suporte. Editar o resto e rebaixar quem não tem 2FA seguem livres.
+- **Nota de deploy.** Sessões abertas antes do deploy não têm o hash da senha gravado. O
+  `auth.session` grava o hash na primeira requisição depois do deploy, então uma sessão parada até
+  o dono ligar o 2FA adotaria o hash novo. A janela fecha sozinha com o fim das sessões antigas
+  (120 min). Para fechá-la na hora, limpe as sessões no deploy, o que desconecta todo mundo uma
+  vez.
 - **Limites, revisados no code review.** O desafio tem um **teto de 5 erros por pendência**, e
   estourar devolve ao login. Essa é a proteção contra força bruta distribuída: o throttle por IP
   sozinho se renovava a cada IP novo. Configurar, gerar códigos e desativar pedem a senha e têm

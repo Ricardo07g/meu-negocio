@@ -150,7 +150,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **963 testes** (3325 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **967 testes** (3341 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
