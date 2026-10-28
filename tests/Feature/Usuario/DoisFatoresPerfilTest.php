@@ -6,7 +6,7 @@ namespace Tests\Feature\Usuario;
 
 use App\Modules\Auth\Services\DoisFatoresService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\{DB, Hash};
 use Tests\Concerns\DoisFatores;
 use Tests\TestCase;
 
@@ -32,7 +32,7 @@ class DoisFatoresPerfilTest extends TestCase
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
 
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password'])
+        $this->post(route('perfil.dois-fatores.iniciar'))
             ->assertRedirect(route('perfil.index', ['aba' => 'seguranca']));
 
         $usuario->refresh();
@@ -48,9 +48,9 @@ class DoisFatoresPerfilTest extends TestCase
     public function test_confirmar_com_codigo_certo_ativa_e_mostra_os_codigos_uma_vez(): void
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password']);
+        $this->post(route('perfil.dois-fatores.iniciar'));
 
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario)])
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario), 'senha_2fa' => 'password'])
             ->assertRedirect(route('perfil.index', ['aba' => 'seguranca']))
             ->assertSessionHas('codigos_recuperacao', fn ($c) => count($c) === DoisFatoresService::QTD_CODIGOS_RECUPERACAO);
 
@@ -63,10 +63,10 @@ class DoisFatoresPerfilTest extends TestCase
     public function test_confirmar_com_codigo_errado_nao_ativa(): void
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password']);
+        $this->post(route('perfil.dois-fatores.iniciar'));
         $errado = $this->codigoAtual($usuario) === '000000' ? '111111' : '000000';
 
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $errado])->assertSessionHas('erro');
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $errado, 'senha_2fa' => 'password'])->assertSessionHas('erro');
 
         $this->assertFalse($usuario->refresh()->temDoisFatoresAtivo());
     }
@@ -75,7 +75,7 @@ class DoisFatoresPerfilTest extends TestCase
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
 
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => '123456'])->assertSessionHas('erro');
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => '123456', 'senha_2fa' => 'password'])->assertSessionHas('erro');
 
         $this->assertFalse($usuario->refresh()->temDoisFatoresAtivo());
     }
@@ -207,15 +207,52 @@ class DoisFatoresPerfilTest extends TestCase
             ->assertSessionMissing('_old_input.senha_2fa');
     }
 
-    /** Sessao esquecida aberta nao pode amarrar a conta ao celular de outra pessoa. */
-    public function test_iniciar_exige_a_senha(): void
+    /**
+     * Sessao esquecida aberta nao pode amarrar a conta ao celular de outra pessoa:
+     * ligar o 2FA pede a senha — na confirmacao, o momento em que ele passa a valer.
+     */
+    public function test_confirmar_exige_a_senha(): void
+    {
+        $usuario = $this->criarRedeAutenticada()['usuario'];
+        $this->post(route('perfil.dois-fatores.iniciar'))->assertRedirect();
+
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario)])
+            ->assertSessionHasErrorsIn('confirmar', 'senha_2fa');
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario), 'senha_2fa' => 'errada'])
+            ->assertSessionHasErrorsIn('confirmar', 'senha_2fa');
+
+        $this->assertFalse($usuario->refresh()->temDoisFatoresAtivo());
+    }
+
+    /**
+     * Sessoes abertas so com a senha (outro computador, celular perdido) nao podem
+     * sobreviver a ativacao do 2FA: `auth.session` + logoutOtherDevices.
+     */
+    public function test_ativar_2fa_derruba_as_outras_sessoes_e_mantem_a_atual(): void
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
 
-        $this->post(route('perfil.dois-fatores.iniciar'))->assertSessionHasErrorsIn('iniciar', 'senha_2fa');
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'errada'])->assertSessionHasErrorsIn('iniciar', 'senha_2fa');
+        // "Outro aparelho": uma sessao que guardou o hash da senha de antes da ativacao.
+        $hashDeAntes = auth()->guard('web')->hashPasswordForCookie($usuario->password);
 
-        $this->assertNull($usuario->refresh()->two_factor_secret);
+        $this->post(route('perfil.dois-fatores.iniciar'));
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario), 'senha_2fa' => 'password'])
+            ->assertSessionHas('codigos_recuperacao');
+
+        // A sessao atual continua valendo...
+        $this->get(route('perfil.index'))->assertOk();
+        $this->assertAuthenticatedAs($usuario);
+
+        // ...e a do outro aparelho cai no proximo request.
+        $this->flushSession();
+        $this->actingAs($usuario->refresh())
+            ->withSession(['password_hash_web' => $hashDeAntes, 'empresas_atuais' => [$usuario->empresa_id]])
+            ->get(route('dashboard'))
+            ->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        // A senha continua a mesma para o dono.
+        $this->assertTrue(Hash::check('password', $usuario->refresh()->password));
     }
 
     /** Senha conferida por formulario precisa de limite, senao vira oraculo de forca bruta. */
@@ -241,9 +278,9 @@ class DoisFatoresPerfilTest extends TestCase
     {
         $usuario = $this->criarRedeAutenticada()['usuario'];
 
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password'])->assertRedirect();
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => '000001'])->assertRedirect();
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario)])->assertRedirect();
+        $this->post(route('perfil.dois-fatores.iniciar'))->assertRedirect();
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => '000001', 'senha_2fa' => 'password'])->assertRedirect();
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($usuario), 'senha_2fa' => 'password'])->assertRedirect();
         $usuario->refresh()->forceFill(['two_factor_ultimo_passo' => null])->save();
 
         $this->post(route('perfil.dois-fatores.codigos'), ['senha_2fa' => 'errada'])->assertRedirect();

@@ -73,8 +73,8 @@ class ExigirDoisFatoresTest extends TestCase
         $this->get(route('perfil.index', ['aba' => 'seguranca']))->assertOk()->assertSee('Sua rede exige');
 
         // Configurando pelo caminho liberado, o sistema abre.
-        $this->post(route('perfil.dois-fatores.iniciar'), ['senha_2fa' => 'password'])->assertRedirect();
-        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($funcionario)]);
+        $this->post(route('perfil.dois-fatores.iniciar'))->assertRedirect();
+        $this->post(route('perfil.dois-fatores.confirmar'), ['codigo' => $this->codigoAtual($funcionario), 'senha_2fa' => 'password']);
 
         $this->get(route('dashboard'))->assertOk();
     }
@@ -142,5 +142,31 @@ class ExigirDoisFatoresTest extends TestCase
         $rede = (new Rede)->fill(['nome' => 'X', 'exigir_2fa' => true]);
 
         $this->assertNull($rede->exigir_2fa);
+    }
+
+    /**
+     * Derrubar o 2FA de um Admin e tomar a conta de quem manda na rede: so o
+     * suporte faz, pelo comando `usuarios:redefinir-2fa` (com motivo na auditoria).
+     */
+    public function test_admin_nao_redefine_o_2fa_de_outro_admin(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $outroAdmin = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Admin');
+        $this->ativarDoisFatores($outroAdmin);
+
+        $this->post(route('usuarios.redefinir-2fa', $outroAdmin))->assertForbidden();
+        $this->assertTrue($outroAdmin->refresh()->temDoisFatoresAtivo());
+    }
+
+    public function test_edicao_de_outro_admin_orienta_a_falar_com_o_suporte(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $outroAdmin = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Admin');
+        $this->ativarDoisFatores($outroAdmin);
+
+        $this->get(route('usuarios.edit', $outroAdmin))
+            ->assertOk()
+            ->assertDontSee('Redefinir 2FA')
+            ->assertSee('fale com o suporte');
     }
 }
