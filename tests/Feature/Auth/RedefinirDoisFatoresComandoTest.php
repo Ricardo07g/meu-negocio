@@ -23,7 +23,7 @@ class RedefinirDoisFatoresComandoTest extends TestCase
         $admin = $this->criarRede()['usuario'];
         $this->ativarDoisFatores($admin);
 
-        $this->artisan('usuarios:redefinir-2fa', ['email' => $admin->email, '--motivo' => 'Chamado 123: perdeu o celular'])
+        $this->artisan('usuarios:redefinir-2fa', ['email' => $admin->email, '--motivo' => 'Chamado 123: perdeu o celular', '--operador' => 'ana.suporte'])
             ->expectsConfirmation("Redefinir a verificação em duas etapas de {$admin->nome} <{$admin->email}>?", 'yes')
             ->assertSuccessful();
 
@@ -32,6 +32,9 @@ class RedefinirDoisFatoresComandoTest extends TestCase
         $registro = Activity::where('subject_id', $admin->id)->latest('id')->first();
         $this->assertSame('Verificação em duas etapas redefinida pelo suporte', $registro->description);
         $this->assertSame('Chamado 123: perdeu o celular', $registro->properties['motivo'] ?? null);
+        // Quem agiu foi o suporte, nao o proprio Admin: sem causer, com o operador registrado.
+        $this->assertNull($registro->causer_id);
+        $this->assertSame('ana.suporte', $registro->properties['operador'] ?? null);
     }
 
     public function test_sem_confirmacao_nada_muda(): void

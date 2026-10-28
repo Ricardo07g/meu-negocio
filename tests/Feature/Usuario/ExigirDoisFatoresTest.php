@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Usuario;
 
 use App\Modules\Tenant\Models\Rede;
+use App\Modules\Usuario\Models\Usuario;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\DoisFatores;
 use Tests\TestCase;
@@ -168,5 +169,75 @@ class ExigirDoisFatoresTest extends TestCase
             ->assertOk()
             ->assertDontSee('Redefinir 2FA')
             ->assertSee('fale com o suporte');
+    }
+
+    // ---------------------------------------------------------------------
+    // Contorno achado na revisao final: rebaixar -> redefinir -> promover.
+    // ---------------------------------------------------------------------
+
+    /** @return array{0: Usuario, 1: array<string, mixed>} */
+    private function outroAdminComDoisFatores(): array
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $outroAdmin = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Admin');
+        $this->ativarDoisFatores($outroAdmin);
+        $this->garantirRole('Recepcao');
+
+        return [$outroAdmin, $contexto];
+    }
+
+    public function test_admin_nao_rebaixa_outro_admin_com_2fa_para_redefinir_e_promover_de_novo(): void
+    {
+        [$outroAdmin, $contexto] = $this->outroAdminComDoisFatores();
+
+        $this->put(route('usuarios.update', $outroAdmin), [
+            'nome' => $outroAdmin->nome,
+            'email' => $outroAdmin->email,
+            'papel' => 'Recepcao',
+            'empresas' => [$contexto['empresa']->id],
+        ])->assertForbidden();
+
+        $this->assertTrue($outroAdmin->refresh()->hasRole('Admin'));
+        $this->post(route('usuarios.redefinir-2fa', $outroAdmin))->assertForbidden();
+        $this->assertTrue($outroAdmin->refresh()->temDoisFatoresAtivo());
+    }
+
+    public function test_editar_outro_admin_com_2fa_mantendo_o_perfil_continua_permitido(): void
+    {
+        [$outroAdmin] = $this->outroAdminComDoisFatores();
+
+        $this->put(route('usuarios.update', $outroAdmin), [
+            'nome' => 'Nome Novo',
+            'email' => $outroAdmin->email,
+            'papel' => 'Admin',
+        ])->assertRedirect(route('usuarios.index'));
+
+        $this->assertSame('Nome Novo', $outroAdmin->refresh()->nome);
+    }
+
+    public function test_rebaixar_admin_sem_2fa_continua_permitido(): void
+    {
+        $contexto = $this->criarRedeAutenticada();
+        $outroAdmin = $this->criarUsuarioComum($contexto['rede'], $contexto['empresa'], 'Admin');
+        $this->garantirRole('Recepcao');
+
+        $this->put(route('usuarios.update', $outroAdmin), [
+            'nome' => $outroAdmin->nome,
+            'email' => $outroAdmin->email,
+            'papel' => 'Recepcao',
+            'empresas' => [$contexto['empresa']->id],
+        ])->assertRedirect(route('usuarios.index'));
+
+        $this->assertTrue($outroAdmin->refresh()->hasRole('Recepcao'));
+    }
+
+    public function test_form_de_outro_admin_com_2fa_trava_o_perfil(): void
+    {
+        [$outroAdmin] = $this->outroAdminComDoisFatores();
+
+        $this->get(route('usuarios.edit', $outroAdmin))
+            ->assertOk()
+            ->assertSee('data-papel-travado', false)
+            ->assertSee('<input type="hidden" name="papel" value="Admin">', false);
     }
 }
