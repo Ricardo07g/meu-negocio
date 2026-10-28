@@ -17,6 +17,13 @@
     </form>
 
     {{-- Fora do form de edicao: forms nao se aninham (ADR-0022) --}}
+    @if($usuario->temDoisFatoresAtivo() && $usuario->hasRole('Admin') && auth()->user()->hasRole('Admin') && auth()->id() !== $usuario->id)
+        {{-- 2FA de Admin so o suporte redefine (UsuarioPolicy::redefinirDoisFatores). --}}
+        <div class="alert alert-light mt-4 mb-0" role="alert">
+            <i class="feather-shield me-2"></i>Verificação em duas etapas ativa. Se este administrador perdeu o acesso ao aplicativo, fale com o suporte.
+        </div>
+    @endif
+
     @if($usuario->temDoisFatoresAtivo())
         @can('redefinirDoisFatores', $usuario)
             <div class="card mt-4">

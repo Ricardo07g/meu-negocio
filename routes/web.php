@@ -47,7 +47,7 @@ Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->n
 
 // Confirmacao de e-mail (ADR-0022): fora do `verified`, senao quem nao confirmou nunca chegaria aqui.
 // Prefixo no throttle: sem ele a chave e so o usuario, e reenvio + link somavam no mesmo balde.
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::get('verificar-email', [VerificacaoEmailController::class, 'aviso'])->name('verificacao.aviso');
     Route::get('verificar-email/{id}/{hash}', [VerificacaoEmailController::class, 'verificar'])
         ->middleware(['signed', 'throttle:6,1,verificacao-link'])
@@ -58,7 +58,9 @@ Route::middleware('auth')->group(function () {
 });
 
 // Rotas autenticadas com verificacao de rede (e de e-mail confirmado)
-Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede', 'exigir.2fa'])->group(function () {
+// `auth.session`: sessao cai quando o hash da senha muda — e o que faz o logoutOtherDevices
+// derrubar os outros aparelhos ao ligar o 2FA (e qualquer troca/redefinicao de senha).
+Route::middleware(['auth', 'auth.session', 'verified:verificacao.aviso', 'verificar.rede', 'exigir.2fa'])->group(function () {
 
     // Meu Perfil — self-service (fora do verificar.empresa, perfil nao depende de empresa selecionada)
     Route::get('perfil', [PerfilController::class, 'index'])->name('perfil.index');
@@ -70,10 +72,10 @@ Route::middleware(['auth', 'verified:verificacao.aviso', 'verificar.rede', 'exig
     // O 3o parametro do throttle (prefixo) separa os baldes — sem ele, a chave e so o
     // usuario e todas as rotas somam juntas (configurar com um erro ja dava 429).
     Route::post('perfil/dois-fatores', [DoisFatoresController::class, 'iniciar'])
-        ->middleware('throttle:5,1,2fa-iniciar')
+        ->middleware('throttle:10,1,2fa-iniciar')
         ->name('perfil.dois-fatores.iniciar');
     Route::post('perfil/dois-fatores/confirmar', [DoisFatoresController::class, 'confirmar'])
-        ->middleware('throttle:10,1,2fa-confirmar')
+        ->middleware('throttle:5,1,2fa-confirmar')
         ->name('perfil.dois-fatores.confirmar');
     Route::post('perfil/dois-fatores/codigos', [DoisFatoresController::class, 'regenerarCodigos'])
         ->middleware('throttle:5,1,2fa-codigos')

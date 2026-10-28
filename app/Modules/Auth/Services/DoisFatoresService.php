@@ -189,13 +189,15 @@ class DoisFatoresService
     }
 
     /**
-     * Admin zera o 2FA de quem perdeu o celular. Vale mesmo com a rede exigindo:
-     * no proximo acesso o usuario e levado a configurar de novo.
+     * Zera o 2FA de quem perdeu o celular. Vale mesmo com a rede exigindo: no
+     * proximo acesso o usuario e levado a configurar de novo. O Admin faz isso pela
+     * tela para quem NAO e Admin (UsuarioPolicy); o 2FA de um Admin so o suporte
+     * redefine, pelo comando `usuarios:redefinir-2fa`, com motivo na auditoria.
      */
-    public function redefinir(Usuario $alvo): void
+    public function redefinir(Usuario $alvo, string $por = 'pelo administrador', ?string $motivo = null): void
     {
         $this->limpar($alvo);
-        $this->registrar($alvo, 'Verificação em duas etapas redefinida pelo administrador');
+        $this->registrar($alvo, "Verificação em duas etapas redefinida {$por}", array_filter(['motivo' => $motivo]));
     }
 
     /** Politica da rede, ligada/desligada pelo Admin (autorizado no controller). */
@@ -260,11 +262,15 @@ class DoisFatoresService
         return hash('sha256', Str::upper(preg_replace('/[^A-Za-z0-9]/', '', $codigo) ?? ''));
     }
 
-    private function registrar(Usuario $usuario, string $descricao): void
+    /**
+     * @param  array<string, string>  $propriedades
+     */
+    private function registrar(Usuario $usuario, string $descricao, array $propriedades = []): void
     {
         activity()
             ->performedOn($usuario)
             ->causedBy(auth()->user() ?? $usuario)
+            ->withProperties($propriedades)
             ->log($descricao);
     }
 }

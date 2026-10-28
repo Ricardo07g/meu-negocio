@@ -61,14 +61,17 @@ class UsuarioPolicy
 
     /**
      * Zerar o 2FA de outro usuario (perdeu o celular) desliga um fator de
-     * autenticacao dele: so o Admin, so dentro da rede, e nunca de si mesmo —
-     * o proprio 2FA se desliga no Meu Perfil, com senha.
+     * autenticacao dele: so o Admin, so dentro da rede, nunca de si mesmo (o
+     * proprio 2FA se desliga no Meu Perfil, com senha) e **nunca de outro Admin** —
+     * somado a trocar e-mail e senha, seria tomar a conta de quem manda na rede.
+     * O 2FA de um Admin so o suporte redefine (comando `usuarios:redefinir-2fa`).
      */
     public function redefinirDoisFatores(Usuario $usuario, Usuario $alvo): bool
     {
         return $usuario->rede_id === $alvo->rede_id
             && $usuario->id !== $alvo->id
-            && $usuario->hasRole('Admin');
+            && $usuario->hasRole('Admin')
+            && ! $alvo->hasRole('Admin');
     }
 
     public function delete(Usuario $usuario, Usuario $alvo): bool

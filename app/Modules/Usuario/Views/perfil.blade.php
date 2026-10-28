@@ -14,8 +14,7 @@
         // A aba Seguranca (2FA) abre por `?aba=seguranca` — destino de todos os
         // redirects do 2FA e do middleware exigir.2fa — ou por erro dos seus campos.
         $abaSeguranca = request('aba') === 'seguranca'
-            || $errors->has('codigo')
-            || collect(['iniciar', 'codigos', 'desativar'])->contains(fn ($bag) => $errors->getBag($bag)->any());
+            || collect(['confirmar', 'codigos', 'desativar'])->contains(fn ($bag) => $errors->getBag($bag)->any());
         $abaSenha = ! $abaSeguranca && $errors->hasAny(['senha_atual', 'password']);
         $abaDados = ! $abaSeguranca && ! $abaSenha;
 

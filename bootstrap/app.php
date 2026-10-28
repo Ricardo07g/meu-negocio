@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
 use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, ExigirDoisFatores, VerificarEmpresa, VerificarPlano, VerificarRede, VerificarTurnstile};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
+use App\Modules\Auth\Console\RedefinirDoisFatores;
 use App\Modules\Conta\Console\LimparExportacoes;
 use App\Modules\Ia\Console\TestarIa;
 use App\Modules\Tenant\Console\ExpirarTrial;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         LimparExportacoes::class,
         ExpirarTrial::class,
         TestarIa::class,
+        RedefinirDoisFatores::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         // Railway (e afins) terminam o TLS no proxy e encaminham via HTTP.

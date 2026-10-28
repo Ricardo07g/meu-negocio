@@ -9,7 +9,8 @@ use App\Modules\Auth\Services\DoisFatoresService;
 use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Requests\{ConfirmarDoisFatoresRequest, ExigirDoisFatoresRequest, SenhaDoisFatoresRequest};
 use App\Traits\TratamentoErros;
-use Illuminate\Http\{RedirectResponse};
+use Illuminate\Http\{RedirectResponse, Request};
+use Illuminate\Support\Facades\Auth;
 
 /**
  * 2FA (ADR-0022): self-service na aba Seguranca do Meu Perfil + as duas
@@ -23,7 +24,8 @@ class DoisFatoresController extends Controller
         private DoisFatoresService $service,
     ) {}
 
-    public function iniciar(SenhaDoisFatoresRequest $request): RedirectResponse
+    /** Sem senha aqui: ela e pedida na confirmacao, quando o 2FA passa a valer. */
+    public function iniciar(Request $request): RedirectResponse
     {
         try {
             $this->service->iniciar($request->user());
@@ -38,6 +40,10 @@ class DoisFatoresController extends Controller
     {
         try {
             $codigos = $this->service->confirmar($request->user(), (string) $request->input('codigo'));
+
+            // Sessoes abertas so com a senha (outro computador, aparelho perdido) caem;
+            // esta continua — o `auth.session` regrava o hash nela ao fim do request.
+            Auth::logoutOtherDevices((string) $request->input('senha_2fa'));
 
             return $this->voltarParaSeguranca()
                 ->with('sucesso', 'Verificação em duas etapas ativada.')

@@ -89,18 +89,27 @@
         </div>
     </div>
 
+    {{-- A senha liga o 2FA e derruba as sessoes abertas em outros aparelhos (logoutOtherDevices). --}}
     <form action="{{ route('perfil.dois-fatores.confirmar') }}" method="POST" data-form-2fa="confirmar">
         @csrf
         <div class="row g-3 align-items-start">
-            <div class="col-md-6">
-                <input type="text" name="codigo" class="form-control text-center fs-16 @error('codigo') is-invalid @enderror"
+            <div class="col-md-4">
+                <label class="form-label">Código do aplicativo</label>
+                <input type="text" name="codigo" class="form-control text-center fs-16 @error('codigo', 'confirmar') is-invalid @enderror"
                        placeholder="000000" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
-                @error('codigo') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                @error('codigo', 'confirmar') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <label class="form-label">Sua senha</label>
+                <input type="password" name="senha_2fa" class="form-control @error('senha_2fa', 'confirmar') is-invalid @enderror"
+                       autocomplete="current-password" required>
+                @error('senha_2fa', 'confirmar') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+            <div class="col-md-4 align-self-end">
                 <button type="submit" class="btn btn-primary w-100"><i class="feather-check me-2"></i>Confirmar e ativar</button>
             </div>
         </div>
+        <p class="fs-12 text-muted mt-3 mb-0">Ao ativar, você sai da conta nos outros aparelhos e navegadores — eles vão pedir login com o código.</p>
     </form>
 @else
     @if($redeExige)
@@ -111,15 +120,6 @@
 
     <form action="{{ route('perfil.dois-fatores.iniciar') }}" method="POST" data-form-2fa="iniciar">
         @csrf
-        <div class="row g-3 align-items-start">
-            <div class="col-md-6">
-                <input type="password" name="senha_2fa" class="form-control @error('senha_2fa', 'iniciar') is-invalid @enderror"
-                       placeholder="Confirme sua senha" autocomplete="current-password" required>
-                @error('senha_2fa', 'iniciar') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-            <div class="col-md-6">
-                <button type="submit" class="btn btn-primary w-100"><i class="feather-shield me-2"></i>Configurar verificação em duas etapas</button>
-            </div>
-        </div>
+        <button type="submit" class="btn btn-primary"><i class="feather-shield me-2"></i>Configurar verificação em duas etapas</button>
     </form>
 @endif
