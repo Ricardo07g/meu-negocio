@@ -83,6 +83,8 @@ trait CriaTenant
             'atende' => true,
         ]);
 
+        // Fora do $fillable de proposito: verificacao nao e dado de formulario.
+        $usuario->markEmailAsVerified();
         $usuario->assignRole('Admin');
 
         // Contas financeiras padrão da empresa (Caixa + Banco) — antes das formas,
@@ -144,6 +146,7 @@ trait CriaTenant
             'atende' => true,
         ]);
 
+        $usuario->markEmailAsVerified();
         $usuario->assignRole($papel);
         $usuario->empresas()->sync([$empresa->id => ['rede_id' => $rede->id]]);
 

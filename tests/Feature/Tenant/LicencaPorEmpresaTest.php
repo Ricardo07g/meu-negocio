@@ -32,7 +32,7 @@ class LicencaPorEmpresaTest extends TestCase
             'email' => 'ricardo@teste.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('verificacao.aviso'));
 
         // Catalogo de demonstracao poluido so gera faxina para quem acabou de entrar.
         $this->assertSame(1, CategoriaProduto::withoutGlobalScopes()->count());
@@ -51,7 +51,7 @@ class LicencaPorEmpresaTest extends TestCase
             'email' => 'ricardo@teste.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('verificacao.aviso'));
 
         $empresa = Empresa::withoutGlobalScopes()->firstOrFail();
 

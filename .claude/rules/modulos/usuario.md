@@ -14,7 +14,7 @@ CRUD de usuarios da rede (admin) + "Meu Perfil" self-service. Usuario e a entida
 - **Rede-level apenas**: usa `RedeTrait` (global scope `rede_id`), **NAO** usa `EmpresaTrait`.
   Aplicar EmpresaTrait quebraria `auth()->user()` quando o contexto difere do `empresa_id` default.
 - Fillable: `rede_id, empresa_id, nome, email, password, ativo, atende`.
-  Casts: `password => hashed`, `ativo => boolean`, `atende => boolean`. Hidden: `password, remember_token`.
+  Casts: `email_verified_at => datetime`, `password => hashed`, `ativo => boolean`, `atende => boolean`. Hidden: `password, remember_token`.
 - `ativo` (bool, default true): se false, login bloqueado. `atende` (bool, default false): aparece como atendente em Agenda/Venda.
 
 ## Camadas-chave
@@ -43,6 +43,7 @@ CRUD de usuarios da rede (admin) + "Meu Perfil" self-service. Usuario e a entida
 - `podeAcessarEmpresa(?int)`: null => false; Admin => true; senao checa pivot. Usado por TODAS as Policies.
 - Migration original cria `conta_id` (FK `contas`); renomeado para `rede_id`/`redes` por `Tenant/.../2026_03_22_300001_rename_contas_to_redes`. Cria tambem `password_reset_tokens` e `sessions`.
 - `sendPasswordResetNotification` sobrescrito para enviar `RecuperacaoSenhaMailable` (branding) em vez da notification default.
+- **`MustVerifyEmail`** (ADR-0022): `email_verified_at` fora do `$fillable` (use `markEmailAsVerified()`/`forceFill`). `sendEmailVerificationNotification` envia `VerificacaoEmailMailable`. `UsuarioService::criar` dispara o link (a Action NAO — ela tambem serve registro e seeders). `revalidarEmailSeAlterado()` depois do `update` (Service e `PerfilController`) zera a verificacao e reenvia quando o e-mail muda; o Perfil entao redireciona para `verificacao.aviso`.
 - Rotas: `Route::resource('usuarios')->except(['show'])` sob `auth + verificar.rede + verificar.empresa`. Perfil: `GET/POST perfil` + `POST perfil/senha` (fora de `verificar.empresa`).
 
 ## Veja tambem

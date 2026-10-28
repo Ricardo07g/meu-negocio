@@ -222,7 +222,7 @@ Próximas evoluções planejadas, em ordem de prioridade. A base modular (Servic
 | 2 | **Relatórios & exportações** | Faturamento, contas, ranking de serviços e comissões; exportação em CSV/PDF. |
 | 3 | **Gateway de pagamento** (Stripe / Mercado Pago / Asaas) | Cobrança online e PIX, com conciliação automática das baixas. |
 | 4 | **API REST + tokens (Sanctum)** | Superfície para integrações e um futuro app mobile. |
-| 5 | **2FA + verificação de e-mail no registro** | Hardening de conta (o fluxo de reset de senha já existe). |
+| 5 | **2FA por app autenticador** | Segundo fator TOTP, exigível pelo Admin na rede (reset de senha e verificação de e-mail no cadastro já existem — [ADR-0022](docs/ADR/0022-verificacao-de-email-e-2fa-totp.md)). |
 | 6 | **Observabilidade** (Sentry + métricas) | Rastreio de erros e saúde da aplicação em produção. |
 | 7 | **Tempo real** (WebSockets) | Agenda colaborativa e atualização ao vivo entre atendentes. |
 | 8 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |

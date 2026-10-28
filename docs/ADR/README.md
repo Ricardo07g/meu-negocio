@@ -29,6 +29,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0019](0019-expediente-da-unidade-e-encaixe-autorizado.md) | Expediente da unidade: fora do horário é encaixe autorizado, não acidente | Aceito |
 | [0020](0020-email-transacional-pela-api-do-resend.md) | E-mail transacional pela API do Resend, não por SMTP | Aceito |
 | [0021](0021-analise-por-ia-com-governanca-de-custo.md) | Análise por IA: o SQL calcula, o modelo redige, a cota governa | Aceito |
+| [0022](0022-verificacao-de-email-e-2fa-totp.md) | Verificação de e-mail no cadastro e 2FA por app autenticador | Aceito |
 
 ## Como ler
 
