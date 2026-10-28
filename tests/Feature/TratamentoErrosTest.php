@@ -19,6 +19,7 @@ class TratamentoErrosTest extends TestCase
     {
         $request = Request::create('/qualquer', 'POST', [
             'nome' => 'Maria',
+            'codigo' => 'SKU-123',
             'password' => 'segredo-1',
             'password_confirmation' => 'segredo-1',
             'senha_atual' => 'segredo-2',
@@ -40,6 +41,8 @@ class TratamentoErrosTest extends TestCase
 
         $devolvido = $this->app['session.store']->get('_old_input');
         $this->assertSame('Maria', $devolvido['nome'] ?? null);
+        // `codigo` e o SKU do form de Produto: precisa voltar (regressao da 1a versao).
+        $this->assertSame('SKU-123', $devolvido['codigo'] ?? null);
         $this->assertArrayNotHasKey('password', $devolvido);
         $this->assertArrayNotHasKey('password_confirmation', $devolvido);
         $this->assertArrayNotHasKey('senha_atual', $devolvido);
