@@ -68,7 +68,7 @@ Single DB + colunas de tenant, em dois niveis:
   sem contexto, exibe aviso pedindo escolha.
 
 ## Camadas de autorizacao (todas obrigatorias)
-1. **Auth**: middleware `auth` em toda rota protegida, seguido de `verified:verificacao.aviso`
+1. **Auth**: middleware `auth` + `auth.session` (sessao cai se o hash da senha mudar) em toda rota protegida, seguido de `verified:verificacao.aviso`
    (e-mail confirmado) e, depois do `verificar.rede`, `exigir.2fa` (rede que exige 2FA so libera
    `perfil.*` a quem nao configurou) — ADR-0022.
 2. **Rede**: middleware `verificar.rede` (`VerificarRede`) — usuario tem rede ativa? Traits

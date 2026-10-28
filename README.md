@@ -186,7 +186,7 @@ Após o `DesenvolvimentoSeeder`:
 >
 > **Contas novas confirmam o e-mail** antes de entrar: o link de confirmação também cai no `laravel.log`. Os usuários do seeder já nascem confirmados.
 >
-> **Verificação em duas etapas**: em *Meu Perfil → Segurança*, escaneie o QR code com um app autenticador (Google Authenticator, Authy...). O Admin pode torná-la obrigatória para a rede inteira em *Usuários*. Decisões em [ADR-0022](docs/ADR/0022-verificacao-de-email-e-2fa-totp.md).
+> **Verificação em duas etapas**: em *Meu Perfil → Segurança*, escaneie o QR code com um app autenticador (Google Authenticator, Authy...). O Admin pode torná-la obrigatória para a rede inteira em *Usuários*. Ativar desconecta os outros aparelhos. Se um **administrador** perder o celular, só o suporte redefine: `docker exec meu-negocio-app php artisan usuarios:redefinir-2fa admin@teste.com --motivo="..."`. Decisões em [ADR-0022](docs/ADR/0022-verificacao-de-email-e-2fa-totp.md).
 
 ---
 

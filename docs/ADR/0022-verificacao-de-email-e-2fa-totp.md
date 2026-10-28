@@ -52,6 +52,15 @@ negócios — vazar uma senha reaproveitada expõe tudo isso.
 - Segredo e códigos de recuperação **criptografados no banco** (casts `encrypted`), fora do
   `toArray()` e do activitylog. Código TOTP usado uma vez não vale de novo (anti-replay).
 - Disponível em **todos os planos**: segurança não fica atrás de pagamento.
+- **Ligar o 2FA derruba as outras sessões.** A confirmação pede o código e a **senha**. A senha
+  alimenta o `Auth::logoutOtherDevices`, e o middleware `auth.session`, no grupo autenticado, derruba
+  toda sessão cujo hash de senha não bate mais. A sessão atual continua. Sessões abertas só com a
+  senha (outro computador, aparelho perdido) não sobrevivem à ativação. Efeito colateral desejado:
+  qualquer troca de senha também derruba os outros aparelhos.
+- **2FA de Admin só o suporte redefine.** O Admin redefine pela tela o 2FA de quem não é Admin
+  (celular perdido). O de outro Admin, não: junto com trocar e-mail e senha, seria tomar a conta de
+  quem manda na rede. O suporte (operador do SaaS) usa `php artisan usuarios:redefinir-2fa {email}
+  --motivo="..."`, com confirmação, e o motivo vai para a auditoria.
 - **Limites, revisados no code review.** O desafio tem um **teto de 5 erros por pendência**, e
   estourar devolve ao login. Essa é a proteção contra força bruta distribuída: o throttle por IP
   sozinho se renovava a cada IP novo. Configurar, gerar códigos e desativar pedem a senha e têm
