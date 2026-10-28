@@ -54,7 +54,15 @@
                         </a>
                     @endcan
                 </label>
-                <select name="papel" class="form-select @error('papel') is-invalid @enderror" required>
+                @php
+                    // Admin com 2FA: so o suporte muda o perfil (UsuarioPolicy::alterarPapel).
+                    $papelTravado = $entidade && auth()->user()->cannot('alterarPapel', [$entidade, '']);
+                @endphp
+                @if($papelTravado)
+                    <input type="hidden" name="papel" value="Admin">
+                    <small class="text-muted d-block mb-2" data-papel-travado><i class="feather-shield me-1"></i>Administrador com verificação em duas etapas: para mudar o perfil, fale com o suporte.</small>
+                @endif
+                <select name="papel" class="form-select @error('papel') is-invalid @enderror" @if($papelTravado) disabled @else required @endif>
                     <option value="">Selecione...</option>
                     @foreach($papeis as $papel)
                         <option value="{{ $papel }}" {{ $papelSelecionado == $papel ? 'selected' : '' }}>{{ $papel }}</option>

@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $nome
  * @property StatusRede $status
+ * @property bool $exigir_2fa
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -38,6 +39,7 @@ class Rede extends Model
     {
         return [
             'status' => StatusRede::class,
+            'exigir_2fa' => 'boolean',
         ];
     }
 

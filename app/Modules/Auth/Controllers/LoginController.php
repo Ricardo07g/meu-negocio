@@ -6,6 +6,8 @@ namespace App\Modules\Auth\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Auth\Requests\LoginRequest;
+use App\Modules\Auth\Support\PendenciaDoisFatores;
+use App\Modules\Usuario\Models\Usuario;
 use App\Traits\TratamentoErros;
 use Illuminate\Http\{RedirectResponse, Request};
 use Illuminate\Support\Facades\Auth;
@@ -24,23 +26,40 @@ class LoginController extends Controller
         }
     }
 
+    /**
+     * Login em duas etapas quando o usuario tem 2FA (ADR-0022): a senha certa NAO
+     * autentica — so registra a pendencia na sessao e manda para o desafio. Sem
+     * 2FA, segue direto como antes.
+     */
     public function login(LoginRequest $request): RedirectResponse
     {
         try {
             $credentials = $request->only('email', 'password');
 
-            if (! Auth::attempt($credentials)) {
+            if (! Auth::validate($credentials)) {
                 return back()->withErrors(['email' => 'Credenciais inválidas.'])->onlyInput('email');
             }
 
-            $usuario = Auth::user();
+            /** @var Usuario $usuario */
+            $usuario = Auth::getLastAttempted();
 
             if (! $usuario->ativo) {
-                Auth::logout();
-
                 return back()->withErrors(['email' => 'Sua conta está desativada.']);
             }
 
+            Auth::getProvider()->rehashPasswordIfRequired($usuario, $credentials);
+
+            $pendencia = new PendenciaDoisFatores($request->session());
+
+            if ($usuario->temDoisFatoresAtivo()) {
+                $pendencia->registrar($usuario);
+
+                return redirect()->route('login.dois-fatores');
+            }
+
+            // Pendencia de outra conta no mesmo navegador nao sobrevive a um login completo.
+            $pendencia->descartar();
+            Auth::login($usuario);
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));

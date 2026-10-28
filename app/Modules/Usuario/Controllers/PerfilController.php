@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Auth\Services\DoisFatoresService;
 use App\Modules\Usuario\Requests\{AtualizarPerfilRequest, AtualizarSenhaPerfilRequest};
 use App\Traits\{SincronizaImagemUnica, TratamentoErros};
 use Illuminate\Http\RedirectResponse;
@@ -15,16 +16,22 @@ class PerfilController extends Controller
 {
     use SincronizaImagemUnica, TratamentoErros;
 
-    public function index(): View|RedirectResponse
+    public function index(DoisFatoresService $doisFatores): View|RedirectResponse
     {
         try {
             $usuario = auth()->user()->loadMissing([
                 'empresa:id,nome',
                 'empresas:id,nome',
                 'roles:id,name',
+                'rede:id,exigir_2fa',
             ]);
 
-            return view('usuario::perfil', compact('usuario'));
+            // QR so existe durante a configuracao (segredo gravado, ainda nao confirmado).
+            $qrCode = $usuario->two_factor_secret !== null && ! $usuario->temDoisFatoresAtivo()
+                ? $doisFatores->qrCodeSvg($usuario)
+                : null;
+
+            return view('usuario::perfil', compact('usuario', 'qrCode'));
         } catch (\Throwable $e) {
             return $this->tratarErro($e, 'Erro ao carregar perfil');
         }

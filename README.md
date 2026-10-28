@@ -183,6 +183,10 @@ Após o `DesenvolvimentoSeeder`:
 | `atendente1@teste.com` ... `atendente5@teste.com` | `password` | Admin com `atende = true` (aparece no select da agenda) |
 
 > Para fluxo de **reset de senha**: tela de login → "Esqueci minha senha" → digite o email → o email vai para `storage/logs/laravel.log` (driver `log`, sem necessidade de SMTP real). Para ver a mensagem renderizada numa caixa de entrada de verdade, aponte as variáveis `MAIL_*` para um sandbox de SMTP (Mailtrap e similares) — em produção o transporte é outro, ver [ADR-0020](docs/ADR/0020-email-transacional-pela-api-do-resend.md).
+>
+> **Contas novas confirmam o e-mail** antes de entrar: o link de confirmação também cai no `laravel.log`. Os usuários do seeder já nascem confirmados.
+>
+> **Verificação em duas etapas**: em *Meu Perfil → Segurança*, escaneie o QR code com um app autenticador (Google Authenticator, Authy...). O Admin pode torná-la obrigatória para a rede inteira em *Usuários*. Ativar desconecta os outros aparelhos. Se um **administrador** perder o celular, só o suporte redefine: `docker exec meu-negocio-app php artisan usuarios:redefinir-2fa admin@teste.com --motivo="..."`. Decisões em [ADR-0022](docs/ADR/0022-verificacao-de-email-e-2fa-totp.md).
 
 ---
 
@@ -222,10 +226,9 @@ Próximas evoluções planejadas, em ordem de prioridade. A base modular (Servic
 | 2 | **Relatórios & exportações** | Faturamento, contas, ranking de serviços e comissões; exportação em CSV/PDF. |
 | 3 | **Gateway de pagamento** (Stripe / Mercado Pago / Asaas) | Cobrança online e PIX, com conciliação automática das baixas. |
 | 4 | **API REST + tokens (Sanctum)** | Superfície para integrações e um futuro app mobile. |
-| 5 | **2FA por app autenticador** | Segundo fator TOTP, exigível pelo Admin na rede (reset de senha e verificação de e-mail no cadastro já existem — [ADR-0022](docs/ADR/0022-verificacao-de-email-e-2fa-totp.md)). |
-| 6 | **Observabilidade** (Sentry + métricas) | Rastreio de erros e saúde da aplicação em produção. |
-| 7 | **Tempo real** (WebSockets) | Agenda colaborativa e atualização ao vivo entre atendentes. |
-| 8 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |
+| 5 | **Observabilidade** (Sentry + métricas) | Rastreio de erros e saúde da aplicação em produção. |
+| 6 | **Tempo real** (WebSockets) | Agenda colaborativa e atualização ao vivo entre atendentes. |
+| 7 | **Internacionalização (i18n)** | Hoje PT-BR by design; abrir o caminho para outros idiomas. |
 
 > **Para colocar em produção** (auto-hospedagem): APP_KEY real, fila de jobs com supervisor, um transporte de e-mail de verdade (ver abaixo), backup do MySQL, HTTPS na borda (Caddy/Traefik) e log centralizado.
 

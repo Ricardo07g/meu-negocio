@@ -88,6 +88,9 @@ class UsuarioController extends Controller
     {
         try {
             $this->authorize('update', $usuario);
+            if ($request->filled('papel')) {
+                $this->authorize('alterarPapel', [$usuario, (string) $request->input('papel')]);
+            }
             $usuario = $this->service->atualizar($usuario, UsuarioData::from($request->validated()));
             $this->sincronizarImagem($usuario, $request);
 
