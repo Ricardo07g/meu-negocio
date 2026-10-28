@@ -21,7 +21,8 @@ class RedefinirDoisFatores extends Command
 {
     protected $signature = 'usuarios:redefinir-2fa
                             {email : E-mail do usuario}
-                            {--motivo= : Por que (chamado, como a identidade foi conferida) — obrigatorio}';
+                            {--motivo= : Por que (chamado, como a identidade foi conferida) — obrigatorio}
+                            {--operador= : Quem do suporte esta rodando (padrao: usuario do sistema)}';
 
     protected $description = 'Suporte: redefine a verificacao em duas etapas de um usuario (ex.: Admin que perdeu o celular).';
 
@@ -55,7 +56,8 @@ class RedefinirDoisFatores extends Command
             return self::FAILURE;
         }
 
-        $service->redefinir($usuario, 'pelo suporte', $motivo);
+        $operador = trim((string) $this->option('operador')) ?: (get_current_user() ?: 'desconhecido');
+        $service->redefinirPeloSuporte($usuario, $motivo, $operador);
 
         $this->info('Verificação em duas etapas redefinida. O usuário entra só com a senha até configurar de novo.');
 

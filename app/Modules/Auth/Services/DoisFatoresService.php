@@ -194,10 +194,26 @@ class DoisFatoresService
      * tela para quem NAO e Admin (UsuarioPolicy); o 2FA de um Admin so o suporte
      * redefine, pelo comando `usuarios:redefinir-2fa`, com motivo na auditoria.
      */
-    public function redefinir(Usuario $alvo, string $por = 'pelo administrador', ?string $motivo = null): void
+    public function redefinir(Usuario $alvo): void
     {
         $this->limpar($alvo);
-        $this->registrar($alvo, "Verificação em duas etapas redefinida {$por}", array_filter(['motivo' => $motivo]));
+        $this->registrar($alvo, 'Verificação em duas etapas redefinida pelo administrador');
+    }
+
+    /**
+     * Mesma acao, pelo suporte (console): nao ha usuario logado, entao o log fica
+     * sem causer — registrar o proprio alvo faria parecer que ele mesmo redefiniu.
+     * Quem rodou e por que vao nas propriedades.
+     */
+    public function redefinirPeloSuporte(Usuario $alvo, string $motivo, string $operador): void
+    {
+        $this->limpar($alvo);
+
+        activity()
+            ->performedOn($alvo)
+            ->causedByAnonymous()
+            ->withProperties(['motivo' => $motivo, 'operador' => $operador])
+            ->log('Verificação em duas etapas redefinida pelo suporte');
     }
 
     /** Politica da rede, ligada/desligada pelo Admin (autorizado no controller). */
@@ -262,15 +278,11 @@ class DoisFatoresService
         return hash('sha256', Str::upper(preg_replace('/[^A-Za-z0-9]/', '', $codigo) ?? ''));
     }
 
-    /**
-     * @param  array<string, string>  $propriedades
-     */
-    private function registrar(Usuario $usuario, string $descricao, array $propriedades = []): void
+    private function registrar(Usuario $usuario, string $descricao): void
     {
         activity()
             ->performedOn($usuario)
             ->causedBy(auth()->user() ?? $usuario)
-            ->withProperties($propriedades)
             ->log($descricao);
     }
 }

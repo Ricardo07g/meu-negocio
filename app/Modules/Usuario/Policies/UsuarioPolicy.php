@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Usuario\Policies;
 
 use App\Modules\Usuario\Models\Usuario;
+use Illuminate\Auth\Access\Response;
 
 class UsuarioPolicy
 {
@@ -72,6 +73,24 @@ class UsuarioPolicy
             && $usuario->id !== $alvo->id
             && $usuario->hasRole('Admin')
             && ! $alvo->hasRole('Admin');
+    }
+
+    /**
+     * Rebaixar um Admin que tem 2FA ativo e coisa do suporte: senao o caminho
+     * rebaixar -> redefinir o 2FA (alvo ja nao e Admin) -> promover de novo com
+     * senha nova contornaria o `redefinirDoisFatores` e tomaria a conta. Manter o
+     * papel (editar nome/e-mail) e rebaixar quem nao tem 2FA seguem permitidos.
+     */
+    public function alterarPapel(Usuario $usuario, Usuario $alvo, string $novoPapel): Response
+    {
+        $rebaixaAdminProtegido = $usuario->id !== $alvo->id
+            && $novoPapel !== 'Admin'
+            && $alvo->hasRole('Admin')
+            && $alvo->temDoisFatoresAtivo();
+
+        return $rebaixaAdminProtegido
+            ? Response::deny('Este administrador usa verificação em duas etapas: para mudar o perfil dele, fale com o suporte.')
+            : Response::allow();
     }
 
     public function delete(Usuario $usuario, Usuario $alvo): bool
