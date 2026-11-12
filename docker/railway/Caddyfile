@@ -31,7 +31,12 @@
 	# Os estaticos servidos aqui nao passam pelo Laravel, que emite os demais
 	# cabecalhos de seguranca (middleware CabecalhosSeguranca). Este e o unico que
 	# importa para CSS/JS/imagem: impede o navegador de "adivinhar" o tipo.
-	header X-Content-Type-Options nosniff
+	# Com `?` (so se ausente), como o Cache-Control abaixo: sem ele, a resposta do
+	# Laravel sairia com o cabecalho duplicado.
+	header ?X-Content-Type-Options nosniff
+
+	# Nao anunciar o software do servidor (o equivalente do expose_php do php.ini).
+	header -Server
 
 	# /build/* — o Vite gera nomes com hash de conteudo, entao o mesmo nome nunca
 	# muda de conteudo. Cache de um ano sem revalidar.
