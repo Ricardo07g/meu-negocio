@@ -35,6 +35,7 @@ use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Policies\{VendaEtapasPolicy, VendaProdutoPolicy};
+use App\Support\GuardaDeDebug;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
@@ -84,6 +85,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        GuardaDeDebug::aplicar($this->app);
+
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
         }
