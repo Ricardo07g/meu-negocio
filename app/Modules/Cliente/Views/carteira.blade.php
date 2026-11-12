@@ -54,7 +54,7 @@
         @endpush
 
         @push('js')
-        <script>
+        <script @nonce>
         document.addEventListener('DOMContentLoaded', function () {
             const empresaInline = document.querySelector('[data-empresa-inline]');
             if (! empresaInline) return;
@@ -309,7 +309,7 @@
 
 @if ($podeVerIa && $iaDisponivel)
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     var botao = document.getElementById('btn-analisar-ia');
     if (!botao) return;

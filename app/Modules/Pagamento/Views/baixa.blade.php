@@ -202,7 +202,7 @@
 @endsection
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     const valor = document.getElementById('valor');
     const multa = document.getElementById('multa');

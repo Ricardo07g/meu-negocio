@@ -158,7 +158,7 @@
 </div>
 
 @push('js')
-<script>
+<script @nonce>
 (function () {
     const tipo = document.getElementById('fp-tipo');
     const isEdit = {{ isset($entidade) ? 'true' : 'false' }};

@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', function () {
         isReadOnly: false,
         useFormPopup: false,
         useDetailPopup: false,
+        // Ligado por padrao, o Toast UI manda um ping de estatistica ao Google
+        // Analytics (um <img> externo) — vazamento de uso que a CSP bloquearia (img-src).
+        usageStatistics: false,
         week: {
             startDayOfWeek: 1,
             dayNames: DIAS_DA_SEMANA,

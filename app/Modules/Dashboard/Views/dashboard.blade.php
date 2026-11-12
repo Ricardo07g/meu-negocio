@@ -392,7 +392,7 @@
 
 @push('js')
 <script src="{{ asset('assets/vendors/js/apexcharts.min.js') }}"></script>
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof ApexCharts === 'undefined') {
         console.error('[dashboard] ApexCharts nao carregou');

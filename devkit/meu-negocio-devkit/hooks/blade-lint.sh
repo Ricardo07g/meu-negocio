@@ -14,6 +14,8 @@
 #   2. `'{{ ... }}'` dentro de aspas simples de JS — escapa as aspas do texto
 #      como &quot; e quebra o script inteiro se houver apostrofo. Use @json().
 #   3. Diretivas Blade desbalanceadas (@if/@endif e companhia).
+#   4. `<script>` inline sem `@nonce` — a CSP (ADR-0023) impede a execucao.
+#   5. Handler de evento inline (`onclick=`, `onchange=`...) — a CSP bloqueia.
 #
 # Avisa, nunca bloqueia: PostToolUse nao nega, e falso positivo em lint de
 # template e comum demais para travar o fluxo. O mesmo conjunto de regras roda
@@ -54,6 +56,19 @@ for par in "if:endif" "foreach:endforeach" "forelse:endforelse" \
     add "@${abre} x @${fecha} desbalanceados (${n_abre} vs ${n_fecha}) — confira antes de abrir a tela"
   fi
 done
+
+# 4. <script> inline (sem src, sem bloco JSON) sem @nonce
+linha=$(grep -nE '<script([[:space:]>]|$)' "$file" | grep -v 'src=' | grep -v '@nonce' \
+  | grep -vE 'type=["'"'"']application/(ld\+)?json' | head -1 | cut -d: -f1)
+if [ -n "$linha" ]; then
+  add "linha ${linha}: <script> inline sem @nonce — a CSP impede a execucao. Use <script @nonce>"
+fi
+
+# 5. Handler de evento inline em atributo de tag
+linha=$(grep -nE '<[a-zA-Z][^<>]*[[:space:]]on[a-z]+[[:space:]]*=[[:space:]]*["'"'"']' "$file" | head -1 | cut -d: -f1)
+if [ -n "$linha" ]; then
+  add "linha ${linha}: handler de evento inline (on*=) — a CSP bloqueia. Use addEventListener ou data-submeter-ao-mudar"
+fi
 
 [ -z "$avisos" ] && exit 0
 

@@ -114,7 +114,7 @@
 </div>
 
 @push('js')
-    <script>
+    <script @nonce>
         // Esconde/mostra bloco de empresas conforme papel = Admin (Admin nao precisa de pivot).
         (function () {
             const selectPapel = document.querySelector('select[name="papel"]');

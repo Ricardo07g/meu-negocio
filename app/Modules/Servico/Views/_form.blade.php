@@ -60,7 +60,7 @@
 </div>
 
 @push('js')
-<script>
+<script @nonce>
 document.getElementById('tipoServico').addEventListener('change', function() {
     document.getElementById('camposEtapas').style.display = this.value === 'etapas' ? '' : 'none';
 });

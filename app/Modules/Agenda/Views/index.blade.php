@@ -175,7 +175,7 @@
 @endsection
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof initAjaxSearch === 'function') {
         initAjaxSearch({

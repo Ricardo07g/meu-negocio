@@ -254,7 +254,7 @@
     {{-- Polling AJAX: atualiza os badges e libera o "Baixar" sem recarregar a pagina. --}}
     @if($exportacoes->isNotEmpty())
     @php $temProcessando = $exportacoes->contains(fn ($e) => $e->status === StatusExportacao::Processando); @endphp
-    <script>
+    <script @nonce>
         (function () {
             const tbody = document.getElementById('exportacoes-tbody');
             if (!tbody) return;
