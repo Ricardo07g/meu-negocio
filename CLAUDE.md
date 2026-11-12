@@ -229,3 +229,11 @@ container (`docker exec meu-negocio-app <cmd>`).
 7. **Views com partial** (_form.blade.php + $entidade) · **busca AJAX** (nunca select com tudo).
 8. **Models**: BaseModel + secoes ASCII art.
 9. **Apos implementar**: valide com a skill `validar-implementacao` (testes + pint + phpstan + smoke).
+10. **Repositorio publico (portfolio).** Commit, PR, ADR, issue e comentario sao publicos e
+    permanentes — o historico do git nao esquece. **Nunca** inclua: segredos, chaves e tokens (mesmo
+    de teste, salvo os publicos documentados pelo proprio fornecedor), conteudo de `.env`, valores de
+    cookie/sessao, IPs, request IDs, e-mails ou dados de usuarios e clientes, saida bruta de
+    scanner/log, nem URL de painel ou infraestrutura interna. **Vulnerabilidade so e descrita depois
+    de corrigida em producao**, e pela correcao ("garante o debug desligado em producao"), nunca como
+    receita para explorar o estado atual. Antes de commitar, revise o `git diff --cached` com isso em
+    mente. Na duvida, deixe de fora e pergunte.
