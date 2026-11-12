@@ -9,7 +9,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {{-- Tema escuro temporariamente DESATIVADO (deixar claro por padrao ate ajustar).
          Guard anti-flash original — reativar junto com o botao e o JS do toggle:
-         <script>(function(){try{if(localStorage.getItem('app-skin-dark')==='app-skin-dark'){document.documentElement.classList.add('app-skin-dark');}}catch(e){}})();</script>
+         <script @nonce>(function(){try{if(localStorage.getItem('app-skin-dark')==='app-skin-dark'){document.documentElement.classList.add('app-skin-dark');}}catch(e){}})();</script>
     --}}
     <title>@yield('titulo', 'Meu Negócio')</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
@@ -437,7 +437,7 @@
     {{-- JS proprio do sistema (loading padronizado de submit). Espelha o
          public/css/mn-admin.css: asset() + ?v=filemtime, fora do Vite. --}}
     <script src="{{ asset('js/mn-admin.js') }}?v={{ filemtime(public_path('js/mn-admin.js')) }}"></script>
-    <script>
+    <script @nonce>
         document.addEventListener('DOMContentLoaded', function() {
             // Sidebar minimenu: empurra conteúdo ao hover
             document.addEventListener('mouseover', function(e) {
@@ -584,17 +584,17 @@
          `@json` e nao `'{{ }}'`: interpolar dentro de aspas simples exibia `&quot;` no lugar
          das aspas da mensagem e quebrava o script inteiro se o texto tivesse apostrofo. --}}
     @if(session('sucesso'))
-    <script>
+    <script @nonce>
         Swal.fire({ icon: 'success', title: 'Sucesso!', text: @json(session('sucesso')), timer: 3000, showConfirmButton: false });
     </script>
     @endif
     @if(session('erro'))
-    <script>
+    <script @nonce>
         Swal.fire({ icon: 'error', title: 'Erro', text: @json(session('erro')) });
     </script>
     @endif
     @if($errors->any())
-    <script>
+    <script @nonce>
         (function () {
             var msgs = @json($errors->all());
             Swal.fire({
@@ -609,7 +609,7 @@
     </script>
     @endif
     {{-- Máscaras e CEP auto-fill --}}
-    <script>
+    <script @nonce>
     document.addEventListener('DOMContentLoaded', function() {
         function aplicarMascara(input, mascara) {
             input.addEventListener('input', function() {
@@ -653,7 +653,7 @@
         });
     });
     </script>
-    <script>
+    <script @nonce>
     function initAjaxSearch(config) {
         var input = document.getElementById(config.inputId);
         var hidden = document.getElementById(config.hiddenId);
@@ -714,7 +714,7 @@
     }
     </script>
 
-    <script>
+    <script @nonce>
     // Atalho que expande accordion + seleciona aba especifica em cards (venda/pagamento/despesa)
     document.addEventListener('click', function (e) {
         const trigger = e.target.closest('[data-open-payments]');
@@ -736,7 +736,7 @@
     </script>
 
     {{-- Tema escuro temporariamente DESATIVADO — JS do toggle (reativar com o botao e o guard no head):
-    <script>
+    <script @nonce>
     (function () {
         var KEY = 'app-skin-dark';
         var btn = document.getElementById('themeToggle');

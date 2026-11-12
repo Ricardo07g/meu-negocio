@@ -134,6 +134,52 @@ class BladeLintTest extends TestCase
     }
 
     /**
+     * CSP com nonce (ADR-0023): `<script>` inline sem `@nonce` simplesmente nao
+     * executa — a tela perde o JS e so o console mostra o porque. Script com `src`
+     * e bloco de dados (`type="application/json"`) nao precisam: o primeiro e
+     * liberado por origem e o segundo nao e executado.
+     *
+     * Estatico de proposito: cobre os ramos `@if` (flash, permissao, plano) que
+     * nenhuma visita ao navegador garante exercitar.
+     */
+    #[DataProvider('views')]
+    public function test_script_inline_carrega_o_nonce_da_csp(string $caminho, string $relativo): void
+    {
+        preg_match_all('/<script\b([^>]*)>/i', $this->semComentarios($caminho), $tags);
+
+        $semNonce = array_filter(
+            $tags[1] ?? [],
+            fn (string $atributos): bool => ! str_contains($atributos, '@nonce')
+                && preg_match('/\bsrc\s*=/i', $atributos) !== 1
+                && preg_match('/\btype\s*=\s*["\']application\/(ld\+)?json["\']/i', $atributos) !== 1
+        );
+
+        $this->assertSame(
+            [],
+            array_values(array_map(fn (string $atributos): string => '<script'.$atributos.'>', $semNonce)),
+            "{$relativo} tem <script> inline sem nonce: a CSP impede a execucao. Use `<script @nonce>`."
+        );
+    }
+
+    /**
+     * `onclick="..."`, `onchange="..."` e companhia sao script inline num atributo,
+     * onde nao ha como por nonce: a CSP bloqueia e o controle fica morto, sem erro
+     * visivel. Use um listener — `data-submeter-ao-mudar` cobre o caso comum.
+     */
+    #[DataProvider('views')]
+    public function test_tags_html_nao_tem_handler_de_evento_inline(string $caminho, string $relativo): void
+    {
+        preg_match_all('/<[a-z][a-z0-9-]*\b[^<>]*?\s(on[a-z]+)\s*=\s*["\']/i', $this->semComentarios($caminho), $ocorrencias);
+
+        $this->assertSame(
+            [],
+            $ocorrencias[1] ?? [],
+            "{$relativo} usa handler de evento inline (atributo on*=), que a CSP bloqueia. "
+            .'Ligue o evento por JS (addEventListener) ou use `data-submeter-ao-mudar`.'
+        );
+    }
+
+    /**
      * Diretiva aberta e nao fechada normalmente estoura so ao abrir a tela.
      * Contagem simples: pega o esquecimento, nao valida aninhamento.
      */

@@ -19,6 +19,10 @@ Projeto de portfolio, preparado para open source.
 - **Producao** (Railway) roda o `Dockerfile` da raiz: **FrankenPHP** (Caddy + PHP embarcado) servindo
   `public/`, com a politica de cache dos estaticos em `docker/railway/Caddyfile` — ADR-0017. Nao e o
   mesmo runtime do dev (nginx + php-fpm no compose); ao mexer em servidor/estaticos, lembre dos dois.
+  Os dois bloqueiam dotfiles e mandam `nosniff` nos estaticos; o PHP de producao tem
+  `docker/railway/php.ini` (`expose_php`/`display_errors` desligados) — ADR-0023. **Producao exige
+  `APP_ENV=production` e `APP_DEBUG=false`**; com `production`, `GuardaDeDebug` desliga o debug de
+  qualquer jeito.
 - Vite + Tailwind CSS 4 + @toast-ui/calendar ^2.1.3 (Node so no host).
 - Template UI: Duralux Admin 1.0.0 (template comercial; mantenha uma copia local para referencia
   visual — ver `NOTICE.md`).
@@ -129,6 +133,13 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
 - **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
   POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
   widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.
+- **Cabecalhos de seguranca + CSP com nonce** (ADR-0023): middleware global `CabecalhosSeguranca`
+  (nosniff, XFO `SAMEORIGIN`, Referrer/Permissions-Policy, COOP/CORP, HSTS so em HTTPS). A CSP nao
+  tem `'unsafe-inline'` em `script-src`: **todo `<script>` inline leva `@nonce`** e nada de atributo
+  `on*=` (use listener ou `data-submeter-ao-mudar`) — o lint de Blade barra os dois. Origem externa
+  nova no navegador entra em `config/seguranca.php`. `CSP_MODO=ativo|relatorio|desligado`
+  (`relatorio` = so avisa no console; use no 1o deploy de mudanca de politica). O cookie
+  `XSRF-TOKEN` nao e emitido (`VerificarCsrf`): o JS usa o meta `csrf-token`.
 
 ## Seeds (ao registrar)
 Conta nova nasce **enxuta**: 1 categoria `Geral`, 1 `Produto exemplo`, 1 `Servico exemplo`,
@@ -150,7 +161,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **967 testes** (3341 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
+- **1198 testes** (3806 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
   (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
@@ -158,7 +169,8 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   de e-mail (link assinado, expirado, adulterado e de outro usuario), 2FA (desafio, anti-replay,
   codigo de recuperacao, exigencia da rede, alcada e isolamento do Admin) e o
   agendador HTTP, e a analise por IA (cache por hash, cota diaria, degradacao com provedor
-  desligado e segmentacao RFM).
+  desligado e segmentacao RFM), e os cabecalhos de seguranca (todo script inline renderizado com o
+  nonce do cabecalho, modos de rollout da CSP, debug travado em producao).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -174,7 +186,7 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (22 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (23 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---
@@ -217,3 +229,11 @@ container (`docker exec meu-negocio-app <cmd>`).
 7. **Views com partial** (_form.blade.php + $entidade) · **busca AJAX** (nunca select com tudo).
 8. **Models**: BaseModel + secoes ASCII art.
 9. **Apos implementar**: valide com a skill `validar-implementacao` (testes + pint + phpstan + smoke).
+10. **Repositorio publico (portfolio).** Commit, PR, ADR, issue e comentario sao publicos e
+    permanentes — o historico do git nao esquece. **Nunca** inclua: segredos, chaves e tokens (mesmo
+    de teste, salvo os publicos documentados pelo proprio fornecedor), conteudo de `.env`, valores de
+    cookie/sessao, IPs, request IDs, e-mails ou dados de usuarios e clientes, saida bruta de
+    scanner/log, nem URL de painel ou infraestrutura interna. **Vulnerabilidade so e descrita depois
+    de corrigida em producao**, e pela correcao ("garante o debug desligado em producao"), nunca como
+    receita para explorar o estado atual. Antes de commitar, revise o `git diff --cached` com isso em
+    mente. Na duvida, deixe de fora e pergunte.

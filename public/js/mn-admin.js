@@ -15,6 +15,13 @@
  *
  * Para desligar num formulario especifico: `<form data-sem-loading>`.
  * Para trocar o texto: `<button data-texto-carregando="Enviando...">`.
+ *
+ * ── Submeter ao mudar ──────────────────────────────────────────────────────
+ *
+ * `<select data-submeter-ao-mudar>` envia o proprio formulario quando o valor
+ * muda (filtro de ano, seletor de data). Substitui o `onchange="..."` inline,
+ * que a CSP com nonce bloqueia (ADR-0023): handler em atributo nao tem como
+ * carregar nonce.
  */
 
 (function () {
@@ -99,6 +106,18 @@
         }
 
         acender(evento.submitter || form.querySelector(SELETOR_SUBMIT));
+    });
+
+    // `submit()`, nao `requestSubmit()`: e o que o `onchange` inline fazia — sem
+    // validacao HTML5 nem loading de botao (esses campos navegam, nao gravam).
+    document.addEventListener('change', (evento) => {
+        const campo = evento.target;
+
+        if (!(campo instanceof Element) || !campo.hasAttribute('data-submeter-ao-mudar') || !campo.form) {
+            return;
+        }
+
+        campo.form.submit();
     });
 
     // Voltar pelo historico devolve a pagina do cache do navegador com o botao ainda

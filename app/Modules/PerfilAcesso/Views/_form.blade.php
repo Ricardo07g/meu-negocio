@@ -97,7 +97,7 @@
 @endpush
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.js-collapse-toggle[data-collapse-target]').forEach(function (header) {
         const collapseEl = document.querySelector(header.getAttribute('data-collapse-target'));

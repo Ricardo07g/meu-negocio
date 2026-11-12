@@ -28,6 +28,16 @@ fi
 # ---------------------------------------------------------------------------
 export PORT="${PORT:-8080}"
 
+# Configuracao de producao errada aparece aqui, uma vez por deploy. Com APP_ENV de
+# producao o app ja ignora o APP_DEBUG ligado (App\Support\GuardaDeDebug); sem ele
+# a trava nao tem como saber que e producao — por isso os dois avisos.
+if [ "${APP_ENV}" != "production" ]; then
+    echo "!! ATENCAO: APP_ENV='${APP_ENV}' — em producao deve ser 'production'."
+fi
+if [ "${APP_DEBUG}" = "true" ] || [ "${APP_DEBUG}" = "1" ]; then
+    echo "!! ATENCAO: APP_DEBUG ligado — defina APP_DEBUG=false nas variaveis do servico."
+fi
+
 echo "==> Limpando caches de config/rotas..."
 php artisan config:clear || true
 php artisan route:clear || true

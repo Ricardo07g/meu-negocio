@@ -526,7 +526,7 @@
 @endphp
 
 @push('js')
-<script>
+<script @nonce>
 window.vendaCreateConfig = {
     itensOld: @json($itensOld ?? []),
     clienteSelecionado: @json($clienteSelecionado ?? null),

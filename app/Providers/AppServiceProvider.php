@@ -35,10 +35,11 @@ use App\Modules\Usuario\Models\Usuario;
 use App\Modules\Usuario\Policies\UsuarioPolicy;
 use App\Modules\Venda\Models\{VendaEtapas, VendaProduto};
 use App\Modules\Venda\Policies\{VendaEtapasPolicy, VendaProdutoPolicy};
+use App\Support\GuardaDeDebug;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Support\Facades\{Gate, RateLimiter, Route};
+use Illuminate\Support\Facades\{Blade, Gate, RateLimiter, Route};
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Role;
 
@@ -84,6 +85,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        GuardaDeDebug::aplicar($this->app);
+
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
         }
@@ -94,6 +97,10 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Paginator::useBootstrapFive();
+
+        // `<script @nonce>`: o nonce da CSP desta requisicao (ADR-0023). Todo <script>
+        // inline precisa dele, ou o navegador nao executa. Sem CSP ativa, nao emite nada.
+        Blade::directive('nonce', fn (): string => '<?php if ($__cspNonce = \Illuminate\Support\Facades\Vite::cspNonce()) { echo \'nonce="\'.e($__cspNonce).\'"\'; } ?>');
 
         // Desafio do 2FA (ADR-0022): balde proprio por IP. O `throttle:5,1` numerico
         // e compartilhado entre rotas, entao login + 4 codigos errados davam 429 antes

@@ -93,7 +93,7 @@
         @endpush
 
         @push('js')
-        <script>
+        <script @nonce>
         document.addEventListener('DOMContentLoaded', function () {
             const empresaInline = document.querySelector('[data-empresa-inline]');
             if (! empresaInline) return;
@@ -161,7 +161,7 @@
                     <form method="GET" action="{{ route('caixas.index') }}" class="m-0" data-sem-loading>
                         <input type="date" name="data" class="form-control form-control-sm" aria-label="Ir para a data"
                                value="{{ $dataSelecionada->toDateString() }}" max="{{ today()->toDateString() }}"
-                               onchange="this.form.submit()">
+                               data-submeter-ao-mudar>
                     </form>
                     @if($ehHoje)
                         <span class="badge bg-primary">Hoje</span>
@@ -416,7 +416,7 @@
 @endsection
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function() {
     const formatBRL = function(v) {
         return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

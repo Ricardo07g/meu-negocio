@@ -89,7 +89,7 @@
 
 @once
     @push('js')
-    <script>
+    <script @nonce>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-filtro-empresa]').forEach(function (select) {
             select.addEventListener('change', function () {

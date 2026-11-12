@@ -51,7 +51,7 @@ host.
 | PreToolUse `Bash` | `guard-migration.sh` | lembra de `down()` reversivel ao aplicar migrations |
 | PreToolUse `Bash` | `guard-branch.sh` | recusa `git commit`/`push` na **main** (ela publica em producao); avisa em `gh pr merge` |
 | PostToolUse `Write\|Edit` | `pint.sh` | formata o `.php` recem-editado |
-| PostToolUse `Write\|Edit` | `blade-lint.sh` | confere `.blade.php`: SweetAlert sem fallback, interpolacao em aspas simples, diretivas desbalanceadas |
+| PostToolUse `Write\|Edit` | `blade-lint.sh` | confere `.blade.php`: SweetAlert sem fallback, interpolacao em aspas simples, diretivas desbalanceadas, `<script>` inline sem `@nonce` e handler `on*=` (CSP — ADR-0023) |
 | PostToolUse `Write\|Edit` | `sync-devkit.sh` | re-gera o `devkit/` quando `.claude/` muda — o passo de drift do CI deixa de falhar por esquecimento |
 
 > **Por que existe a `lib.sh`.** Os hooks liam o stdin com `jq`, que **nao vem instalado no macOS**.

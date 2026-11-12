@@ -455,7 +455,7 @@
             @if (count($anosDisponiveis) > 0)
                 <form method="GET" class="d-flex align-items-center gap-2 mb-0">
                     <label class="form-label fw-semibold mb-0 text-nowrap fs-13">Ano:</label>
-                    <select name="ano" class="form-select form-select-sm" style="max-width: 120px;" onchange="this.form.submit()">
+                    <select name="ano" class="form-select form-select-sm" style="max-width: 120px;" data-submeter-ao-mudar>
                         @foreach ($anosDisponiveis as $a)
                             <option value="{{ $a }}" @selected($a === $anoSelecionado)>{{ $a }}</option>
                         @endforeach
@@ -599,7 +599,7 @@
 @endsection
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     // O SweetAlert2 embarcado no Duralux e anterior ao `isConfirmed`: ele resolve com
     // `{value: true}`. Confiar so no campo novo faz o botao abrir o modal e nao fazer

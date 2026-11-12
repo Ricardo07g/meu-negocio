@@ -42,7 +42,7 @@
 
 @once
 @push('js')
-<script>
+<script @nonce>
 (function () {
     // ── Voltar: confirma o descarte antes de sair do formulario ──────────
     document.addEventListener('click', function (e) {

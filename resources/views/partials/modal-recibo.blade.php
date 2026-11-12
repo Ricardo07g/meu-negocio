@@ -152,7 +152,7 @@
 </style>
 
 @push('js')
-<script>
+<script @nonce>
 (function () {
     const modalEl = document.getElementById('modalRecibo');
     if (!modalEl) return;

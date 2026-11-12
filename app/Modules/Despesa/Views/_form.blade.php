@@ -145,7 +145,7 @@
 </div>
 
 @push('js')
-<script>
+<script @nonce>
 document.addEventListener('DOMContentLoaded', function () {
     const formaWrapper = document.getElementById('despFormaWrapper');
     const formaLabel = document.getElementById('despFormaLabel');
