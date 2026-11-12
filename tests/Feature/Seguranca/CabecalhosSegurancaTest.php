@@ -214,6 +214,21 @@ class CabecalhosSegurancaTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Cookies
+    // ------------------------------------------------------------------
+
+    public function test_nao_emite_o_cookie_xsrf_token_legivel_por_script(): void
+    {
+        $resposta = $this->get(route('login'))->assertOk();
+
+        $resposta->assertCookieMissing('XSRF-TOKEN');
+        $resposta->assertCookie(config('session.cookie'));
+
+        // O token continua disponivel para forms e fetch pelo caminho que o JS usa.
+        $resposta->assertSee('name="csrf-token"', false);
+    }
+
+    // ------------------------------------------------------------------
     // Modos (rollout) e origens resolvidas em runtime
     // ------------------------------------------------------------------
 
