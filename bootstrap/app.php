@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Exceptions\{ConflitoAgendamentoException, EmpresaNaoEncontradaException, NegocioException, PlanoLimiteException, TenantNaoEncontradoException};
-use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, ExigirDoisFatores, VerificarEmpresa, VerificarPlano, VerificarRede, VerificarTurnstile};
+use App\Http\Middleware\{AplicarContextoEmpresa, AutenticarCron, CabecalhosSeguranca, ExigirDoisFatores, VerificarEmpresa, VerificarPlano, VerificarRede, VerificarTurnstile};
 use App\Modules\Arquivo\Console\LimparRascunhosArquivo;
 use App\Modules\Auth\Console\RedefinirDoisFatores;
 use App\Modules\Conta\Console\LimparExportacoes;
@@ -35,6 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Railway (e afins) terminam o TLS no proxy e encaminham via HTTP.
         // Confiar no proxy faz o Laravel enxergar o esquema HTTPS correto (assets, cookies, redirects).
         $middleware->trustProxies(at: '*');
+
+        // Cabecalhos de seguranca + CSP com nonce (ADR-0023). `prepend` = o mais externo
+        // de todos: ate o 400 de uma URL malformada (ValidatePathEncoding) sai com eles.
+        $middleware->prepend(CabecalhosSeguranca::class);
 
         $middleware->alias([
             'cron.auth' => AutenticarCron::class,
