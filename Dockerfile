@@ -54,8 +54,12 @@ RUN composer install --no-dev --no-interaction --no-scripts --no-autoloader --pr
 COPY . .
 COPY --from=assets /app/public/build ./public/build
 
-# Configuracao do servidor (cache dos estaticos, porta, TLS desligado).
+# Configuracao do servidor (cache dos estaticos, porta, TLS desligado, dotfiles bloqueados).
 COPY docker/railway/Caddyfile /etc/frankenphp/Caddyfile
+
+# php.ini de producao: sem X-Powered-By e sem erro impresso na resposta.
+# `zz-` para carregar por ultimo e vencer qualquer ini das extensoes.
+COPY docker/railway/php.ini /usr/local/etc/php/conf.d/zz-producao.ini
 
 # Autoloader otimizado (dispara package:discover via post-autoload-dump).
 RUN composer dump-autoload --optimize --no-dev --no-interaction \

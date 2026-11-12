@@ -19,6 +19,20 @@
 	root /app/public
 	encode zstd br gzip
 
+	# Dotfiles (.htaccess, .env, .git, .user.ini...) nunca sao servidos — mesmo
+	# que um dia caiam em public/. Espelha o `location ~ /\.(?!well-known)` do
+	# nginx de dev. O RE2 do Caddy nao tem lookahead, dai o `not path`.
+	@ocultos {
+		path_regexp /\.
+		not path /.well-known/*
+	}
+	respond @ocultos 404
+
+	# Os estaticos servidos aqui nao passam pelo Laravel, que emite os demais
+	# cabecalhos de seguranca (middleware CabecalhosSeguranca). Este e o unico que
+	# importa para CSS/JS/imagem: impede o navegador de "adivinhar" o tipo.
+	header X-Content-Type-Options nosniff
+
 	# /build/* — o Vite gera nomes com hash de conteudo, entao o mesmo nome nunca
 	# muda de conteudo. Cache de um ano sem revalidar.
 	@build path /build/*
