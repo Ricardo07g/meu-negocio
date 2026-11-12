@@ -30,6 +30,7 @@ ADRs são imutáveis após aceitos. Mudanças de rumo viram um novo ADR que **su
 | [0020](0020-email-transacional-pela-api-do-resend.md) | E-mail transacional pela API do Resend, não por SMTP | Aceito |
 | [0021](0021-analise-por-ia-com-governanca-de-custo.md) | Análise por IA: o SQL calcula, o modelo redige, a cota governa | Aceito |
 | [0022](0022-verificacao-de-email-e-2fa-totp.md) | Verificação de e-mail no cadastro e 2FA por app autenticador | Aceito |
+| [0023](0023-cabecalhos-de-seguranca-e-csp-com-nonce.md) | Cabeçalhos de segurança HTTP e CSP com nonce | Aceito |
 
 ## Como ler
 

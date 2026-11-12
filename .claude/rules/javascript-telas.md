@@ -48,6 +48,33 @@ O teste `tests/Feature/BladeLintTest.php` barra o PR que reintroduzir isso, e o 
 Vale para qualquer **texto livre**: mensagem de flash, nome digitado pelo cliente, observacao.
 `'{{ route('clientes.buscar') }}'` continua liberado — URL de rota nao tem aspas nem apostrofo.
 
+## CSP com nonce: todo `<script>` inline leva `@nonce` (ADR-0023)
+
+A resposta HTML sai com `Content-Security-Policy` sem `'unsafe-inline'` em `script-src`. Script inline
+sem o nonce da requisicao **nao executa** — a tela fica sem JS e so o console diz por que.
+
+```blade
+{{-- ERRADO — bloqueado pela CSP --}}
+<script>document.querySelector(...)</script>
+<select onchange="this.form.submit()">
+
+{{-- CERTO --}}
+<script @nonce>document.querySelector(...)</script>
+<select data-submeter-ao-mudar>
+```
+
+- **Atributo de evento (`onclick=`, `onchange=`...) nao tem como carregar nonce.** Ligue por
+  `addEventListener` no script da tela; para "mudou o campo, envia o form" use `data-submeter-ao-mudar`
+  (listener delegado em `public/js/mn-admin.js`). O mesmo vale para HTML montado por JS com `on*=` em
+  string.
+- Bloco de dados `<script type="application/json">` e `<script src="...">` da propria origem nao
+  precisam de nonce. `@vite` ja recebe o nonce sozinho.
+- **Servico externo novo no navegador** (widget, CDN, API chamada por `fetch`) precisa da origem em
+  `config/seguranca.php` — sem isso o navegador bloqueia em silencio.
+- `style=` e `<style>` continuam liberados (`style-src 'unsafe-inline'`).
+- `BladeLintTest` e o hook `blade-lint.sh` barram script sem `@nonce` e atributo `on*=`.
+- Para depurar: `CSP_MODO=relatorio` no `.env` troca o bloqueio por aviso no console.
+
 ## Submit programatico
 
 `form.submit()` **nao dispara** o evento `submit`, entao pula todo listener — inclusive o
