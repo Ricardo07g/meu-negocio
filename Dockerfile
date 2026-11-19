@@ -47,7 +47,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 
 # Dependencias PHP (camada cacheavel) — sem scripts/autoloader ainda (codigo nao copiado).
+# packages/ entra antes do install: o GuardaBot vem de um path repository (ADR-0024).
 COPY composer.json composer.lock ./
+COPY packages/ ./packages/
 RUN composer install --no-dev --no-interaction --no-scripts --no-autoloader --prefer-dist
 
 # Codigo + assets ja buildados.

@@ -37,25 +37,7 @@ return [
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cloudflare Turnstile
-    |--------------------------------------------------------------------------
-    |
-    | Anti-bot nos formularios publicos (login, cadastro e recuperacao de senha).
-    | Nao exige o dominio no Cloudflare — o widget e uma chamada de verificacao
-    | server-side funcionam em qualquer hospedagem.
-    |
-    | Com as chaves VAZIAS o recurso fica desligado por completo: o componente nao
-    | renderiza e a regra de validacao passa direto. E de proposito — dev, CI e a
-    | suite de testes rodam sem chave e sem rede.
-    |
-    */
-
-    'turnstile' => [
-        'site_key' => env('TURNSTILE_SITE_KEY'),
-        'secret_key' => env('TURNSTILE_SECRET_KEY'),
-        'verify_url' => env('TURNSTILE_VERIFY_URL', 'https://challenges.cloudflare.com/turnstile/v0/siteverify'),
-    ],
+    // Cloudflare Turnstile: mora no pacote GuardaBot (config `guarda-bot.turnstile`,
+    // mesmas variaveis TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY) — ADR-0024.
 
 ];

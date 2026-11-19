@@ -24,23 +24,29 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', fn () => auth()->check() ? redirect()->route('dashboard') : view('landing'))->name('home');
 
 // Autenticacao (guest)
+// Todo POST publico passa pelo GuardaBot (ADR-0024): `guarda-bot` pontua o risco
+// (barato, local) ANTES de `guarda-bot.turnstile` gastar uma chamada de rede.
+// Rota POST nova aqui precisa dele — o IntegracaoTest do GuardaBot confere.
 Route::middleware('guest')->group(function () {
     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login'])->middleware(['throttle:5,1', 'turnstile']);
+    Route::post('login', [LoginController::class, 'login'])->middleware(['throttle:5,1', 'guarda-bot', 'guarda-bot.turnstile']);
     Route::get('registrar', [RegistrarController::class, 'showRegistrationForm'])->name('registrar');
-    Route::post('registrar', [RegistrarController::class, 'register'])->middleware(['throttle:5,1', 'turnstile']);
+    Route::post('registrar', [RegistrarController::class, 'register'])->middleware(['throttle:5,1', 'guarda-bot', 'guarda-bot.turnstile']);
 
     // Segunda etapa do login (ADR-0022): a senha ja foi conferida, mas o usuario ainda NAO esta logado
     Route::get('login/dois-fatores', [DesafioDoisFatoresController::class, 'mostrar'])->name('login.dois-fatores');
-    Route::post('login/dois-fatores', [DesafioDoisFatoresController::class, 'verificar'])->middleware('throttle:dois-fatores');
+    Route::post('login/dois-fatores', [DesafioDoisFatoresController::class, 'verificar'])->middleware(['throttle:dois-fatores', 'guarda-bot']);
 
     // Recuperacao de senha
     Route::get('esqueci-senha', [EsqueciSenhaController::class, 'showLinkRequestForm'])->name('senha.solicitar');
     Route::post('esqueci-senha', [EsqueciSenhaController::class, 'sendResetLinkEmail'])
-        ->middleware(['throttle:5,1', 'turnstile'])
+        ->middleware(['throttle:5,1', 'guarda-bot', 'guarda-bot.turnstile'])
         ->name('senha.solicitar.enviar');
     Route::get('redefinir-senha/{token}', [RedefinirSenhaController::class, 'showResetForm'])->name('senha.redefinir.form');
-    Route::post('redefinir-senha', [RedefinirSenhaController::class, 'reset'])->name('senha.redefinir');
+    // Prefixo no throttle: sem ele o balde seria o mesmo do login/registro (mesma chave).
+    Route::post('redefinir-senha', [RedefinirSenhaController::class, 'reset'])
+        ->middleware(['throttle:5,1,redefinir-senha', 'guarda-bot'])
+        ->name('senha.redefinir');
 });
 
 Route::post('logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');

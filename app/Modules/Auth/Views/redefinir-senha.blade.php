@@ -30,6 +30,7 @@
                    placeholder="Confirmar nova senha" required>
         </div>
         <div class="mt-5">
+            <x-guarda-bot::armadilha />
             <button type="submit" class="btn btn-lg btn-primary w-100">Redefinir senha</button>
         </div>
     </form>

@@ -30,6 +30,9 @@ Projeto de portfolio, preparado para open source.
 ## Pacotes obrigatorios
 - `spatie/laravel-permission` ^7.2 (papeis/permissoes) · `spatie/laravel-data` ^4.20 (DTOs) ·
   `spatie/laravel-activitylog` ^4.12 (auditoria).
+- **Pacote local** `packages/guarda-bot` (`ricardo07g/laravel-guarda-bot`, anti-bot — ADR-0024): via
+  *path repository*, com testes e `vendor/` proprios; sera publicado no Packagist. Unica excecao a
+  `app/Modules/`: **nunca** importa `App\...`. -> `.claude/rules/modulos/guarda-bot.md`.
 
 ## Idioma
 Tudo em portugues: tabelas, models, controllers, campos, permissoes, rotas.
@@ -130,9 +133,17 @@ movimentos_estoque, caixas, **formas_pagamento**, **formas_pagamento_taxas**, **
   estavel. **Franquia diaria de ANALISES** (nao tokens) por empresa em
   `planos.limite_analises_ia_dia` (10 no Pro), resetando no fuso de Sao Paulo (o app roda em UTC).
   Cache hit e erro do provedor **nao** consomem franquia. ADR-0021.
-- **Turnstile** (Cloudflare, anti-bot) em login/registro/recuperacao: middleware `turnstile` nas rotas
-  POST + `<x-turnstile />` na view. **Desligado sem chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias):
-  widget nao renderiza e o middleware passa direto — dev, CI e testes rodam sem chave e sem rede.
+- **Anti-bot — pacote GuardaBot** (ADR-0024): todo POST publico (login, registro, recuperacao,
+  redefinicao, 2FA) passa pelo middleware `guarda-bot`, que soma sinais locais (UA declarado,
+  cabecalhos incoerentes, honeypot + tempo minimo) num score 0-100. `GUARDA_BOT_MODO=desligado|
+  observar|ativo` — `observar` so registra (1o deploy); valor desconhecido cai em `observar`. A suite
+  roda `desligado` (`phpunit.xml`). Configuracao guiada: `php artisan guarda-bot:instalar`;
+  conferencia: `guarda-bot:diagnosticar --ua=`. **Limite honesto:** agente de IA no Chrome real do
+  usuario nao e detectavel com confiabilidade — sinal de comportamento nunca bloqueia sozinho.
+- **Turnstile** (Cloudflare) e o desafio do GuardaBot em login/registro/recuperacao: middleware
+  `guarda-bot.turnstile` + `<x-guarda-bot::protecao />` (armadilha + widget) na view. **Desligado sem
+  chave** (`TURNSTILE_SITE_KEY`/`SECRET_KEY` vazias): widget nao renderiza e o middleware passa
+  direto — dev, CI e testes rodam sem chave e sem rede. Se a Cloudflare falhar, libera (fail-open).
 - **Cabecalhos de seguranca + CSP com nonce** (ADR-0023): middleware global `CabecalhosSeguranca`
   (nosniff, XFO `SAMEORIGIN`, Referrer/Permissions-Policy, COOP/CORP, HSTS so em HTTPS). A CSP nao
   tem `'unsafe-inline'` em `script-src`: **todo `<script>` inline leva `@nonce`** e nada de atributo
@@ -155,14 +166,15 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 
 ## Testes
 - `tests/Feature/` por contexto (Auth, Venda, Pagamento, Caixa, MultiTenant, MultiEmpresa, Usuario,
-  Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant) + `AuditoriaTest`,
-  `_FactoriesSmokeTest`.
+  Produto, Servico, Estoque, Despesa, Agenda, Dashboard, PerfilAcesso, Tenant, GuardaBot) +
+  `AuditoriaTest`, `_FactoriesSmokeTest`. O pacote GuardaBot tem a propria suite em
+  `packages/guarda-bot/tests` (testbench).
 - **O que cada feature precisa ter de teste e uma regua, nao um conselho**:
   `.claude/rules/testes-por-feature.md` (carrega ao editar `app/Modules/**` ou `tests/**`).
   Tenant-aware -> isolamento; rota mutavel -> 403; dinheiro -> estorno; regra de recusa -> um teste
   por recusa; JS de tela -> clique real. **Suite verde nao e cobertura.**
-- **1198 testes** (3806 asserts) cobrindo CRUD, isolamento multi-tenant/empresa, autorizacao
-  (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
+- **1200 testes** (3833 asserts) no app + **62** no pacote GuardaBot, cobrindo CRUD, isolamento
+  multi-tenant/empresa, autorizacao (403), fluxos financeiros, estoque, agenda (cobranca do atendimento, estorno ao cancelar,
   expediente e encaixe autorizado), dashboard, licenca por empresa, trial (incluindo renovacao e
   visibilidade Admin-only), uploads (normalizacao em WebP e staging preservado no erro de
   validacao), recuperacao de senha (inclusive falha de envio que nao vaza cadastro), verificacao
@@ -170,7 +182,8 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
   codigo de recuperacao, exigencia da rede, alcada e isolamento do Admin) e o
   agendador HTTP, e a analise por IA (cache por hash, cota diaria, degradacao com provedor
   desligado e segmentacao RFM), e os cabecalhos de seguranca (todo script inline renderizado com o
-  nonce do cabecalho, modos de rollout da CSP, debug travado em producao).
+  nonce do cabecalho, modos de rollout da CSP, debug travado em producao), e o anti-bot (todo POST
+  publico protegido, robo barrado em modo ativo, navegador real passando).
 - `composer test` em **SQLite in-memory** (`phpunit.xml`). Models **NAO usam `HasFactory`** —
   instancie via `XxxFactory::new()->create([...])`. Trait `tests/Concerns/CriaTenant.php`.
 - Skills `gerar-teste-model` (escrever testes/factories) e `validar-implementacao` (validar uma
@@ -179,14 +192,15 @@ dias** (mesma constante, ilimitadamente, enquanto nao houver gateway). Toda a as
 ## CI/CD
 - `.github/workflows/ci.yml` em `push`/`pull_request` para `main`: setup PHP 8.3 (pcov) -> composer
   install -> key:generate -> **PHPStan** (nivel 5 + baseline) -> **testes** (`--coverage --min=30`)
-  -> **Pint** (`--test`) -> **sync devkit** (`bin/sync-devkit.sh --check`).
+  -> **Pint** (`--test`) -> **pacote GuardaBot** (testes isolados, testbench) -> **sync devkit**
+  (`bin/sync-devkit.sh --check`).
 - `.github/workflows/code-review.yml` em `pull_request`: revisao automatica que **comenta** no PR
   (nunca reprova), priorizando tenancy, JS de tela e a regua de testes. E o unico revisor do fluxo
   que nao escreveu o codigo — todo o resto e auto-review. Sem o secret `ANTHROPIC_API_KEY`, pula.
 - Skill `checklist-pre-pr` + comando `/pre-pr` rodam a porta de qualidade localmente.
 
 ## Documentacao
-- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (23 ADRs), `docs/AUTOMACAO.md` (esta
+- `README.md` (portfolio), `CONTRIBUTING.md`, `docs/ADR/` (24 ADRs), `docs/AUTOMACAO.md` (esta
   automacao), `docs/FECHAMENTO_PORTFOLIO.md` e `docs/FASE_1_5_MULTI_EMPRESA.md` (historicos).
 
 ---
