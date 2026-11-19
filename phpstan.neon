@@ -9,6 +9,9 @@ parameters:
 
     paths:
         - app
+        # Pacote GuardaBot (ADR-0024): consumido via path repository, analisado
+        # com o app para que o gate pegue erro nele tambem.
+        - packages/guarda-bot/src
 
     # Migrations usam classes anonimas e schema dinamico; analise estatica
     # acrescenta pouco e gera ruido. O resto do app e analisado normalmente.

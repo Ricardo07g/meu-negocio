@@ -58,6 +58,14 @@ jobs:
       - name: Check code style (Pint)
         run: vendor/bin/pint --test
 
+      # O pacote GuardaBot se testa SOZINHO (testbench, vendor proprio): e o ensaio
+      # de que ele funciona fora deste app antes de ser publicado (ADR-0024).
+      - name: Pacote GuardaBot (testes isolados)
+        working-directory: packages/guarda-bot
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          vendor/bin/phpunit
+
       # O devkit/ (plugin distribuivel) e gerado a partir de .claude/. Este passo
       # garante que ninguem editou um sem re-sincronizar o outro (sem drift).
       - name: Devkit sincronizado com .claude/

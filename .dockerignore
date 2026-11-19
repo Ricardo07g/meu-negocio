@@ -6,6 +6,12 @@
 # Dependencias (rebuildadas dentro da imagem)
 vendor
 node_modules
+# Pacotes locais (path repository): so o codigo vai para a imagem, nunca o
+# vendor/lock de desenvolvimento nem os testes do pacote.
+packages/*/vendor
+packages/*/composer.lock
+packages/*/tests
+packages/*/.phpunit.cache
 
 # Segredos e ambiente local — NUNCA vao para a imagem
 .env
