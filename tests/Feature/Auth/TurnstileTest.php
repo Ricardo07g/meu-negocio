@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Auth;
 
-use App\Support\Turnstile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Ricardo07g\GuardaBot\Turnstile;
 use Tests\TestCase;
 
 /**
@@ -23,8 +23,8 @@ class TurnstileTest extends TestCase
     private function configurar(): void
     {
         config([
-            'services.turnstile.site_key' => 'chave-publica-de-teste',
-            'services.turnstile.secret_key' => 'chave-secreta-de-teste',
+            'guarda-bot.turnstile.site_key' => 'chave-publica-de-teste',
+            'guarda-bot.turnstile.secret_key' => 'chave-secreta-de-teste',
         ]);
     }
 

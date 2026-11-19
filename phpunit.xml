@@ -41,6 +41,9 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <!-- A suite nunca toca a rede: driver de IA falso, sem credencial, sem provedor. -->
         <env name="IA_DRIVER" value="fake"/>
+        <!-- GuardaBot desligado por padrao: o resto da suite posta formularios sem a
+             armadilha e com o User-Agent "Symfony". Os testes do GuardaBot ligam o modo. -->
+        <env name="GUARDA_BOT_MODO" value="desligado"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>

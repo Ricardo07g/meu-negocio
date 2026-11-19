@@ -16,6 +16,7 @@
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
         </div>
+        <x-guarda-bot::armadilha />
         <button type="submit" class="btn btn-lg btn-primary w-100">Verificar</button>
     </form>
 
@@ -31,6 +32,7 @@
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
+            <x-guarda-bot::armadilha />
             <button type="submit" class="btn btn-light w-100">Entrar com código de recuperação</button>
         </form>
     </details>
